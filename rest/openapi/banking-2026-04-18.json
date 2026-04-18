@@ -1,0 +1,1139 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Banking API",
+    "version": "1.0.0",
+    "description": "API for managing retail banking customers, accounts, balances, transactions, beneficiaries, and payments."
+  },
+  "servers": [
+    {
+      "url": "https://api.examplebank.com/v1",
+      "description": "Production"
+    },
+    {
+      "url": "https://sandbox.examplebank.com/v1",
+      "description": "Sandbox"
+    }
+  ],
+  "tags": [
+    { "name": "Customers" },
+    { "name": "Accounts" },
+    { "name": "Transactions" },
+    { "name": "Beneficiaries" },
+    { "name": "Payments" }
+  ],
+  "paths": {
+    "/customers": {
+      "get": {
+        "tags": ["Customers"],
+        "summary": "List customers",
+        "operationId": "listCustomers",
+        "parameters": [
+          { "$ref": "#/components/parameters/Page" },
+          { "$ref": "#/components/parameters/PageSize" },
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": ["active", "inactive", "suspended"]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Customers retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomerListResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["Customers"],
+        "summary": "Create customer",
+        "operationId": "createCustomer",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCustomerRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Customer created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Customer"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          }
+        }
+      }
+    },
+    "/customers/{customerId}": {
+      "get": {
+        "tags": ["Customers"],
+        "summary": "Get customer by ID",
+        "operationId": "getCustomerById",
+        "parameters": [
+          { "$ref": "#/components/parameters/CustomerId" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Customer retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Customer"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      },
+      "put": {
+        "tags": ["Customers"],
+        "summary": "Update customer",
+        "operationId": "updateCustomer",
+        "parameters": [
+          { "$ref": "#/components/parameters/CustomerId" }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateCustomerRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Customer updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Customer"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/accounts": {
+      "get": {
+        "tags": ["Accounts"],
+        "summary": "List accounts",
+        "operationId": "listAccounts",
+        "parameters": [
+          { "$ref": "#/components/parameters/Page" },
+          { "$ref": "#/components/parameters/PageSize" },
+          {
+            "name": "customerId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "accountType",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": ["checking", "savings", "loan", "credit_card"]
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": ["open", "restricted", "closed", "dormant"]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Accounts retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountListResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["Accounts"],
+        "summary": "Open account",
+        "operationId": "createAccount",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateAccountRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Account created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Account"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          }
+        }
+      }
+    },
+    "/accounts/{accountId}": {
+      "get": {
+        "tags": ["Accounts"],
+        "summary": "Get account by ID",
+        "operationId": "getAccountById",
+        "parameters": [
+          { "$ref": "#/components/parameters/AccountId" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Account retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Account"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      },
+      "put": {
+        "tags": ["Accounts"],
+        "summary": "Update account",
+        "operationId": "updateAccount",
+        "parameters": [
+          { "$ref": "#/components/parameters/AccountId" }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateAccountRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Account updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Account"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/accounts/{accountId}/balances": {
+      "get": {
+        "tags": ["Accounts"],
+        "summary": "Get account balances",
+        "operationId": "getAccountBalances",
+        "parameters": [
+          { "$ref": "#/components/parameters/AccountId" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Balances retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountBalance"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/accounts/{accountId}/transactions": {
+      "get": {
+        "tags": ["Transactions"],
+        "summary": "List transactions for an account",
+        "operationId": "listTransactions",
+        "parameters": [
+          { "$ref": "#/components/parameters/AccountId" },
+          { "$ref": "#/components/parameters/Page" },
+          { "$ref": "#/components/parameters/PageSize" },
+          {
+            "name": "fromDate",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "toDate",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "transactionType",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": ["debit", "credit", "fee", "interest", "transfer", "payment"]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Transactions retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TransactionListResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/accounts/{accountId}/beneficiaries": {
+      "get": {
+        "tags": ["Beneficiaries"],
+        "summary": "List beneficiaries for an account",
+        "operationId": "listBeneficiaries",
+        "parameters": [
+          { "$ref": "#/components/parameters/AccountId" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Beneficiaries retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BeneficiaryListResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["Beneficiaries"],
+        "summary": "Create beneficiary",
+        "operationId": "createBeneficiary",
+        "parameters": [
+          { "$ref": "#/components/parameters/AccountId" }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateBeneficiaryRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Beneficiary created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Beneficiary"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          }
+        }
+      }
+    },
+    "/accounts/{accountId}/beneficiaries/{beneficiaryId}": {
+      "get": {
+        "tags": ["Beneficiaries"],
+        "summary": "Get beneficiary by ID",
+        "operationId": "getBeneficiaryById",
+        "parameters": [
+          { "$ref": "#/components/parameters/AccountId" },
+          { "$ref": "#/components/parameters/BeneficiaryId" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Beneficiary retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Beneficiary"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      },
+      "delete": {
+        "tags": ["Beneficiaries"],
+        "summary": "Delete beneficiary",
+        "operationId": "deleteBeneficiary",
+        "parameters": [
+          { "$ref": "#/components/parameters/AccountId" },
+          { "$ref": "#/components/parameters/BeneficiaryId" }
+        ],
+        "responses": {
+          "204": {
+            "description": "Beneficiary deleted"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/payments": {
+      "get": {
+        "tags": ["Payments"],
+        "summary": "List payments",
+        "operationId": "listPayments",
+        "parameters": [
+          { "$ref": "#/components/parameters/Page" },
+          { "$ref": "#/components/parameters/PageSize" },
+          {
+            "name": "customerId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": ["pending", "processing", "completed", "failed", "cancelled"]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Payments retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentListResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["Payments"],
+        "summary": "Initiate payment",
+        "operationId": "createPayment",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreatePaymentRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Payment created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Payment"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          }
+        }
+      }
+    },
+    "/payments/{paymentId}": {
+      "get": {
+        "tags": ["Payments"],
+        "summary": "Get payment by ID",
+        "operationId": "getPaymentById",
+        "parameters": [
+          { "$ref": "#/components/parameters/PaymentId" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Payment retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Payment"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "parameters": {
+      "CustomerId": {
+        "name": "customerId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "AccountId": {
+        "name": "accountId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "BeneficiaryId": {
+        "name": "beneficiaryId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "PaymentId": {
+        "name": "paymentId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "Page": {
+        "name": "page",
+        "in": "query",
+        "schema": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 1
+        }
+      },
+      "PageSize": {
+        "name": "pageSize",
+        "in": "query",
+        "schema": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "default": 25
+        }
+      }
+    },
+    "responses": {
+      "BadRequest": {
+        "description": "Bad request",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            }
+          }
+        }
+      },
+      "NotFound": {
+        "description": "Resource not found",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            }
+          }
+        }
+      },
+      "Conflict": {
+        "description": "Conflict",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            }
+          }
+        }
+      }
+    },
+    "schemas": {
+      "Customer": {
+        "type": "object",
+        "required": ["id", "firstName", "lastName", "status"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "customerNumber": {
+            "type": "string"
+          },
+          "firstName": {
+            "type": "string"
+          },
+          "lastName": {
+            "type": "string"
+          },
+          "dateOfBirth": {
+            "type": "string",
+            "format": "date"
+          },
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "phone": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["active", "inactive", "suspended"]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "CreateCustomerRequest": {
+        "type": "object",
+        "required": ["firstName", "lastName", "dateOfBirth"],
+        "properties": {
+          "firstName": {
+            "type": "string"
+          },
+          "lastName": {
+            "type": "string"
+          },
+          "dateOfBirth": {
+            "type": "string",
+            "format": "date"
+          },
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "phone": {
+            "type": "string"
+          }
+        }
+      },
+      "UpdateCustomerRequest": {
+        "type": "object",
+        "properties": {
+          "firstName": {
+            "type": "string"
+          },
+          "lastName": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "phone": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["active", "inactive", "suspended"]
+          }
+        }
+      },
+      "Account": {
+        "type": "object",
+        "required": ["id", "customerId", "accountNumber", "accountType", "currency", "status"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "customerId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "accountNumber": {
+            "type": "string"
+          },
+          "iban": {
+            "type": "string"
+          },
+          "accountType": {
+            "type": "string",
+            "enum": ["checking", "savings", "loan", "credit_card"]
+          },
+          "currency": {
+            "type": "string",
+            "example": "USD"
+          },
+          "nickname": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["open", "restricted", "closed", "dormant"]
+          },
+          "openedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "CreateAccountRequest": {
+        "type": "object",
+        "required": ["customerId", "accountType", "currency"],
+        "properties": {
+          "customerId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "accountType": {
+            "type": "string",
+            "enum": ["checking", "savings", "loan", "credit_card"]
+          },
+          "currency": {
+            "type": "string"
+          },
+          "nickname": {
+            "type": "string"
+          }
+        }
+      },
+      "UpdateAccountRequest": {
+        "type": "object",
+        "properties": {
+          "nickname": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["open", "restricted", "closed", "dormant"]
+          }
+        }
+      },
+      "AccountBalance": {
+        "type": "object",
+        "required": ["accountId", "currency", "ledgerBalance", "availableBalance"],
+        "properties": {
+          "accountId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "ledgerBalance": {
+            "type": "number",
+            "format": "double"
+          },
+          "availableBalance": {
+            "type": "number",
+            "format": "double"
+          },
+          "pendingCredits": {
+            "type": "number",
+            "format": "double"
+          },
+          "pendingDebits": {
+            "type": "number",
+            "format": "double"
+          },
+          "asOf": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "Transaction": {
+        "type": "object",
+        "required": ["id", "accountId", "transactionType", "amount", "currency", "postedAt"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "accountId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "transactionType": {
+            "type": "string",
+            "enum": ["debit", "credit", "fee", "interest", "transfer", "payment"]
+          },
+          "amount": {
+            "type": "number",
+            "format": "double"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "merchantName": {
+            "type": "string"
+          },
+          "reference": {
+            "type": "string"
+          },
+          "postedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "valueDate": {
+            "type": "string",
+            "format": "date"
+          }
+        }
+      },
+      "Beneficiary": {
+        "type": "object",
+        "required": ["id", "accountId", "name", "bankAccountNumber", "bankCode", "status"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "accountId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "bankAccountNumber": {
+            "type": "string"
+          },
+          "iban": {
+            "type": "string"
+          },
+          "bankCode": {
+            "type": "string"
+          },
+          "country": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["pending_verification", "active", "blocked"]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "CreateBeneficiaryRequest": {
+        "type": "object",
+        "required": ["name", "bankAccountNumber", "bankCode"],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "bankAccountNumber": {
+            "type": "string"
+          },
+          "iban": {
+            "type": "string"
+          },
+          "bankCode": {
+            "type": "string"
+          },
+          "country": {
+            "type": "string"
+          }
+        }
+      },
+      "Payment": {
+        "type": "object",
+        "required": ["id", "sourceAccountId", "amount", "currency", "paymentType", "status", "createdAt"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "sourceAccountId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "beneficiaryId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "amount": {
+            "type": "number",
+            "format": "double"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "paymentType": {
+            "type": "string",
+            "enum": ["internal_transfer", "domestic_transfer", "international_wire", "bill_payment"]
+          },
+          "reference": {
+            "type": "string"
+          },
+          "executionDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["pending", "processing", "completed", "failed", "cancelled"]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "completedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "CreatePaymentRequest": {
+        "type": "object",
+        "required": ["sourceAccountId", "amount", "currency", "paymentType"],
+        "properties": {
+          "sourceAccountId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "beneficiaryId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "amount": {
+            "type": "number",
+            "format": "double",
+            "minimum": 0.01
+          },
+          "currency": {
+            "type": "string"
+          },
+          "paymentType": {
+            "type": "string",
+            "enum": ["internal_transfer", "domestic_transfer", "international_wire", "bill_payment"]
+          },
+          "reference": {
+            "type": "string"
+          },
+          "executionDate": {
+            "type": "string",
+            "format": "date"
+          }
+        }
+      },
+      "Pagination": {
+        "type": "object",
+        "required": ["page", "pageSize", "totalItems", "totalPages"],
+        "properties": {
+          "page": {
+            "type": "integer"
+          },
+          "pageSize": {
+            "type": "integer"
+          },
+          "totalItems": {
+            "type": "integer"
+          },
+          "totalPages": {
+            "type": "integer"
+          }
+        }
+      },
+      "CustomerListResponse": {
+        "type": "object",
+        "required": ["data", "pagination"],
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Customer"
+            }
+          },
+          "pagination": {
+            "$ref": "#/components/schemas/Pagination"
+          }
+        }
+      },
+      "AccountListResponse": {
+        "type": "object",
+        "required": ["data", "pagination"],
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Account"
+            }
+          },
+          "pagination": {
+            "$ref": "#/components/schemas/Pagination"
+          }
+        }
+      },
+      "TransactionListResponse": {
+        "type": "object",
+        "required": ["data", "pagination"],
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Transaction"
+            }
+          },
+          "pagination": {
+            "$ref": "#/components/schemas/Pagination"
+          }
+        }
+      },
+      "BeneficiaryListResponse": {
+        "type": "object",
+        "required": ["data"],
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Beneficiary"
+            }
+          }
+        }
+      },
+      "PaymentListResponse": {
+        "type": "object",
+        "required": ["data", "pagination"],
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Payment"
+            }
+          },
+          "pagination": {
+            "$ref": "#/components/schemas/Pagination"
+          }
+        }
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "required": ["code", "message"],
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "details": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "correlationId": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    }
+  },
+  "security": [
+    {
+      "bearerAuth": []
+    }
+  ]
+}
