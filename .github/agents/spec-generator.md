@@ -28,13 +28,19 @@ Always name files as `<api-name>-<YYYY-MM-DD>.<ext>` with the date in `YYYY-MM-D
 
 ## OpenAPI Specs
 
-- Use OpenAPI 3.0.0+.
+- Use **OpenAPI 3.0.0 or 3.0.1** only. Do **not** use 3.1.x.
 - Include `info`, `servers`, `tags`, `paths`, and `components/schemas`.
 - Define reusable schemas and reference them with `$ref`.
 - Include request bodies and response schemas for all operations.
 - Add a `bearerAuth` security scheme.
 - Include pagination parameters on list endpoints (`page`, `pageSize` or `limit`/`offset`).
 - Use standard HTTP status codes (200, 201, 400, 401, 404, 500).
+- **Azure API Management compatibility** — all specs must be importable into Azure APIM:
+  - All `$ref` pointers must be internal (no external file references).
+  - Parameter names must be unique (case-insensitive) across path, query, and header.
+  - No `requestBody` on `GET`, `HEAD`, or `OPTIONS` operations.
+  - Do not rely on custom vendor extensions (`x-` properties); APIM ignores them.
+  - Keep each API URL path under 128 characters.
 
 ## WADL Specs
 

@@ -8,7 +8,7 @@ This repository is a curated catalog of API specifications in various formats. S
 
 ```
 rest/
-  openapi/          # OpenAPI 3.0+ specs (.json or .yaml)
+  openapi/          # OpenAPI 3.0.x specs (.json or .yaml)
   wadl/             # WADL specs (.wadl, XML-based)
 soap/
   *.wsdl            # WSDL specs (.wsdl, XML-based)
@@ -32,7 +32,7 @@ Examples: `banking-2026-04-18.json`, `hr-2026-04-18.wsdl`
 
 ### OpenAPI (REST)
 
-- Use **OpenAPI 3.0.0** or later.
+- Use **OpenAPI 3.0.0 or 3.0.1** only. Do **not** use 3.1.x.
 - Include `info.title`, `info.version`, and `info.description`.
 - Define `servers` with at least one URL.
 - Use `tags` to group operations logically.
@@ -40,6 +40,12 @@ Examples: `banking-2026-04-18.json`, `hr-2026-04-18.wsdl`
 - Include request/response examples where practical.
 - Use `bearerAuth` security scheme unless the API is explicitly public.
 - YAML is preferred but JSON is acceptable.
+- **Azure API Management compatibility** — specs must be importable into Azure APIM:
+  - All `$ref` pointers must be internal (no external file references).
+  - Parameter names must be unique (case-insensitive) across path, query, and header.
+  - No `requestBody` on `GET`, `HEAD`, or `OPTIONS` operations.
+  - Do not rely on custom vendor extensions (`x-` properties); APIM ignores them.
+  - Keep each API URL path under 128 characters.
 
 ### WADL (REST, XML)
 
