@@ -1,0 +1,1157 @@
+openapi: 3.0.0
+info:
+  title: Claims Management API
+  version: 1.0.0
+  description: >
+    API for managing insurance policies, policyholders, claims,
+    claim documents, reserve updates, adjuster assignments, and payouts.
+
+servers:
+  - url: https://api.exampleinsurance.com/v1
+    description: Production
+  - url: https://sandbox.exampleinsurance.com/v1
+    description: Sandbox
+
+tags:
+  - name: Policyholders
+  - name: Policies
+  - name: Claims
+  - name: Documents
+  - name: Adjusters
+  - name: Payouts
+
+security:
+  - bearerAuth: []
+
+paths:
+  /policyholders:
+    get:
+      tags: [Policyholders]
+      summary: List policyholders
+      operationId: listPolicyholders
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [active, inactive]
+      responses:
+        '200':
+          description: Policyholders retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PolicyholderListResponse'
+    post:
+      tags: [Policyholders]
+      summary: Create policyholder
+      operationId: createPolicyholder
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePolicyholderRequest'
+      responses:
+        '201':
+          description: Policyholder created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Policyholder'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /policyholders/{policyholderId}:
+    get:
+      tags: [Policyholders]
+      summary: Get policyholder by ID
+      operationId: getPolicyholderById
+      parameters:
+        - $ref: '#/components/parameters/PolicyholderId'
+      responses:
+        '200':
+          description: Policyholder retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Policyholder'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      tags: [Policyholders]
+      summary: Update policyholder
+      operationId: updatePolicyholder
+      parameters:
+        - $ref: '#/components/parameters/PolicyholderId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdatePolicyholderRequest'
+      responses:
+        '200':
+          description: Policyholder updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Policyholder'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /policies:
+    get:
+      tags: [Policies]
+      summary: List policies
+      operationId: listPolicies
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+        - name: policyholderId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: policyType
+          in: query
+          schema:
+            type: string
+            enum: [auto, home, commercial, liability, health]
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [active, lapsed, cancelled, expired]
+      responses:
+        '200':
+          description: Policies retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PolicyListResponse'
+    post:
+      tags: [Policies]
+      summary: Create policy
+      operationId: createPolicy
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePolicyRequest'
+      responses:
+        '201':
+          description: Policy created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Policy'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /policies/{policyId}:
+    get:
+      tags: [Policies]
+      summary: Get policy by ID
+      operationId: getPolicyById
+      parameters:
+        - $ref: '#/components/parameters/PolicyId'
+      responses:
+        '200':
+          description: Policy retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Policy'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      tags: [Policies]
+      summary: Update policy
+      operationId: updatePolicy
+      parameters:
+        - $ref: '#/components/parameters/PolicyId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdatePolicyRequest'
+      responses:
+        '200':
+          description: Policy updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Policy'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /claims:
+    get:
+      tags: [Claims]
+      summary: List claims
+      operationId: listClaims
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+        - name: policyId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: policyholderId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [reported, under_review, investigating, approved, denied, closed]
+        - name: lossDateFrom
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: lossDateTo
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Claims retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClaimListResponse'
+    post:
+      tags: [Claims]
+      summary: Create claim
+      operationId: createClaim
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateClaimRequest'
+      responses:
+        '201':
+          description: Claim created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Claim'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /claims/{claimId}:
+    get:
+      tags: [Claims]
+      summary: Get claim by ID
+      operationId: getClaimById
+      parameters:
+        - $ref: '#/components/parameters/ClaimId'
+      responses:
+        '200':
+          description: Claim retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Claim'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      tags: [Claims]
+      summary: Update claim
+      operationId: updateClaim
+      parameters:
+        - $ref: '#/components/parameters/ClaimId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateClaimRequest'
+      responses:
+        '200':
+          description: Claim updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Claim'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /claims/{claimId}/assign-adjuster:
+    post:
+      tags: [Adjusters]
+      summary: Assign adjuster to claim
+      operationId: assignAdjusterToClaim
+      parameters:
+        - $ref: '#/components/parameters/ClaimId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AssignAdjusterRequest'
+      responses:
+        '200':
+          description: Adjuster assigned successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Claim'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /claims/{claimId}/reserve:
+    post:
+      tags: [Claims]
+      summary: Update claim reserve
+      operationId: updateClaimReserve
+      parameters:
+        - $ref: '#/components/parameters/ClaimId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateReserveRequest'
+      responses:
+        '200':
+          description: Claim reserve updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClaimReserve'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /claims/{claimId}/documents:
+    get:
+      tags: [Documents]
+      summary: List claim documents
+      operationId: listClaimDocuments
+      parameters:
+        - $ref: '#/components/parameters/ClaimId'
+      responses:
+        '200':
+          description: Claim documents retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClaimDocumentListResponse'
+    post:
+      tags: [Documents]
+      summary: Add claim document metadata
+      operationId: createClaimDocument
+      parameters:
+        - $ref: '#/components/parameters/ClaimId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateClaimDocumentRequest'
+      responses:
+        '201':
+          description: Claim document created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClaimDocument'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /claims/{claimId}/documents/{documentId}:
+    get:
+      tags: [Documents]
+      summary: Get claim document by ID
+      operationId: getClaimDocumentById
+      parameters:
+        - $ref: '#/components/parameters/ClaimId'
+        - $ref: '#/components/parameters/DocumentId'
+      responses:
+        '200':
+          description: Claim document retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClaimDocument'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      tags: [Documents]
+      summary: Delete claim document
+      operationId: deleteClaimDocument
+      parameters:
+        - $ref: '#/components/parameters/ClaimId'
+        - $ref: '#/components/parameters/DocumentId'
+      responses:
+        '204':
+          description: Claim document deleted
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /adjusters:
+    get:
+      tags: [Adjusters]
+      summary: List adjusters
+      operationId: listAdjusters
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [active, inactive]
+        - name: region
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Adjusters retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdjusterListResponse'
+    post:
+      tags: [Adjusters]
+      summary: Create adjuster
+      operationId: createAdjuster
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateAdjusterRequest'
+      responses:
+        '201':
+          description: Adjuster created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Adjuster'
+
+  /adjusters/{adjusterId}:
+    get:
+      tags: [Adjusters]
+      summary: Get adjuster by ID
+      operationId: getAdjusterById
+      parameters:
+        - $ref: '#/components/parameters/AdjusterId'
+      responses:
+        '200':
+          description: Adjuster retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Adjuster'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /payouts:
+    get:
+      tags: [Payouts]
+      summary: List payouts
+      operationId: listPayouts
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+        - name: claimId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [pending, approved, issued, failed, cancelled]
+      responses:
+        '200':
+          description: Payouts retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PayoutListResponse'
+    post:
+      tags: [Payouts]
+      summary: Create payout
+      operationId: createPayout
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePayoutRequest'
+      responses:
+        '201':
+          description: Payout created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Payout'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /payouts/{payoutId}:
+    get:
+      tags: [Payouts]
+      summary: Get payout by ID
+      operationId: getPayoutById
+      parameters:
+        - $ref: '#/components/parameters/PayoutId'
+      responses:
+        '200':
+          description: Payout retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Payout'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+components:
+  parameters:
+    PolicyholderId:
+      name: policyholderId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+
+    PolicyId:
+      name: policyId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+
+    ClaimId:
+      name: claimId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+
+    DocumentId:
+      name: documentId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+
+    AdjusterId:
+      name: adjusterId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+
+    PayoutId:
+      name: payoutId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+
+    Page:
+      name: page
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        default: 1
+
+    PageSize:
+      name: pageSize
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 25
+
+  responses:
+    BadRequest:
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    Conflict:
+      description: Conflict
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    Policyholder:
+      type: object
+      required:
+        - id
+        - firstName
+        - lastName
+        - status
+      properties:
+        id:
+          type: string
+          format: uuid
+        customerNumber:
+          type: string
+        firstName:
+          type: string
+        lastName:
+          type: string
+        email:
+          type: string
+          format: email
+        phone:
+          type: string
+        dateOfBirth:
+          type: string
+          format: date
+        status:
+          type: string
+          enum: [active, inactive]
+        createdAt:
+          type: string
+          format: date-time
+
+    CreatePolicyholderRequest:
+      type: object
+      required:
+        - firstName
+        - lastName
+      properties:
+        firstName:
+          type: string
+        lastName:
+          type: string
+        email:
+          type: string
+          format: email
+        phone:
+          type: string
+        dateOfBirth:
+          type: string
+          format: date
+
+    UpdatePolicyholderRequest:
+      type: object
+      properties:
+        firstName:
+          type: string
+        lastName:
+          type: string
+        email:
+          type: string
+          format: email
+        phone:
+          type: string
+        status:
+          type: string
+          enum: [active, inactive]
+
+    Policy:
+      type: object
+      required:
+        - id
+        - policyNumber
+        - policyholderId
+        - policyType
+        - status
+      properties:
+        id:
+          type: string
+          format: uuid
+        policyNumber:
+          type: string
+        policyholderId:
+          type: string
+          format: uuid
+        policyType:
+          type: string
+          enum: [auto, home, commercial, liability, health]
+        effectiveDate:
+          type: string
+          format: date
+        expirationDate:
+          type: string
+          format: date
+        premiumAmount:
+          type: number
+          format: double
+        currency:
+          type: string
+          example: USD
+        status:
+          type: string
+          enum: [active, lapsed, cancelled, expired]
+
+    CreatePolicyRequest:
+      type: object
+      required:
+        - policyholderId
+        - policyType
+        - effectiveDate
+      properties:
+        policyholderId:
+          type: string
+          format: uuid
+        policyType:
+          type: string
+          enum: [auto, home, commercial, liability, health]
+        effectiveDate:
+          type: string
+          format: date
+        expirationDate:
+          type: string
+          format: date
+        premiumAmount:
+          type: number
+          format: double
+        currency:
+          type: string
+
+    UpdatePolicyRequest:
+      type: object
+      properties:
+        expirationDate:
+          type: string
+          format: date
+        premiumAmount:
+          type: number
+          format: double
+        status:
+          type: string
+          enum: [active, lapsed, cancelled, expired]
+
+    Claim:
+      type: object
+      required:
+        - id
+        - claimNumber
+        - policyId
+        - policyholderId
+        - status
+        - reportedDate
+      properties:
+        id:
+          type: string
+          format: uuid
+        claimNumber:
+          type: string
+        policyId:
+          type: string
+          format: uuid
+        policyholderId:
+          type: string
+          format: uuid
+        lossDate:
+          type: string
+          format: date
+        reportedDate:
+          type: string
+          format: date
+        lossType:
+          type: string
+        description:
+          type: string
+        status:
+          type: string
+          enum: [reported, under_review, investigating, approved, denied, closed]
+        assignedAdjusterId:
+          type: string
+          format: uuid
+        reserveAmount:
+          type: number
+          format: double
+        currency:
+          type: string
+        settlementAmount:
+          type: number
+          format: double
+
+    CreateClaimRequest:
+      type: object
+      required:
+        - policyId
+        - policyholderId
+        - reportedDate
+      properties:
+        policyId:
+          type: string
+          format: uuid
+        policyholderId:
+          type: string
+          format: uuid
+        lossDate:
+          type: string
+          format: date
+        reportedDate:
+          type: string
+          format: date
+        lossType:
+          type: string
+        description:
+          type: string
+
+    UpdateClaimRequest:
+      type: object
+      properties:
+        lossType:
+          type: string
+        description:
+          type: string
+        status:
+          type: string
+          enum: [reported, under_review, investigating, approved, denied, closed]
+        settlementAmount:
+          type: number
+          format: double
+
+    ClaimReserve:
+      type: object
+      required:
+        - claimId
+        - reserveAmount
+        - currency
+        - updatedAt
+      properties:
+        claimId:
+          type: string
+          format: uuid
+        reserveAmount:
+          type: number
+          format: double
+        currency:
+          type: string
+        reason:
+          type: string
+        updatedBy:
+          type: string
+        updatedAt:
+          type: string
+          format: date-time
+
+    UpdateReserveRequest:
+      type: object
+      required:
+        - reserveAmount
+        - currency
+      properties:
+        reserveAmount:
+          type: number
+          format: double
+        currency:
+          type: string
+        reason:
+          type: string
+
+    ClaimDocument:
+      type: object
+      required:
+        - id
+        - claimId
+        - fileName
+        - documentType
+      properties:
+        id:
+          type: string
+          format: uuid
+        claimId:
+          type: string
+          format: uuid
+        fileName:
+          type: string
+        documentType:
+          type: string
+          enum: [photo, police_report, invoice, medical_report, estimate, other]
+        contentType:
+          type: string
+        uploadedBy:
+          type: string
+        uploadedAt:
+          type: string
+          format: date-time
+        storageUrl:
+          type: string
+          format: uri
+
+    CreateClaimDocumentRequest:
+      type: object
+      required:
+        - fileName
+        - documentType
+      properties:
+        fileName:
+          type: string
+        documentType:
+          type: string
+          enum: [photo, police_report, invoice, medical_report, estimate, other]
+        contentType:
+          type: string
+        storageUrl:
+          type: string
+          format: uri
+
+    Adjuster:
+      type: object
+      required:
+        - id
+        - employeeNumber
+        - firstName
+        - lastName
+        - status
+      properties:
+        id:
+          type: string
+          format: uuid
+        employeeNumber:
+          type: string
+        firstName:
+          type: string
+        lastName:
+          type: string
+        email:
+          type: string
+          format: email
+        region:
+          type: string
+        status:
+          type: string
+          enum: [active, inactive]
+
+    CreateAdjusterRequest:
+      type: object
+      required:
+        - employeeNumber
+        - firstName
+        - lastName
+      properties:
+        employeeNumber:
+          type: string
+        firstName:
+          type: string
+        lastName:
+          type: string
+        email:
+          type: string
+          format: email
+        region:
+          type: string
+
+    AssignAdjusterRequest:
+      type: object
+      required:
+        - adjusterId
+      properties:
+        adjusterId:
+          type: string
+          format: uuid
+
+    Payout:
+      type: object
+      required:
+        - id
+        - claimId
+        - amount
+        - currency
+        - paymentMethod
+        - status
+      properties:
+        id:
+          type: string
+          format: uuid
+        claimId:
+          type: string
+          format: uuid
+        payeeName:
+          type: string
+        amount:
+          type: number
+          format: double
+        currency:
+          type: string
+        paymentMethod:
+          type: string
+          enum: [ach, wire, check]
+        status:
+          type: string
+          enum: [pending, approved, issued, failed, cancelled]
+        issuedAt:
+          type: string
+          format: date-time
+        referenceNumber:
+          type: string
+
+    CreatePayoutRequest:
+      type: object
+      required:
+        - claimId
+        - amount
+        - currency
+        - paymentMethod
+      properties:
+        claimId:
+          type: string
+          format: uuid
+        payeeName:
+          type: string
+        amount:
+          type: number
+          format: double
+          minimum: 0.01
+        currency:
+          type: string
+        paymentMethod:
+          type: string
+          enum: [ach, wire, check]
+
+    Pagination:
+      type: object
+      required:
+        - page
+        - pageSize
+        - totalItems
+        - totalPages
+      properties:
+        page:
+          type: integer
+        pageSize:
+          type: integer
+        totalItems:
+          type: integer
+        totalPages:
+          type: integer
+
+    PolicyholderListResponse:
+      type: object
+      required:
+        - data
+        - pagination
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Policyholder'
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+
+    PolicyListResponse:
+      type: object
+      required:
+        - data
+        - pagination
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Policy'
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+
+    ClaimListResponse:
+      type: object
+      required:
+        - data
+        - pagination
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Claim'
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+
+    ClaimDocumentListResponse:
+      type: object
+      required:
+        - data
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/ClaimDocument'
+
+    AdjusterListResponse:
+      type: object
+      required:
+        - data
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Adjuster'
+
+    PayoutListResponse:
+      type: object
+      required:
+        - data
+        - pagination
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Payout'
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+
+    ErrorResponse:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+        details:
+          type: array
+          items:
+            type: string
+        correlationId:
+          type: string
