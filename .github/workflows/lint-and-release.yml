@@ -1,0 +1,105 @@
+name: Lint & Release API Specs
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  lint:
+    name: Lint Specs
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Spectral
+        run: npm install -g @stoplight/spectral-cli
+
+      - name: Install libxml2 utilities
+        run: sudo apt-get update && sudo apt-get install -y libxml2-utils
+
+      - name: Lint OpenAPI specs
+        run: |
+          echo "🔍 Linting OpenAPI specs..."
+          EXIT_CODE=0
+          for spec in rest/openapi/*.json rest/openapi/*.yaml rest/openapi/*.yml; do
+            [ -f "$spec" ] || continue
+            echo "  ➜ $spec"
+            if ! spectral lint "$spec" --ruleset builtin; then
+              EXIT_CODE=1
+            fi
+          done
+          exit $EXIT_CODE
+
+      - name: Validate WADL files (XML well-formedness)
+        run: |
+          echo "🔍 Validating WADL files..."
+          EXIT_CODE=0
+          for wadl in rest/wadl/*.wadl; do
+            [ -f "$wadl" ] || continue
+            echo "  ➜ $wadl"
+            if ! xmllint --noout "$wadl"; then
+              EXIT_CODE=1
+            fi
+          done
+          exit $EXIT_CODE
+
+      - name: Validate WSDL files (XML well-formedness)
+        run: |
+          echo "🔍 Validating WSDL files..."
+          EXIT_CODE=0
+          for wsdl in soap/*.wsdl; do
+            [ -f "$wsdl" ] || continue
+            echo "  ➜ $wsdl"
+            if ! xmllint --noout "$wsdl"; then
+              EXIT_CODE=1
+            fi
+          done
+          exit $EXIT_CODE
+
+  release:
+    name: Release
+    needs: lint
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Generate version tag
+        id: version
+        run: |
+          TAG="v$(date +'%Y.%m.%d')-$(echo ${GITHUB_SHA} | cut -c1-7)"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+
+      - name: Package specs
+        run: |
+          mkdir -p dist
+          tar -czf dist/api-specs-${{ steps.version.outputs.tag }}.tar.gz \
+            --exclude='.git' \
+            --exclude='.github' \
+            --exclude='dist' \
+            --exclude='node_modules' \
+            rest/ soap/ README.md LICENSE
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          name: API Specs ${{ steps.version.outputs.tag }}
+          body: |
+            📦 API Specs release from merge to `main`.
+
+            **Commit:** ${{ github.sha }}
+          files: dist/api-specs-${{ steps.version.outputs.tag }}.tar.gz
+          generate_release_notes: true
