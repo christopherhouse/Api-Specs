@@ -1,0 +1,379 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wsdl:definitions
+    name="HrService"
+    targetNamespace="http://schemas.example.com/hr/2026/01"
+    xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/"
+    xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/"
+    xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+    xmlns:tns="http://schemas.example.com/hr/2026/01">
+
+  <wsdl:types>
+    <xsd:schema
+        targetNamespace="http://schemas.example.com/hr/2026/01"
+        elementFormDefault="qualified"
+        attributeFormDefault="unqualified">
+
+      <!-- Common simple types -->
+      <xsd:simpleType name="EmploymentStatus">
+        <xsd:restriction base="xsd:string">
+          <xsd:enumeration value="Active"/>
+          <xsd:enumeration value="Inactive"/>
+          <xsd:enumeration value="LeaveOfAbsence"/>
+          <xsd:enumeration value="Terminated"/>
+        </xsd:restriction>
+      </xsd:simpleType>
+
+      <xsd:simpleType name="DepartmentCode">
+        <xsd:restriction base="xsd:string">
+          <xsd:minLength value="1"/>
+          <xsd:maxLength value="50"/>
+        </xsd:restriction>
+      </xsd:simpleType>
+
+      <!-- Core complex types -->
+      <xsd:complexType name="Employee">
+        <xsd:sequence>
+          <xsd:element name="employeeId" type="xsd:string"/>
+          <xsd:element name="employeeNumber" type="xsd:string" minOccurs="0"/>
+          <xsd:element name="firstName" type="xsd:string"/>
+          <xsd:element name="lastName" type="xsd:string"/>
+          <xsd:element name="displayName" type="xsd:string" minOccurs="0"/>
+          <xsd:element name="email" type="xsd:string" minOccurs="0"/>
+          <xsd:element name="phone" type="xsd:string" minOccurs="0"/>
+          <xsd:element name="departmentCode" type="tns:DepartmentCode" minOccurs="0"/>
+          <xsd:element name="departmentName" type="xsd:string" minOccurs="0"/>
+          <xsd:element name="jobTitle" type="xsd:string" minOccurs="0"/>
+          <xsd:element name="managerEmployeeId" type="xsd:string" minOccurs="0"/>
+          <xsd:element name="employmentStatus" type="tns:EmploymentStatus"/>
+          <xsd:element name="hireDate" type="xsd:date" minOccurs="0"/>
+          <xsd:element name="terminationDate" type="xsd:date" minOccurs="0"/>
+          <xsd:element name="lastUpdatedUtc" type="xsd:dateTime" minOccurs="0"/>
+        </xsd:sequence>
+      </xsd:complexType>
+
+      <xsd:complexType name="Department">
+        <xsd:sequence>
+          <xsd:element name="departmentCode" type="tns:DepartmentCode"/>
+          <xsd:element name="departmentName" type="xsd:string"/>
+          <xsd:element name="managerEmployeeId" type="xsd:string" minOccurs="0"/>
+          <xsd:element name="costCenter" type="xsd:string" minOccurs="0"/>
+          <xsd:element name="active" type="xsd:boolean"/>
+        </xsd:sequence>
+      </xsd:complexType>
+
+      <xsd:complexType name="EmployeeSummary">
+        <xsd:sequence>
+          <xsd:element name="employeeId" type="xsd:string"/>
+          <xsd:element name="employeeNumber" type="xsd:string" minOccurs="0"/>
+          <xsd:element name="displayName" type="xsd:string"/>
+          <xsd:element name="departmentCode" type="tns:DepartmentCode" minOccurs="0"/>
+          <xsd:element name="jobTitle" type="xsd:string" minOccurs="0"/>
+          <xsd:element name="employmentStatus" type="tns:EmploymentStatus"/>
+        </xsd:sequence>
+      </xsd:complexType>
+
+      <xsd:complexType name="EmployeeSummaryList">
+        <xsd:sequence>
+          <xsd:element name="employee" type="tns:EmployeeSummary" minOccurs="0" maxOccurs="unbounded"/>
+        </xsd:sequence>
+      </xsd:complexType>
+
+      <xsd:complexType name="DepartmentList">
+        <xsd:sequence>
+          <xsd:element name="department" type="tns:Department" minOccurs="0" maxOccurs="unbounded"/>
+        </xsd:sequence>
+      </xsd:complexType>
+
+      <xsd:complexType name="Error">
+        <xsd:sequence>
+          <xsd:element name="code" type="xsd:string"/>
+          <xsd:element name="message" type="xsd:string"/>
+          <xsd:element name="details" type="xsd:string" minOccurs="0"/>
+        </xsd:sequence>
+      </xsd:complexType>
+
+      <!-- Requests / Responses -->
+      <xsd:element name="GetEmployeeRequest">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="employeeId" type="xsd:string"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+      <xsd:element name="GetEmployeeResponse">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="employee" type="tns:Employee" minOccurs="0"/>
+            <xsd:element name="error" type="tns:Error" minOccurs="0"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+      <xsd:element name="SearchEmployeesRequest">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="departmentCode" type="tns:DepartmentCode" minOccurs="0"/>
+            <xsd:element name="employmentStatus" type="tns:EmploymentStatus" minOccurs="0"/>
+            <xsd:element name="managerEmployeeId" type="xsd:string" minOccurs="0"/>
+            <xsd:element name="pageNumber" type="xsd:int" minOccurs="0"/>
+            <xsd:element name="pageSize" type="xsd:int" minOccurs="0"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+      <xsd:element name="SearchEmployeesResponse">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="employees" type="tns:EmployeeSummaryList" minOccurs="0"/>
+            <xsd:element name="totalCount" type="xsd:int"/>
+            <xsd:element name="error" type="tns:Error" minOccurs="0"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+      <xsd:element name="CreateEmployeeRequest">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="employeeNumber" type="xsd:string" minOccurs="0"/>
+            <xsd:element name="firstName" type="xsd:string"/>
+            <xsd:element name="lastName" type="xsd:string"/>
+            <xsd:element name="email" type="xsd:string" minOccurs="0"/>
+            <xsd:element name="phone" type="xsd:string" minOccurs="0"/>
+            <xsd:element name="departmentCode" type="tns:DepartmentCode" minOccurs="0"/>
+            <xsd:element name="jobTitle" type="xsd:string" minOccurs="0"/>
+            <xsd:element name="managerEmployeeId" type="xsd:string" minOccurs="0"/>
+            <xsd:element name="hireDate" type="xsd:date" minOccurs="0"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+      <xsd:element name="CreateEmployeeResponse">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="employee" type="tns:Employee" minOccurs="0"/>
+            <xsd:element name="error" type="tns:Error" minOccurs="0"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+      <xsd:element name="UpdateEmployeeRequest">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="employeeId" type="xsd:string"/>
+            <xsd:element name="firstName" type="xsd:string" minOccurs="0"/>
+            <xsd:element name="lastName" type="xsd:string" minOccurs="0"/>
+            <xsd:element name="email" type="xsd:string" minOccurs="0"/>
+            <xsd:element name="phone" type="xsd:string" minOccurs="0"/>
+            <xsd:element name="departmentCode" type="tns:DepartmentCode" minOccurs="0"/>
+            <xsd:element name="jobTitle" type="xsd:string" minOccurs="0"/>
+            <xsd:element name="managerEmployeeId" type="xsd:string" minOccurs="0"/>
+            <xsd:element name="employmentStatus" type="tns:EmploymentStatus" minOccurs="0"/>
+            <xsd:element name="terminationDate" type="xsd:date" minOccurs="0"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+      <xsd:element name="UpdateEmployeeResponse">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="employee" type="tns:Employee" minOccurs="0"/>
+            <xsd:element name="error" type="tns:Error" minOccurs="0"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+      <xsd:element name="TerminateEmployeeRequest">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="employeeId" type="xsd:string"/>
+            <xsd:element name="terminationDate" type="xsd:date"/>
+            <xsd:element name="reason" type="xsd:string" minOccurs="0"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+      <xsd:element name="TerminateEmployeeResponse">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="employee" type="tns:Employee" minOccurs="0"/>
+            <xsd:element name="error" type="tns:Error" minOccurs="0"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+      <xsd:element name="ListDepartmentsRequest">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="activeOnly" type="xsd:boolean" minOccurs="0"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+      <xsd:element name="ListDepartmentsResponse">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="departments" type="tns:DepartmentList" minOccurs="0"/>
+            <xsd:element name="error" type="tns:Error" minOccurs="0"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+    </xsd:schema>
+  </wsdl:types>
+
+  <!-- Messages -->
+  <wsdl:message name="GetEmployeeInput">
+    <wsdl:part name="parameters" element="tns:GetEmployeeRequest"/>
+  </wsdl:message>
+
+  <wsdl:message name="GetEmployeeOutput">
+    <wsdl:part name="parameters" element="tns:GetEmployeeResponse"/>
+  </wsdl:message>
+
+  <wsdl:message name="SearchEmployeesInput">
+    <wsdl:part name="parameters" element="tns:SearchEmployeesRequest"/>
+  </wsdl:message>
+
+  <wsdl:message name="SearchEmployeesOutput">
+    <wsdl:part name="parameters" element="tns:SearchEmployeesResponse"/>
+  </wsdl:message>
+
+  <wsdl:message name="CreateEmployeeInput">
+    <wsdl:part name="parameters" element="tns:CreateEmployeeRequest"/>
+  </wsdl:message>
+
+  <wsdl:message name="CreateEmployeeOutput">
+    <wsdl:part name="parameters" element="tns:CreateEmployeeResponse"/>
+  </wsdl:message>
+
+  <wsdl:message name="UpdateEmployeeInput">
+    <wsdl:part name="parameters" element="tns:UpdateEmployeeRequest"/>
+  </wsdl:message>
+
+  <wsdl:message name="UpdateEmployeeOutput">
+    <wsdl:part name="parameters" element="tns:UpdateEmployeeResponse"/>
+  </wsdl:message>
+
+  <wsdl:message name="TerminateEmployeeInput">
+    <wsdl:part name="parameters" element="tns:TerminateEmployeeRequest"/>
+  </wsdl:message>
+
+  <wsdl:message name="TerminateEmployeeOutput">
+    <wsdl:part name="parameters" element="tns:TerminateEmployeeResponse"/>
+  </wsdl:message>
+
+  <wsdl:message name="ListDepartmentsInput">
+    <wsdl:part name="parameters" element="tns:ListDepartmentsRequest"/>
+  </wsdl:message>
+
+  <wsdl:message name="ListDepartmentsOutput">
+    <wsdl:part name="parameters" element="tns:ListDepartmentsResponse"/>
+  </wsdl:message>
+
+  <!-- Port type -->
+  <wsdl:portType name="HrServicePortType">
+    <wsdl:operation name="GetEmployee">
+      <wsdl:input message="tns:GetEmployeeInput"/>
+      <wsdl:output message="tns:GetEmployeeOutput"/>
+    </wsdl:operation>
+
+    <wsdl:operation name="SearchEmployees">
+      <wsdl:input message="tns:SearchEmployeesInput"/>
+      <wsdl:output message="tns:SearchEmployeesOutput"/>
+    </wsdl:operation>
+
+    <wsdl:operation name="CreateEmployee">
+      <wsdl:input message="tns:CreateEmployeeInput"/>
+      <wsdl:output message="tns:CreateEmployeeOutput"/>
+    </wsdl:operation>
+
+    <wsdl:operation name="UpdateEmployee">
+      <wsdl:input message="tns:UpdateEmployeeInput"/>
+      <wsdl:output message="tns:UpdateEmployeeOutput"/>
+    </wsdl:operation>
+
+    <wsdl:operation name="TerminateEmployee">
+      <wsdl:input message="tns:TerminateEmployeeInput"/>
+      <wsdl:output message="tns:TerminateEmployeeOutput"/>
+    </wsdl:operation>
+
+    <wsdl:operation name="ListDepartments">
+      <wsdl:input message="tns:ListDepartmentsInput"/>
+      <wsdl:output message="tns:ListDepartmentsOutput"/>
+    </wsdl:operation>
+  </wsdl:portType>
+
+  <!-- Binding -->
+  <wsdl:binding name="HrServiceSoapBinding" type="tns:HrServicePortType">
+    <soap:binding style="document" transport="http://schemas.xmlsoap.org/soap/http"/>
+
+    <wsdl:operation name="GetEmployee">
+      <soap:operation soapAction="http://schemas.example.com/hr/2026/01/GetEmployee" style="document"/>
+      <wsdl:input>
+        <soap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal"/>
+      </wsdl:output>
+    </wsdl:operation>
+
+    <wsdl:operation name="SearchEmployees">
+      <soap:operation soapAction="http://schemas.example.com/hr/2026/01/SearchEmployees" style="document"/>
+      <wsdl:input>
+        <soap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal"/>
+      </wsdl:output>
+    </wsdl:operation>
+
+    <wsdl:operation name="CreateEmployee">
+      <soap:operation soapAction="http://schemas.example.com/hr/2026/01/CreateEmployee" style="document"/>
+      <wsdl:input>
+        <soap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal"/>
+      </wsdl:output>
+    </wsdl:operation>
+
+    <wsdl:operation name="UpdateEmployee">
+      <soap:operation soapAction="http://schemas.example.com/hr/2026/01/UpdateEmployee" style="document"/>
+      <wsdl:input>
+        <soap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal"/>
+      </wsdl:output>
+    </wsdl:operation>
+
+    <wsdl:operation name="TerminateEmployee">
+      <soap:operation soapAction="http://schemas.example.com/hr/2026/01/TerminateEmployee" style="document"/>
+      <wsdl:input>
+        <soap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal"/>
+      </wsdl:output>
+    </wsdl:operation>
+
+    <wsdl:operation name="ListDepartments">
+      <soap:operation soapAction="http://schemas.example.com/hr/2026/01/ListDepartments" style="document"/>
+      <wsdl:input>
+        <soap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal"/>
+      </wsdl:output>
+    </wsdl:operation>
+  </wsdl:binding>
+
+  <!-- Service -->
+  <wsdl:service name="HrService">
+    <wsdl:port name="HrServiceSoapPort" binding="tns:HrServiceSoapBinding">
+      <soap:address location="https://api.contoso.com/hr/soap"/>
+    </wsdl:port>
+  </wsdl:service>
+
+</wsdl:definitions>
