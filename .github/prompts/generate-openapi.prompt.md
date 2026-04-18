@@ -4,7 +4,7 @@ Generate a new OpenAPI 3.0 specification for the requested API domain.
 
 ## Instructions
 
-- Place the file in `rest/openapi/` named `<api-name>-<YYYY-MM-DD>.yaml` (use today's date in `YYYY-MM-DD` format).
+- Place the file in `rest/openapi/` named `<api-name>-<YYYY-MM-DD>.yaml` (date in `YYYY-MM-DD` format).
 - Use OpenAPI 3.0.0 or later.
 - Include `info` with title, version (`1.0.0`), and a multi-sentence description.
 - Define at least two `servers` entries (Production and Sandbox).

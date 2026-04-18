@@ -16,7 +16,7 @@ You generate high-quality, realistic API specifications in the requested format 
 
 ## File Naming
 
-Always name files as `<api-name>-<YYYY-MM-DD>.<ext>` using today's date and a lowercase, hyphen-separated API name.
+Always name files as `<api-name>-<YYYY-MM-DD>.<ext>` with the date in `YYYY-MM-DD` format and a lowercase, hyphen-separated API name.
 
 ## Quality Standards
 

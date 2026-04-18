@@ -4,7 +4,7 @@ Generate a new WSDL 1.1 specification for the requested SOAP service domain.
 
 ## Instructions
 
-- Place the file in `soap/` named `<api-name>-<YYYY-MM-DD>.wsdl` (use today's date in `YYYY-MM-DD` format).
+- Place the file in `soap/` named `<api-name>-<YYYY-MM-DD>.wsdl` (date in `YYYY-MM-DD` format).
 - Use WSDL 1.1 with SOAP 1.1 document/literal binding.
 - Use a target namespace following the pattern `http://schemas.example.com/<domain>/<year>/<month>`.
 - Define all types inline under `<wsdl:types>` using XSD.
