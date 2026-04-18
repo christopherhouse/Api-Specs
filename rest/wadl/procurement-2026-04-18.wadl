@@ -1,0 +1,561 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<application
+    xmlns="http://wadl.dev.java.net/2009/02"
+    xmlns:xs="http://www.w3.org/2001/XMLSchema"
+    xmlns:tns="http://schemas.example.com/procurement/2026/01"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+
+  <doc title="Procurement API">
+    Enterprise procurement API for managing vendors, contracts, requisitions,
+    purchase orders, approvals, and invoices.
+  </doc>
+
+  <grammars>
+    <xs:schema
+        targetNamespace="http://schemas.example.com/procurement/2026/01"
+        elementFormDefault="qualified"
+        attributeFormDefault="unqualified">
+
+      <xs:simpleType name="VendorStatus">
+        <xs:restriction base="xs:string">
+          <xs:enumeration value="Active"/>
+          <xs:enumeration value="Inactive"/>
+          <xs:enumeration value="Suspended"/>
+        </xs:restriction>
+      </xs:simpleType>
+
+      <xs:simpleType name="ContractStatus">
+        <xs:restriction base="xs:string">
+          <xs:enumeration value="Draft"/>
+          <xs:enumeration value="Active"/>
+          <xs:enumeration value="Expired"/>
+          <xs:enumeration value="Terminated"/>
+        </xs:restriction>
+      </xs:simpleType>
+
+      <xs:simpleType name="RequisitionStatus">
+        <xs:restriction base="xs:string">
+          <xs:enumeration value="Draft"/>
+          <xs:enumeration value="Submitted"/>
+          <xs:enumeration value="Approved"/>
+          <xs:enumeration value="Rejected"/>
+          <xs:enumeration value="ConvertedToPurchaseOrder"/>
+        </xs:restriction>
+      </xs:simpleType>
+
+      <xs:simpleType name="PurchaseOrderStatus">
+        <xs:restriction base="xs:string">
+          <xs:enumeration value="Draft"/>
+          <xs:enumeration value="Issued"/>
+          <xs:enumeration value="PartiallyReceived"/>
+          <xs:enumeration value="Received"/>
+          <xs:enumeration value="Closed"/>
+          <xs:enumeration value="Cancelled"/>
+        </xs:restriction>
+      </xs:simpleType>
+
+      <xs:simpleType name="InvoiceStatus">
+        <xs:restriction base="xs:string">
+          <xs:enumeration value="Received"/>
+          <xs:enumeration value="Matched"/>
+          <xs:enumeration value="Approved"/>
+          <xs:enumeration value="Paid"/>
+          <xs:enumeration value="Rejected"/>
+        </xs:restriction>
+      </xs:simpleType>
+
+      <xs:simpleType name="ApprovalDecision">
+        <xs:restriction base="xs:string">
+          <xs:enumeration value="Approve"/>
+          <xs:enumeration value="Reject"/>
+          <xs:enumeration value="RequestChanges"/>
+        </xs:restriction>
+      </xs:simpleType>
+
+      <xs:complexType name="Address">
+        <xs:sequence>
+          <xs:element name="line1" type="xs:string" minOccurs="0"/>
+          <xs:element name="line2" type="xs:string" minOccurs="0"/>
+          <xs:element name="city" type="xs:string" minOccurs="0"/>
+          <xs:element name="stateOrProvince" type="xs:string" minOccurs="0"/>
+          <xs:element name="postalCode" type="xs:string" minOccurs="0"/>
+          <xs:element name="countryCode" type="xs:string" minOccurs="0"/>
+        </xs:sequence>
+      </xs:complexType>
+
+      <xs:complexType name="Error">
+        <xs:sequence>
+          <xs:element name="code" type="xs:string"/>
+          <xs:element name="message" type="xs:string"/>
+          <xs:element name="correlationId" type="xs:string" minOccurs="0"/>
+          <xs:element name="details" type="xs:string" minOccurs="0"/>
+        </xs:sequence>
+      </xs:complexType>
+
+      <xs:complexType name="Vendor">
+        <xs:sequence>
+          <xs:element name="vendorId" type="xs:string"/>
+          <xs:element name="vendorNumber" type="xs:string" minOccurs="0"/>
+          <xs:element name="legalName" type="xs:string"/>
+          <xs:element name="displayName" type="xs:string" minOccurs="0"/>
+          <xs:element name="taxId" type="xs:string" minOccurs="0"/>
+          <xs:element name="status" type="tns:VendorStatus"/>
+          <xs:element name="primaryContactName" type="xs:string" minOccurs="0"/>
+          <xs:element name="primaryContactEmail" type="xs:string" minOccurs="0"/>
+          <xs:element name="phone" type="xs:string" minOccurs="0"/>
+          <xs:element name="address" type="tns:Address" minOccurs="0"/>
+          <xs:element name="createdUtc" type="xs:dateTime" minOccurs="0"/>
+          <xs:element name="lastUpdatedUtc" type="xs:dateTime" minOccurs="0"/>
+        </xs:sequence>
+      </xs:complexType>
+
+      <xs:complexType name="VendorList">
+        <xs:sequence>
+          <xs:element name="vendor" type="tns:Vendor" minOccurs="0" maxOccurs="unbounded"/>
+        </xs:sequence>
+      </xs:complexType>
+
+      <xs:complexType name="Contract">
+        <xs:sequence>
+          <xs:element name="contractId" type="xs:string"/>
+          <xs:element name="contractNumber" type="xs:string"/>
+          <xs:element name="vendorId" type="xs:string"/>
+          <xs:element name="title" type="xs:string"/>
+          <xs:element name="status" type="tns:ContractStatus"/>
+          <xs:element name="effectiveDate" type="xs:date" minOccurs="0"/>
+          <xs:element name="expirationDate" type="xs:date" minOccurs="0"/>
+          <xs:element name="currencyCode" type="xs:string" minOccurs="0"/>
+          <xs:element name="ceilingAmount" type="xs:decimal" minOccurs="0"/>
+          <xs:element name="lastUpdatedUtc" type="xs:dateTime" minOccurs="0"/>
+        </xs:sequence>
+      </xs:complexType>
+
+      <xs:complexType name="ContractList">
+        <xs:sequence>
+          <xs:element name="contract" type="tns:Contract" minOccurs="0" maxOccurs="unbounded"/>
+        </xs:sequence>
+      </xs:complexType>
+
+      <xs:complexType name="RequisitionLine">
+        <xs:sequence>
+          <xs:element name="lineNumber" type="xs:int"/>
+          <xs:element name="categoryCode" type="xs:string" minOccurs="0"/>
+          <xs:element name="description" type="xs:string"/>
+          <xs:element name="quantity" type="xs:decimal"/>
+          <xs:element name="unitOfMeasure" type="xs:string" minOccurs="0"/>
+          <xs:element name="estimatedUnitPrice" type="xs:decimal" minOccurs="0"/>
+          <xs:element name="currencyCode" type="xs:string" minOccurs="0"/>
+        </xs:sequence>
+      </xs:complexType>
+
+      <xs:complexType name="RequisitionLineList">
+        <xs:sequence>
+          <xs:element name="line" type="tns:RequisitionLine" minOccurs="0" maxOccurs="unbounded"/>
+        </xs:sequence>
+      </xs:complexType>
+
+      <xs:complexType name="Requisition">
+        <xs:sequence>
+          <xs:element name="requisitionId" type="xs:string"/>
+          <xs:element name="requisitionNumber" type="xs:string"/>
+          <xs:element name="requestorEmployeeId" type="xs:string"/>
+          <xs:element name="departmentCode" type="xs:string" minOccurs="0"/>
+          <xs:element name="status" type="tns:RequisitionStatus"/>
+          <xs:element name="justification" type="xs:string" minOccurs="0"/>
+          <xs:element name="currencyCode" type="xs:string" minOccurs="0"/>
+          <xs:element name="totalEstimatedAmount" type="xs:decimal" minOccurs="0"/>
+          <xs:element name="submittedUtc" type="xs:dateTime" minOccurs="0"/>
+          <xs:element name="lastUpdatedUtc" type="xs:dateTime" minOccurs="0"/>
+          <xs:element name="lines" type="tns:RequisitionLineList" minOccurs="0"/>
+        </xs:sequence>
+      </xs:complexType>
+
+      <xs:complexType name="RequisitionList">
+        <xs:sequence>
+          <xs:element name="requisition" type="tns:Requisition" minOccurs="0" maxOccurs="unbounded"/>
+        </xs:sequence>
+      </xs:complexType>
+
+      <xs:complexType name="PurchaseOrderLine">
+        <xs:sequence>
+          <xs:element name="lineNumber" type="xs:int"/>
+          <xs:element name="description" type="xs:string"/>
+          <xs:element name="quantity" type="xs:decimal"/>
+          <xs:element name="unitOfMeasure" type="xs:string" minOccurs="0"/>
+          <xs:element name="unitPrice" type="xs:decimal"/>
+          <xs:element name="currencyCode" type="xs:string" minOccurs="0"/>
+          <xs:element name="receivedQuantity" type="xs:decimal" minOccurs="0"/>
+        </xs:sequence>
+      </xs:complexType>
+
+      <xs:complexType name="PurchaseOrderLineList">
+        <xs:sequence>
+          <xs:element name="line" type="tns:PurchaseOrderLine" minOccurs="0" maxOccurs="unbounded"/>
+        </xs:sequence>
+      </xs:complexType>
+
+      <xs:complexType name="PurchaseOrder">
+        <xs:sequence>
+          <xs:element name="purchaseOrderId" type="xs:string"/>
+          <xs:element name="purchaseOrderNumber" type="xs:string"/>
+          <xs:element name="vendorId" type="xs:string"/>
+          <xs:element name="contractId" type="xs:string" minOccurs="0"/>
+          <xs:element name="sourceRequisitionId" type="xs:string" minOccurs="0"/>
+          <xs:element name="status" type="tns:PurchaseOrderStatus"/>
+          <xs:element name="orderDate" type="xs:date" minOccurs="0"/>
+          <xs:element name="currencyCode" type="xs:string" minOccurs="0"/>
+          <xs:element name="totalAmount" type="xs:decimal" minOccurs="0"/>
+          <xs:element name="lastUpdatedUtc" type="xs:dateTime" minOccurs="0"/>
+          <xs:element name="lines" type="tns:PurchaseOrderLineList" minOccurs="0"/>
+        </xs:sequence>
+      </xs:complexType>
+
+      <xs:complexType name="PurchaseOrderList">
+        <xs:sequence>
+          <xs:element name="purchaseOrder" type="tns:PurchaseOrder" minOccurs="0" maxOccurs="unbounded"/>
+        </xs:sequence>
+      </xs:complexType>
+
+      <xs:complexType name="Approval">
+        <xs:sequence>
+          <xs:element name="approvalId" type="xs:string"/>
+          <xs:element name="entityType" type="xs:string"/>
+          <xs:element name="entityId" type="xs:string"/>
+          <xs:element name="approverEmployeeId" type="xs:string"/>
+          <xs:element name="decision" type="tns:ApprovalDecision" minOccurs="0"/>
+          <xs:element name="comments" type="xs:string" minOccurs="0"/>
+          <xs:element name="decisionUtc" type="xs:dateTime" minOccurs="0"/>
+          <xs:element name="status" type="xs:string"/>
+        </xs:sequence>
+      </xs:complexType>
+
+      <xs:complexType name="ApprovalList">
+        <xs:sequence>
+          <xs:element name="approval" type="tns:Approval" minOccurs="0" maxOccurs="unbounded"/>
+        </xs:sequence>
+      </xs:complexType>
+
+      <xs:complexType name="Invoice">
+        <xs:sequence>
+          <xs:element name="invoiceId" type="xs:string"/>
+          <xs:element name="invoiceNumber" type="xs:string"/>
+          <xs:element name="vendorId" type="xs:string"/>
+          <xs:element name="purchaseOrderId" type="xs:string" minOccurs="0"/>
+          <xs:element name="invoiceDate" type="xs:date" minOccurs="0"/>
+          <xs:element name="dueDate" type="xs:date" minOccurs="0"/>
+          <xs:element name="currencyCode" type="xs:string" minOccurs="0"/>
+          <xs:element name="amount" type="xs:decimal"/>
+          <xs:element name="status" type="tns:InvoiceStatus"/>
+          <xs:element name="receivedUtc" type="xs:dateTime" minOccurs="0"/>
+          <xs:element name="lastUpdatedUtc" type="xs:dateTime" minOccurs="0"/>
+        </xs:sequence>
+      </xs:complexType>
+
+      <xs:complexType name="InvoiceList">
+        <xs:sequence>
+          <xs:element name="invoice" type="tns:Invoice" minOccurs="0" maxOccurs="unbounded"/>
+        </xs:sequence>
+      </xs:complexType>
+
+      <!-- Root elements -->
+      <xs:element name="Vendor" type="tns:Vendor"/>
+      <xs:element name="VendorList" type="tns:VendorList"/>
+      <xs:element name="Contract" type="tns:Contract"/>
+      <xs:element name="ContractList" type="tns:ContractList"/>
+      <xs:element name="Requisition" type="tns:Requisition"/>
+      <xs:element name="RequisitionList" type="tns:RequisitionList"/>
+      <xs:element name="PurchaseOrder" type="tns:PurchaseOrder"/>
+      <xs:element name="PurchaseOrderList" type="tns:PurchaseOrderList"/>
+      <xs:element name="Approval" type="tns:Approval"/>
+      <xs:element name="ApprovalList" type="tns:ApprovalList"/>
+      <xs:element name="Invoice" type="tns:Invoice"/>
+      <xs:element name="InvoiceList" type="tns:InvoiceList"/>
+      <xs:element name="Error" type="tns:Error"/>
+
+    </xs:schema>
+  </grammars>
+
+  <resources base="https://api.contoso.com/procurement/v1">
+
+    <resource path="/vendors">
+      <method name="GET" id="listVendors">
+        <doc>List vendors.</doc>
+        <request>
+          <param name="status" style="query" type="xs:string" required="false"/>
+          <param name="page" style="query" type="xs:int" required="false"/>
+          <param name="pageSize" style="query" type="xs:int" required="false"/>
+        </request>
+        <response status="200">
+          <representation mediaType="application/xml" element="tns:VendorList"/>
+        </response>
+        <response status="400">
+          <representation mediaType="application/xml" element="tns:Error"/>
+        </response>
+      </method>
+
+      <method name="POST" id="createVendor">
+        <doc>Create a vendor.</doc>
+        <request>
+          <representation mediaType="application/xml" element="tns:Vendor"/>
+        </request>
+        <response status="201">
+          <representation mediaType="application/xml" element="tns:Vendor"/>
+        </response>
+        <response status="400">
+          <representation mediaType="application/xml" element="tns:Error"/>
+        </response>
+      </method>
+    </resource>
+
+    <resource path="/vendors/{vendorId}">
+      <param name="vendorId" style="template" type="xs:string" required="true"/>
+      <method name="GET" id="getVendor">
+        <response status="200">
+          <representation mediaType="application/xml" element="tns:Vendor"/>
+        </response>
+        <response status="404">
+          <representation mediaType="application/xml" element="tns:Error"/>
+        </response>
+      </method>
+      <method name="PUT" id="updateVendor">
+        <request>
+          <representation mediaType="application/xml" element="tns:Vendor"/>
+        </request>
+        <response status="200">
+          <representation mediaType="application/xml" element="tns:Vendor"/>
+        </response>
+        <response status="400 404">
+          <representation mediaType="application/xml" element="tns:Error"/>
+        </response>
+      </method>
+    </resource>
+
+    <resource path="/contracts">
+      <method name="GET" id="listContracts">
+        <request>
+          <param name="vendorId" style="query" type="xs:string" required="false"/>
+          <param name="status" style="query" type="xs:string" required="false"/>
+        </request>
+        <response status="200">
+          <representation mediaType="application/xml" element="tns:ContractList"/>
+        </response>
+      </method>
+      <method name="POST" id="createContract">
+        <request>
+          <representation mediaType="application/xml" element="tns:Contract"/>
+        </request>
+        <response status="201">
+          <representation mediaType="application/xml" element="tns:Contract"/>
+        </response>
+        <response status="400">
+          <representation mediaType="application/xml" element="tns:Error"/>
+        </response>
+      </method>
+    </resource>
+
+    <resource path="/contracts/{contractId}">
+      <param name="contractId" style="template" type="xs:string" required="true"/>
+      <method name="GET" id="getContract">
+        <response status="200">
+          <representation mediaType="application/xml" element="tns:Contract"/>
+        </response>
+        <response status="404">
+          <representation mediaType="application/xml" element="tns:Error"/>
+        </response>
+      </method>
+      <method name="PUT" id="updateContract">
+        <request>
+          <representation mediaType="application/xml" element="tns:Contract"/>
+        </request>
+        <response status="200">
+          <representation mediaType="application/xml" element="tns:Contract"/>
+        </response>
+        <response status="400 404">
+          <representation mediaType="application/xml" element="tns:Error"/>
+        </response>
+      </method>
+    </resource>
+
+    <resource path="/requisitions">
+      <method name="GET" id="listRequisitions">
+        <request>
+          <param name="requestorEmployeeId" style="query" type="xs:string" required="false"/>
+          <param name="status" style="query" type="xs:string" required="false"/>
+          <param name="departmentCode" style="query" type="xs:string" required="false"/>
+        </request>
+        <response status="200">
+          <representation mediaType="application/xml" element="tns:RequisitionList"/>
+        </response>
+      </method>
+      <method name="POST" id="createRequisition">
+        <request>
+          <representation mediaType="application/xml" element="tns:Requisition"/>
+        </request>
+        <response status="201">
+          <representation mediaType="application/xml" element="tns:Requisition"/>
+        </response>
+        <response status="400">
+          <representation mediaType="application/xml" element="tns:Error"/>
+        </response>
+      </method>
+    </resource>
+
+    <resource path="/requisitions/{requisitionId}">
+      <param name="requisitionId" style="template" type="xs:string" required="true"/>
+      <method name="GET" id="getRequisition">
+        <response status="200">
+          <representation mediaType="application/xml" element="tns:Requisition"/>
+        </response>
+        <response status="404">
+          <representation mediaType="application/xml" element="tns:Error"/>
+        </response>
+      </method>
+      <method name="PUT" id="updateRequisition">
+        <request>
+          <representation mediaType="application/xml" element="tns:Requisition"/>
+        </request>
+        <response status="200">
+          <representation mediaType="application/xml" element="tns:Requisition"/>
+        </response>
+        <response status="400 404">
+          <representation mediaType="application/xml" element="tns:Error"/>
+        </response>
+      </method>
+    </resource>
+
+    <resource path="/requisitions/{requisitionId}/submit">
+      <param name="requisitionId" style="template" type="xs:string" required="true"/>
+      <method name="POST" id="submitRequisition">
+        <response status="200">
+          <representation mediaType="application/xml" element="tns:Requisition"/>
+        </response>
+        <response status="409">
+          <representation mediaType="application/xml" element="tns:Error"/>
+        </response>
+      </method>
+    </resource>
+
+    <resource path="/purchase-orders">
+      <method name="GET" id="listPurchaseOrders">
+        <request>
+          <param name="vendorId" style="query" type="xs:string" required="false"/>
+          <param name="status" style="query" type="xs:string" required="false"/>
+          <param name="sourceRequisitionId" style="query" type="xs:string" required="false"/>
+        </request>
+        <response status="200">
+          <representation mediaType="application/xml" element="tns:PurchaseOrderList"/>
+        </response>
+      </method>
+      <method name="POST" id="createPurchaseOrder">
+        <request>
+          <representation mediaType="application/xml" element="tns:PurchaseOrder"/>
+        </request>
+        <response status="201">
+          <representation mediaType="application/xml" element="tns:PurchaseOrder"/>
+        </response>
+        <response status="400">
+          <representation mediaType="application/xml" element="tns:Error"/>
+        </response>
+      </method>
+    </resource>
+
+    <resource path="/purchase-orders/{purchaseOrderId}">
+      <param name="purchaseOrderId" style="template" type="xs:string" required="true"/>
+      <method name="GET" id="getPurchaseOrder">
+        <response status="200">
+          <representation mediaType="application/xml" element="tns:PurchaseOrder"/>
+        </response>
+        <response status="404">
+          <representation mediaType="application/xml" element="tns:Error"/>
+        </response>
+      </method>
+      <method name="PUT" id="updatePurchaseOrder">
+        <request>
+          <representation mediaType="application/xml" element="tns:PurchaseOrder"/>
+        </request>
+        <response status="200">
+          <representation mediaType="application/xml" element="tns:PurchaseOrder"/>
+        </response>
+        <response status="400 404">
+          <representation mediaType="application/xml" element="tns:Error"/>
+        </response>
+      </method>
+    </resource>
+
+    <resource path="/purchase-orders/{purchaseOrderId}/approve">
+      <param name="purchaseOrderId" style="template" type="xs:string" required="true"/>
+      <method name="POST" id="approvePurchaseOrder">
+        <request>
+          <representation mediaType="application/xml" element="tns:Approval"/>
+        </request>
+        <response status="200">
+          <representation mediaType="application/xml" element="tns:PurchaseOrder"/>
+        </response>
+        <response status="409">
+          <representation mediaType="application/xml" element="tns:Error"/>
+        </response>
+      </method>
+    </resource>
+
+    <resource path="/approvals">
+      <method name="GET" id="listApprovals">
+        <request>
+          <param name="approverEmployeeId" style="query" type="xs:string" required="false"/>
+          <param name="entityType" style="query" type="xs:string" required="false"/>
+          <param name="entityId" style="query" type="xs:string" required="false"/>
+        </request>
+        <response status="200">
+          <representation mediaType="application/xml" element="tns:ApprovalList"/>
+        </response>
+      </method>
+    </resource>
+
+    <resource path="/invoices">
+      <method name="GET" id="listInvoices">
+        <request>
+          <param name="vendorId" style="query" type="xs:string" required="false"/>
+          <param name="purchaseOrderId" style="query" type="xs:string" required="false"/>
+          <param name="status" style="query" type="xs:string" required="false"/>
+        </request>
+        <response status="200">
+          <representation mediaType="application/xml" element="tns:InvoiceList"/>
+        </response>
+      </method>
+      <method name="POST" id="createInvoice">
+        <request>
+          <representation mediaType="application/xml" element="tns:Invoice"/>
+        </request>
+        <response status="201">
+          <representation mediaType="application/xml" element="tns:Invoice"/>
+        </response>
+        <response status="400">
+          <representation mediaType="application/xml" element="tns:Error"/>
+        </response>
+      </method>
+    </resource>
+
+    <resource path="/invoices/{invoiceId}">
+      <param name="invoiceId" style="template" type="xs:string" required="true"/>
+      <method name="GET" id="getInvoice">
+        <response status="200">
+          <representation mediaType="application/xml" element="tns:Invoice"/>
+        </response>
+        <response status="404">
+          <representation mediaType="application/xml" element="tns:Error"/>
+        </response>
+      </method>
+      <method name="PUT" id="updateInvoice">
+        <request>
+          <representation mediaType="application/xml" element="tns:Invoice"/>
+        </request>
+        <response status="200">
+          <representation mediaType="application/xml" element="tns:Invoice"/>
+        </response>
+        <response status="400 404">
+          <representation mediaType="application/xml" element="tns:Error"/>
+        </response>
+      </method>
+    </resource>
+
+  </resources>
+</application>
