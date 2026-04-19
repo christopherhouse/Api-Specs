@@ -1,0 +1,477 @@
+#%RAML 1.0
+title: HR Service API
+version: v1
+baseUri: https://api.contoso.com/hr/v1
+mediaType: application/json
+description: >
+  REST API equivalent of the HR SOAP service for managing employees and
+  departments. Provides operations for creating, retrieving, updating, and
+  terminating employees, as well as listing organizational departments.
+  Designed for enterprise human resource management systems.
+
+securitySchemes:
+  bearerAuth:
+    type: Pass Through
+    describedBy:
+      headers:
+        Authorization:
+          description: Bearer JWT token
+          type: string
+          pattern: "^Bearer .+"
+
+traits:
+  secured:
+    headers:
+      Authorization:
+        description: Bearer JWT access token
+        type: string
+        required: true
+    responses:
+      401:
+        description: Unauthorized
+        body:
+          application/json:
+            type: ErrorResponse
+      500:
+        description: Internal server error
+        body:
+          application/json:
+            type: ErrorResponse
+
+  paged:
+    queryParameters:
+      pageNumber:
+        type: integer
+        minimum: 1
+        default: 1
+        required: false
+      pageSize:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 25
+        required: false
+
+resourceTypes:
+  collection:
+    get:
+      is: [secured, paged]
+      responses:
+        200:
+          description: Collection retrieved successfully
+    post:
+      is: [secured]
+      responses:
+        201:
+          description: Resource created
+        400:
+          description: Bad request
+          body:
+            application/json:
+              type: ErrorResponse
+
+  item:
+    get:
+      is: [secured]
+      responses:
+        200:
+          description: Resource retrieved successfully
+        404:
+          description: Resource not found
+          body:
+            application/json:
+              type: ErrorResponse
+    put:
+      is: [secured]
+      responses:
+        200:
+          description: Resource updated
+        400:
+          description: Bad request
+          body:
+            application/json:
+              type: ErrorResponse
+        404:
+          description: Resource not found
+          body:
+            application/json:
+              type: ErrorResponse
+
+types:
+  ErrorResponse:
+    type: object
+    properties:
+      code:
+        type: string
+        required: true
+      message:
+        type: string
+        required: true
+      details:
+        type: string
+        required: false
+
+  EmploymentStatus:
+    type: string
+    enum: [Active, Inactive, LeaveOfAbsence, Terminated]
+
+  Employee:
+    type: object
+    properties:
+      employeeId:
+        type: string
+        required: true
+      employeeNumber:
+        type: string
+        required: false
+      firstName:
+        type: string
+        required: true
+      lastName:
+        type: string
+        required: true
+      displayName:
+        type: string
+        required: false
+      email:
+        type: string
+        required: false
+      phone:
+        type: string
+        required: false
+      departmentCode:
+        type: string
+        required: false
+      departmentName:
+        type: string
+        required: false
+      jobTitle:
+        type: string
+        required: false
+      managerEmployeeId:
+        type: string
+        required: false
+      employmentStatus:
+        type: EmploymentStatus
+        required: true
+      hireDate:
+        type: date-only
+        required: false
+      terminationDate:
+        type: date-only
+        required: false
+      lastUpdatedUtc:
+        type: datetime
+        required: false
+
+  EmployeeSummary:
+    type: object
+    properties:
+      employeeId:
+        type: string
+        required: true
+      employeeNumber:
+        type: string
+        required: false
+      displayName:
+        type: string
+        required: true
+      departmentCode:
+        type: string
+        required: false
+      jobTitle:
+        type: string
+        required: false
+      employmentStatus:
+        type: EmploymentStatus
+        required: true
+
+  CreateEmployeeRequest:
+    type: object
+    properties:
+      employeeNumber:
+        type: string
+        required: false
+      firstName:
+        type: string
+        required: true
+      lastName:
+        type: string
+        required: true
+      email:
+        type: string
+        required: false
+      phone:
+        type: string
+        required: false
+      departmentCode:
+        type: string
+        required: false
+      jobTitle:
+        type: string
+        required: false
+      managerEmployeeId:
+        type: string
+        required: false
+      hireDate:
+        type: date-only
+        required: false
+
+  UpdateEmployeeRequest:
+    type: object
+    properties:
+      firstName:
+        type: string
+        required: false
+      lastName:
+        type: string
+        required: false
+      email:
+        type: string
+        required: false
+      phone:
+        type: string
+        required: false
+      departmentCode:
+        type: string
+        required: false
+      jobTitle:
+        type: string
+        required: false
+      managerEmployeeId:
+        type: string
+        required: false
+      employmentStatus:
+        type: EmploymentStatus
+        required: false
+      terminationDate:
+        type: date-only
+        required: false
+
+  TerminateEmployeeRequest:
+    type: object
+    properties:
+      terminationDate:
+        type: date-only
+        required: true
+      reason:
+        type: string
+        required: false
+
+  EmployeeListResponse:
+    type: object
+    properties:
+      employees:
+        type: EmployeeSummary[]
+        required: true
+      totalCount:
+        type: integer
+        required: true
+      pageNumber:
+        type: integer
+        required: true
+      pageSize:
+        type: integer
+        required: true
+
+  Department:
+    type: object
+    properties:
+      departmentCode:
+        type: string
+        required: true
+      departmentName:
+        type: string
+        required: true
+      managerEmployeeId:
+        type: string
+        required: false
+      costCenter:
+        type: string
+        required: false
+      active:
+        type: boolean
+        required: true
+
+  DepartmentListResponse:
+    type: object
+    properties:
+      departments:
+        type: Department[]
+        required: true
+      totalCount:
+        type: integer
+        required: true
+
+/employees:
+  description: Manage employee records.
+  get:
+    is: [secured, paged]
+    description: Search and list employees with optional filters.
+    queryParameters:
+      departmentCode:
+        type: string
+        required: false
+        description: Filter by department code
+      employmentStatus:
+        type: EmploymentStatus
+        required: false
+        description: Filter by employment status
+      managerEmployeeId:
+        type: string
+        required: false
+        description: Filter by manager employee ID
+    responses:
+      200:
+        description: Employees retrieved successfully
+        body:
+          application/json:
+            type: EmployeeListResponse
+  post:
+    is: [secured]
+    description: Create a new employee record.
+    body:
+      application/json:
+        type: CreateEmployeeRequest
+    responses:
+      201:
+        description: Employee created
+        body:
+          application/json:
+            type: Employee
+      400:
+        description: Bad request
+        body:
+          application/json:
+            type: ErrorResponse
+
+  /{employeeId}:
+    description: Operations on a specific employee.
+    uriParameters:
+      employeeId:
+        type: string
+        description: Unique identifier of the employee
+    get:
+      is: [secured]
+      description: Get a specific employee by ID.
+      responses:
+        200:
+          description: Employee retrieved successfully
+          body:
+            application/json:
+              type: Employee
+        404:
+          description: Employee not found
+          body:
+            application/json:
+              type: ErrorResponse
+    put:
+      is: [secured]
+      description: Update employee details.
+      body:
+        application/json:
+          type: UpdateEmployeeRequest
+      responses:
+        200:
+          description: Employee updated
+          body:
+            application/json:
+              type: Employee
+        400:
+          description: Bad request
+          body:
+            application/json:
+              type: ErrorResponse
+        404:
+          description: Employee not found
+          body:
+            application/json:
+              type: ErrorResponse
+
+    /terminate:
+      description: Terminate an employee's employment.
+      post:
+        is: [secured]
+        description: Record the termination of an employee.
+        body:
+          application/json:
+            type: TerminateEmployeeRequest
+        responses:
+          200:
+            description: Employee terminated successfully
+            body:
+              application/json:
+                type: Employee
+          400:
+            description: Bad request
+            body:
+              application/json:
+                type: ErrorResponse
+          404:
+            description: Employee not found
+            body:
+              application/json:
+                type: ErrorResponse
+
+/departments:
+  description: Retrieve organizational department information.
+  get:
+    is: [secured]
+    description: List all departments.
+    queryParameters:
+      activeOnly:
+        type: boolean
+        required: false
+        description: When true, return only active departments
+    responses:
+      200:
+        description: Departments retrieved successfully
+        body:
+          application/json:
+            type: DepartmentListResponse
+
+  /{departmentCode}:
+    description: Operations on a specific department.
+    uriParameters:
+      departmentCode:
+        type: string
+        description: The department code identifier
+    get:
+      is: [secured]
+      description: Get department by code.
+      responses:
+        200:
+          description: Department retrieved successfully
+          body:
+            application/json:
+              type: Department
+        404:
+          description: Department not found
+          body:
+            application/json:
+              type: ErrorResponse
+
+  /{departmentCode}/employees:
+    description: Employees belonging to a department.
+    uriParameters:
+      departmentCode:
+        type: string
+        description: The department code identifier
+    get:
+      is: [secured, paged]
+      description: List employees in a specific department.
+      queryParameters:
+        employmentStatus:
+          type: EmploymentStatus
+          required: false
+      responses:
+        200:
+          description: Department employees retrieved successfully
+          body:
+            application/json:
+              type: EmployeeListResponse
+        404:
+          description: Department not found
+          body:
+            application/json:
+              type: ErrorResponse

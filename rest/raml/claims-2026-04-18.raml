@@ -1,0 +1,1104 @@
+#%RAML 1.0
+title: Claims Management API
+version: v1
+baseUri: https://api.exampleinsurance.com/v1
+mediaType: application/json
+description: >
+  API for managing insurance policies, policyholders, claims, claim documents,
+  reserve updates, adjuster assignments, and payouts. Supports the full
+  insurance claim lifecycle from intake through settlement.
+
+securitySchemes:
+  bearerAuth:
+    type: Pass Through
+    describedBy:
+      headers:
+        Authorization:
+          description: Bearer JWT token
+          type: string
+          pattern: "^Bearer .+"
+
+traits:
+  secured:
+    headers:
+      Authorization:
+        description: Bearer JWT access token
+        type: string
+        required: true
+    responses:
+      401:
+        description: Unauthorized
+        body:
+          application/json:
+            type: ErrorResponse
+      500:
+        description: Internal server error
+        body:
+          application/json:
+            type: ErrorResponse
+
+  paged:
+    queryParameters:
+      page:
+        type: integer
+        minimum: 1
+        default: 1
+        required: false
+      pageSize:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 25
+        required: false
+
+resourceTypes:
+  collection:
+    get:
+      is: [secured, paged]
+      responses:
+        200:
+          description: Collection retrieved successfully
+    post:
+      is: [secured]
+      responses:
+        201:
+          description: Resource created
+        400:
+          description: Bad request
+          body:
+            application/json:
+              type: ErrorResponse
+
+  item:
+    get:
+      is: [secured]
+      responses:
+        200:
+          description: Resource retrieved successfully
+        404:
+          description: Resource not found
+          body:
+            application/json:
+              type: ErrorResponse
+    put:
+      is: [secured]
+      responses:
+        200:
+          description: Resource updated
+        400:
+          description: Bad request
+          body:
+            application/json:
+              type: ErrorResponse
+        404:
+          description: Resource not found
+          body:
+            application/json:
+              type: ErrorResponse
+
+types:
+  ErrorResponse:
+    type: object
+    properties:
+      code:
+        type: string
+        required: true
+      message:
+        type: string
+        required: true
+      details:
+        type: string
+        required: false
+      correlationId:
+        type: string
+        required: false
+
+  Policyholder:
+    type: object
+    properties:
+      id:
+        type: string
+        required: true
+      customerNumber:
+        type: string
+        required: false
+      firstName:
+        type: string
+        required: true
+      lastName:
+        type: string
+        required: true
+      email:
+        type: string
+        required: false
+      phone:
+        type: string
+        required: false
+      dateOfBirth:
+        type: date-only
+        required: false
+      status:
+        type: string
+        required: true
+        enum: [active, inactive]
+      createdAt:
+        type: datetime
+        required: false
+
+  CreatePolicyholderRequest:
+    type: object
+    properties:
+      firstName:
+        type: string
+        required: true
+      lastName:
+        type: string
+        required: true
+      email:
+        type: string
+        required: false
+      phone:
+        type: string
+        required: false
+      dateOfBirth:
+        type: date-only
+        required: false
+
+  UpdatePolicyholderRequest:
+    type: object
+    properties:
+      firstName:
+        type: string
+        required: false
+      lastName:
+        type: string
+        required: false
+      email:
+        type: string
+        required: false
+      phone:
+        type: string
+        required: false
+      status:
+        type: string
+        required: false
+        enum: [active, inactive]
+
+  PolicyholderListResponse:
+    type: object
+    properties:
+      items:
+        type: Policyholder[]
+        required: true
+      totalCount:
+        type: integer
+        required: true
+      page:
+        type: integer
+        required: true
+      pageSize:
+        type: integer
+        required: true
+
+  Policy:
+    type: object
+    properties:
+      id:
+        type: string
+        required: true
+      policyNumber:
+        type: string
+        required: true
+      policyholderId:
+        type: string
+        required: true
+      policyType:
+        type: string
+        required: true
+        enum: [auto, home, commercial, liability, health]
+      status:
+        type: string
+        required: true
+        enum: [active, lapsed, cancelled, expired]
+      effectiveDate:
+        type: date-only
+        required: false
+      expirationDate:
+        type: date-only
+        required: false
+      premiumAmount:
+        type: number
+        required: false
+      coverageAmount:
+        type: number
+        required: false
+      currencyCode:
+        type: string
+        required: false
+      createdAt:
+        type: datetime
+        required: false
+
+  CreatePolicyRequest:
+    type: object
+    properties:
+      policyholderId:
+        type: string
+        required: true
+      policyType:
+        type: string
+        required: true
+        enum: [auto, home, commercial, liability, health]
+      effectiveDate:
+        type: date-only
+        required: false
+      expirationDate:
+        type: date-only
+        required: false
+      premiumAmount:
+        type: number
+        required: false
+      coverageAmount:
+        type: number
+        required: false
+      currencyCode:
+        type: string
+        required: false
+
+  UpdatePolicyRequest:
+    type: object
+    properties:
+      status:
+        type: string
+        required: false
+        enum: [active, lapsed, cancelled, expired]
+      expirationDate:
+        type: date-only
+        required: false
+      premiumAmount:
+        type: number
+        required: false
+      coverageAmount:
+        type: number
+        required: false
+
+  PolicyListResponse:
+    type: object
+    properties:
+      items:
+        type: Policy[]
+        required: true
+      totalCount:
+        type: integer
+        required: true
+      page:
+        type: integer
+        required: true
+      pageSize:
+        type: integer
+        required: true
+
+  Claim:
+    type: object
+    properties:
+      id:
+        type: string
+        required: true
+      claimNumber:
+        type: string
+        required: true
+      policyId:
+        type: string
+        required: true
+      policyholderId:
+        type: string
+        required: true
+      status:
+        type: string
+        required: true
+        enum: [reported, under_review, investigating, approved, denied, closed]
+      lossDate:
+        type: date-only
+        required: false
+      lossDescription:
+        type: string
+        required: false
+      estimatedLossAmount:
+        type: number
+        required: false
+      approvedAmount:
+        type: number
+        required: false
+      currencyCode:
+        type: string
+        required: false
+      assignedAdjusterId:
+        type: string
+        required: false
+      reportedAt:
+        type: datetime
+        required: false
+      lastUpdatedAt:
+        type: datetime
+        required: false
+
+  CreateClaimRequest:
+    type: object
+    properties:
+      policyId:
+        type: string
+        required: true
+      lossDate:
+        type: date-only
+        required: true
+      lossDescription:
+        type: string
+        required: true
+      estimatedLossAmount:
+        type: number
+        required: false
+      currencyCode:
+        type: string
+        required: false
+
+  UpdateClaimRequest:
+    type: object
+    properties:
+      status:
+        type: string
+        required: false
+        enum: [reported, under_review, investigating, approved, denied, closed]
+      lossDescription:
+        type: string
+        required: false
+      estimatedLossAmount:
+        type: number
+        required: false
+      approvedAmount:
+        type: number
+        required: false
+
+  ClaimListResponse:
+    type: object
+    properties:
+      items:
+        type: Claim[]
+        required: true
+      totalCount:
+        type: integer
+        required: true
+      page:
+        type: integer
+        required: true
+      pageSize:
+        type: integer
+        required: true
+
+  AssignAdjusterRequest:
+    type: object
+    properties:
+      adjusterId:
+        type: string
+        required: true
+      notes:
+        type: string
+        required: false
+
+  ClaimReserve:
+    type: object
+    properties:
+      claimId:
+        type: string
+        required: true
+      reserveAmount:
+        type: number
+        required: true
+      currencyCode:
+        type: string
+        required: false
+      updatedAt:
+        type: datetime
+        required: false
+
+  UpdateReserveRequest:
+    type: object
+    properties:
+      reserveAmount:
+        type: number
+        required: true
+      currencyCode:
+        type: string
+        required: false
+      reason:
+        type: string
+        required: false
+
+  ClaimDocument:
+    type: object
+    properties:
+      id:
+        type: string
+        required: true
+      claimId:
+        type: string
+        required: true
+      documentType:
+        type: string
+        required: true
+        enum: [police_report, medical_record, repair_estimate, photo, invoice, other]
+      fileName:
+        type: string
+        required: true
+      contentType:
+        type: string
+        required: false
+      uploadedAt:
+        type: datetime
+        required: false
+      description:
+        type: string
+        required: false
+
+  CreateClaimDocumentRequest:
+    type: object
+    properties:
+      documentType:
+        type: string
+        required: true
+        enum: [police_report, medical_record, repair_estimate, photo, invoice, other]
+      fileName:
+        type: string
+        required: true
+      contentType:
+        type: string
+        required: false
+      description:
+        type: string
+        required: false
+
+  ClaimDocumentListResponse:
+    type: object
+    properties:
+      items:
+        type: ClaimDocument[]
+        required: true
+      totalCount:
+        type: integer
+        required: true
+
+  Adjuster:
+    type: object
+    properties:
+      id:
+        type: string
+        required: true
+      firstName:
+        type: string
+        required: true
+      lastName:
+        type: string
+        required: true
+      email:
+        type: string
+        required: false
+      phone:
+        type: string
+        required: false
+      region:
+        type: string
+        required: false
+      status:
+        type: string
+        required: true
+        enum: [active, inactive]
+      specializations:
+        type: string[]
+        required: false
+
+  CreateAdjusterRequest:
+    type: object
+    properties:
+      firstName:
+        type: string
+        required: true
+      lastName:
+        type: string
+        required: true
+      email:
+        type: string
+        required: false
+      phone:
+        type: string
+        required: false
+      region:
+        type: string
+        required: false
+      specializations:
+        type: string[]
+        required: false
+
+  AdjusterListResponse:
+    type: object
+    properties:
+      items:
+        type: Adjuster[]
+        required: true
+      totalCount:
+        type: integer
+        required: true
+
+  Payout:
+    type: object
+    properties:
+      id:
+        type: string
+        required: true
+      claimId:
+        type: string
+        required: true
+      policyholderId:
+        type: string
+        required: true
+      amount:
+        type: number
+        required: true
+      currencyCode:
+        type: string
+        required: false
+      paymentMethod:
+        type: string
+        required: false
+        enum: [bank_transfer, cheque, digital_wallet]
+      status:
+        type: string
+        required: true
+        enum: [pending, approved, issued, failed, cancelled]
+      issuedAt:
+        type: datetime
+        required: false
+      createdAt:
+        type: datetime
+        required: false
+
+  CreatePayoutRequest:
+    type: object
+    properties:
+      claimId:
+        type: string
+        required: true
+      amount:
+        type: number
+        required: true
+      currencyCode:
+        type: string
+        required: false
+      paymentMethod:
+        type: string
+        required: false
+        enum: [bank_transfer, cheque, digital_wallet]
+      notes:
+        type: string
+        required: false
+
+  PayoutListResponse:
+    type: object
+    properties:
+      items:
+        type: Payout[]
+        required: true
+      totalCount:
+        type: integer
+        required: true
+      page:
+        type: integer
+        required: true
+      pageSize:
+        type: integer
+        required: true
+
+/policyholders:
+  description: Manage insurance policyholders.
+  get:
+    is: [secured, paged]
+    description: List policyholders with optional status filter.
+    queryParameters:
+      status:
+        type: string
+        enum: [active, inactive]
+        required: false
+    responses:
+      200:
+        description: Policyholders retrieved successfully
+        body:
+          application/json:
+            type: PolicyholderListResponse
+  post:
+    is: [secured]
+    description: Create a new policyholder.
+    body:
+      application/json:
+        type: CreatePolicyholderRequest
+    responses:
+      201:
+        description: Policyholder created
+        body:
+          application/json:
+            type: Policyholder
+      400:
+        description: Bad request
+        body:
+          application/json:
+            type: ErrorResponse
+
+  /{policyholderId}:
+    description: Operations on a specific policyholder.
+    uriParameters:
+      policyholderId:
+        type: string
+        description: UUID of the policyholder
+    get:
+      is: [secured]
+      description: Get policyholder by ID.
+      responses:
+        200:
+          description: Policyholder retrieved successfully
+          body:
+            application/json:
+              type: Policyholder
+        404:
+          description: Policyholder not found
+          body:
+            application/json:
+              type: ErrorResponse
+    put:
+      is: [secured]
+      description: Update policyholder details.
+      body:
+        application/json:
+          type: UpdatePolicyholderRequest
+      responses:
+        200:
+          description: Policyholder updated
+          body:
+            application/json:
+              type: Policyholder
+        400:
+          description: Bad request
+          body:
+            application/json:
+              type: ErrorResponse
+        404:
+          description: Policyholder not found
+          body:
+            application/json:
+              type: ErrorResponse
+
+/policies:
+  description: Manage insurance policies.
+  get:
+    is: [secured, paged]
+    description: List policies with optional filters.
+    queryParameters:
+      policyholderId:
+        type: string
+        required: false
+      policyType:
+        type: string
+        enum: [auto, home, commercial, liability, health]
+        required: false
+      status:
+        type: string
+        enum: [active, lapsed, cancelled, expired]
+        required: false
+    responses:
+      200:
+        description: Policies retrieved successfully
+        body:
+          application/json:
+            type: PolicyListResponse
+  post:
+    is: [secured]
+    description: Create a new insurance policy.
+    body:
+      application/json:
+        type: CreatePolicyRequest
+    responses:
+      201:
+        description: Policy created
+        body:
+          application/json:
+            type: Policy
+      400:
+        description: Bad request
+        body:
+          application/json:
+            type: ErrorResponse
+
+  /{policyId}:
+    description: Operations on a specific policy.
+    uriParameters:
+      policyId:
+        type: string
+        description: UUID of the policy
+    get:
+      is: [secured]
+      description: Get policy by ID.
+      responses:
+        200:
+          description: Policy retrieved successfully
+          body:
+            application/json:
+              type: Policy
+        404:
+          description: Policy not found
+          body:
+            application/json:
+              type: ErrorResponse
+    put:
+      is: [secured]
+      description: Update policy details.
+      body:
+        application/json:
+          type: UpdatePolicyRequest
+      responses:
+        200:
+          description: Policy updated
+          body:
+            application/json:
+              type: Policy
+        400:
+          description: Bad request
+          body:
+            application/json:
+              type: ErrorResponse
+        404:
+          description: Policy not found
+          body:
+            application/json:
+              type: ErrorResponse
+
+/claims:
+  description: Manage insurance claims.
+  get:
+    is: [secured, paged]
+    description: List claims with optional filters.
+    queryParameters:
+      policyId:
+        type: string
+        required: false
+      policyholderId:
+        type: string
+        required: false
+      status:
+        type: string
+        enum: [reported, under_review, investigating, approved, denied, closed]
+        required: false
+      lossDateFrom:
+        type: date-only
+        required: false
+      lossDateTo:
+        type: date-only
+        required: false
+    responses:
+      200:
+        description: Claims retrieved successfully
+        body:
+          application/json:
+            type: ClaimListResponse
+  post:
+    is: [secured]
+    description: Create a new claim.
+    body:
+      application/json:
+        type: CreateClaimRequest
+    responses:
+      201:
+        description: Claim created
+        body:
+          application/json:
+            type: Claim
+      400:
+        description: Bad request
+        body:
+          application/json:
+            type: ErrorResponse
+
+  /{claimId}:
+    description: Operations on a specific claim.
+    uriParameters:
+      claimId:
+        type: string
+        description: UUID of the claim
+    get:
+      is: [secured]
+      description: Get claim by ID.
+      responses:
+        200:
+          description: Claim retrieved successfully
+          body:
+            application/json:
+              type: Claim
+        404:
+          description: Claim not found
+          body:
+            application/json:
+              type: ErrorResponse
+    put:
+      is: [secured]
+      description: Update claim details.
+      body:
+        application/json:
+          type: UpdateClaimRequest
+      responses:
+        200:
+          description: Claim updated
+          body:
+            application/json:
+              type: Claim
+        400:
+          description: Bad request
+          body:
+            application/json:
+              type: ErrorResponse
+        404:
+          description: Claim not found
+          body:
+            application/json:
+              type: ErrorResponse
+
+    /assign-adjuster:
+      description: Assign an adjuster to a claim.
+      post:
+        is: [secured]
+        description: Assign an adjuster to handle the claim.
+        body:
+          application/json:
+            type: AssignAdjusterRequest
+        responses:
+          200:
+            description: Adjuster assigned successfully
+            body:
+              application/json:
+                type: Claim
+          400:
+            description: Bad request
+            body:
+              application/json:
+                type: ErrorResponse
+          404:
+            description: Claim not found
+            body:
+              application/json:
+                type: ErrorResponse
+
+    /reserve:
+      description: Manage claim reserve amounts.
+      post:
+        is: [secured]
+        description: Update the financial reserve for a claim.
+        body:
+          application/json:
+            type: UpdateReserveRequest
+        responses:
+          200:
+            description: Reserve updated successfully
+            body:
+              application/json:
+                type: ClaimReserve
+          400:
+            description: Bad request
+            body:
+              application/json:
+                type: ErrorResponse
+          404:
+            description: Claim not found
+            body:
+              application/json:
+                type: ErrorResponse
+
+    /documents:
+      description: Documents attached to a claim.
+      get:
+        is: [secured]
+        description: List documents for a claim.
+        responses:
+          200:
+            description: Claim documents retrieved successfully
+            body:
+              application/json:
+                type: ClaimDocumentListResponse
+          404:
+            description: Claim not found
+            body:
+              application/json:
+                type: ErrorResponse
+      post:
+        is: [secured]
+        description: Add a document record to a claim.
+        body:
+          application/json:
+            type: CreateClaimDocumentRequest
+        responses:
+          201:
+            description: Claim document created
+            body:
+              application/json:
+                type: ClaimDocument
+          400:
+            description: Bad request
+            body:
+              application/json:
+                type: ErrorResponse
+
+      /{documentId}:
+        description: Operations on a specific claim document.
+        uriParameters:
+          documentId:
+            type: string
+            description: UUID of the document
+        get:
+          is: [secured]
+          description: Get claim document by ID.
+          responses:
+            200:
+              description: Claim document retrieved successfully
+              body:
+                application/json:
+                  type: ClaimDocument
+            404:
+              description: Document not found
+              body:
+                application/json:
+                  type: ErrorResponse
+        delete:
+          is: [secured]
+          description: Delete a claim document.
+          responses:
+            204:
+              description: Claim document deleted
+            404:
+              description: Document not found
+              body:
+                application/json:
+                  type: ErrorResponse
+
+/adjusters:
+  description: Manage insurance claim adjusters.
+  get:
+    is: [secured]
+    description: List adjusters with optional filters.
+    queryParameters:
+      status:
+        type: string
+        enum: [active, inactive]
+        required: false
+      region:
+        type: string
+        required: false
+    responses:
+      200:
+        description: Adjusters retrieved successfully
+        body:
+          application/json:
+            type: AdjusterListResponse
+  post:
+    is: [secured]
+    description: Create a new adjuster.
+    body:
+      application/json:
+        type: CreateAdjusterRequest
+    responses:
+      201:
+        description: Adjuster created
+        body:
+          application/json:
+            type: Adjuster
+      400:
+        description: Bad request
+        body:
+          application/json:
+            type: ErrorResponse
+
+  /{adjusterId}:
+    description: Operations on a specific adjuster.
+    uriParameters:
+      adjusterId:
+        type: string
+        description: UUID of the adjuster
+    get:
+      is: [secured]
+      description: Get adjuster by ID.
+      responses:
+        200:
+          description: Adjuster retrieved successfully
+          body:
+            application/json:
+              type: Adjuster
+        404:
+          description: Adjuster not found
+          body:
+            application/json:
+              type: ErrorResponse
+
+/payouts:
+  description: Manage claim payouts and disbursements.
+  get:
+    is: [secured, paged]
+    description: List payouts with optional filters.
+    queryParameters:
+      claimId:
+        type: string
+        required: false
+      status:
+        type: string
+        enum: [pending, approved, issued, failed, cancelled]
+        required: false
+    responses:
+      200:
+        description: Payouts retrieved successfully
+        body:
+          application/json:
+            type: PayoutListResponse
+  post:
+    is: [secured]
+    description: Create a new payout for a claim.
+    body:
+      application/json:
+        type: CreatePayoutRequest
+    responses:
+      201:
+        description: Payout created
+        body:
+          application/json:
+            type: Payout
+      400:
+        description: Bad request
+        body:
+          application/json:
+            type: ErrorResponse
+      409:
+        description: Conflict — payout already exists for this claim
+        body:
+          application/json:
+            type: ErrorResponse
+
+  /{payoutId}:
+    description: Operations on a specific payout.
+    uriParameters:
+      payoutId:
+        type: string
+        description: UUID of the payout
+    get:
+      is: [secured]
+      description: Get payout by ID.
+      responses:
+        200:
+          description: Payout retrieved successfully
+          body:
+            application/json:
+              type: Payout
+        404:
+          description: Payout not found
+          body:
+            application/json:
+              type: ErrorResponse
