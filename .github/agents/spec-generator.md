@@ -11,6 +11,7 @@ You generate high-quality, realistic API specifications in the requested format 
 | Format  | Directory        | Extension      |
 |---------|------------------|----------------|
 | OpenAPI | `rest/openapi/`  | `.json`/`.yaml`|
+| RAML    | `rest/raml/`     | `.raml`        |
 | WADL    | `rest/wadl/`     | `.wadl`        |
 | WSDL    | `soap/`          | `.wsdl`        |
 
@@ -49,6 +50,20 @@ Always name files as `<api-name>-<YYYY-MM-DD>.<ext>` with the date in `YYYY-MM-D
 - Structure resources hierarchically (e.g. `/orders/{orderId}/items`).
 - Include `<doc>` elements for descriptions.
 - Define representations for JSON and/or XML media types.
+
+## RAML Specs
+
+- Use **RAML 1.0** only. Do **not** use RAML 0.8.
+- Begin every spec with `#%RAML 1.0` as the first line.
+- Include `title`, `version`, `baseUri`, and `mediaType` at the root.
+- Define reusable data types under the `types` section.
+- Use `traits` for cross-cutting concerns (e.g. paging, secured).
+- Use `resourceTypes` to describe common resource patterns (collection, item).
+- Include at least 5 resources/methods covering CRUD operations.
+- Add `description` to all resources and methods.
+- Specify request and response bodies with type references.
+- Use standard HTTP status codes; include `400`, `401`, `404`, and `500` responses.
+- Secure APIs with a `Bearer Token` or `OAuth 2.0` security scheme defined under `securitySchemes`.
 
 ## WSDL Specs
 

@@ -12,7 +12,8 @@ Ever need a realistic API spec *right now*? Same. This repo is a living collecti
 Api-Specs/
 ├── rest/
 │   ├── openapi/          # OpenAPI 3.0 specs (.json, .yaml)
-│   └── wadl/             # WADL specs (.wadl)
+│   ├── wadl/             # WADL specs (.wadl)
+│   └── raml/             # RAML 1.0 specs (.raml)
 ├── soap/
 │   └── *.wsdl            # WSDL 1.1 specs
 └── .github/
@@ -27,6 +28,7 @@ Api-Specs/
 | Format | Style | Location | Use Case |
 |--------|-------|----------|----------|
 | **OpenAPI 3.0** | REST | `rest/openapi/` | Modern REST API design, code generation, API gateways |
+| **RAML 1.0** | REST | `rest/raml/` | MuleSoft/Anypoint-based REST APIs, design-first workflows |
 | **WADL** | REST (XML) | `rest/wadl/` | Legacy REST service descriptions |
 | **WSDL 1.1** | SOAP | `soap/` | Enterprise SOAP services, WCF, Java WS |
 
@@ -38,14 +40,14 @@ All spec files follow:
 <api-name>-<YYYY-MM-DD>.<ext>
 ```
 
-For example: `banking-2026-04-18.json`, `hr-2026-04-18.wsdl`, `procurement-2026-04-18.wadl`
+For example: `banking-2026-04-18.json`, `hr-2026-04-18.wsdl`, `procurement-2026-04-18.wadl`, `logistics-2026-04-18.raml`
 
 ## 🤖 Generating Specs with Copilot
 
 This repo is set up with Copilot agents and prompts to make generating new specs easy:
 
 - **Agent** — `spec-generator` knows the repo conventions and can produce specs in any supported format
-- **Prompts** — use the reusable prompts in `.github/prompts/` to quickly generate OpenAPI, WSDL, or WADL specs
+- **Prompts** — use the reusable prompts in `.github/prompts/` to quickly generate OpenAPI, WSDL, WADL, or RAML specs
 
 Just tell Copilot what domain you want (e.g. *"Generate an OpenAPI spec for a patient scheduling API"*) and it'll handle the rest.
 
@@ -55,7 +57,7 @@ Every change goes through automated validation:
 
 | Trigger | What Happens |
 |---------|-------------|
-| **Pull Request** | 🔍 Lints all specs — OpenAPI via [Spectral](https://github.com/stoplightio/spectral), WADL/WSDL via `xmllint` |
+| **Pull Request** | 🔍 Lints all specs — OpenAPI via [Spectral](https://github.com/stoplightio/spectral), RAML via [raml-cop](https://github.com/raml-org/raml-cop), WADL/WSDL via `xmllint` |
 | **Merge to `main`** | 🔍 Lint + 📦 Package & publish a GitHub Release |
 
 ## 🚀 Using the Specs
@@ -72,7 +74,7 @@ curl -O https://raw.githubusercontent.com/christopherhouse/Api-Specs/main/rest/o
 
 ## 🧰 Adding a New Spec
 
-1. Pick the right directory based on format (`rest/openapi/`, `rest/wadl/`, or `soap/`)
+1. Pick the right directory based on format (`rest/openapi/`, `rest/raml/`, `rest/wadl/`, or `soap/`)
 2. Name your file following the `<api-name>-<YYYY-MM-DD>.<ext>` convention
 3. Open a PR — CI will lint your spec automatically
 4. Merge and a new release gets cut 🎉
