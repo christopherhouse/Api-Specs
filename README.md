@@ -84,6 +84,28 @@ curl -O https://raw.githubusercontent.com/christopherhouse/Api-Specs/main/rest/o
 
 Or just ask the Copilot agent to generate one for you!
 
+## 🗂️ API Inventory
+
+Current state of all spec files in the repository:
+
+| API | Domain | Format | File |
+|-----|--------|--------|------|
+| Banking | Retail banking — customers, accounts, transactions, beneficiaries, payments | OpenAPI 3.0 (JSON) | [`rest/openapi/banking-2026-04-18.json`](rest/openapi/banking-2026-04-18.json) |
+| Banking | Retail banking — customers, accounts, transactions, beneficiaries, payments | RAML 1.0 | [`rest/raml/banking-2026-04-18.raml`](rest/raml/banking-2026-04-18.raml) |
+| Banking | Retail banking — customers, accounts, transactions, beneficiaries, payments | GraphQL SDL | [`graphql/banking-2026-04-19.graphql`](graphql/banking-2026-04-19.graphql) |
+| Claims Management | Insurance — policyholders, policies, claims, documents, adjusters, payouts | OpenAPI 3.0 (YAML) | [`rest/openapi/claims-2026-04-18.yaml`](rest/openapi/claims-2026-04-18.yaml) |
+| Claims Management | Insurance — policyholders, policies, claims, documents, adjusters, payouts | RAML 1.0 | [`rest/raml/claims-2026-04-18.raml`](rest/raml/claims-2026-04-18.raml) |
+| Claims Management | Insurance — policyholders, policies, claims, documents, adjusters, payouts | GraphQL SDL | [`graphql/claims-2026-04-19.graphql`](graphql/claims-2026-04-19.graphql) |
+| Supply Chain | Suppliers, products, warehouses, inventory, purchase orders, shipments | OpenAPI 3.0 (YAML) | [`rest/openapi/supply-chain-2026-04-18.yaml`](rest/openapi/supply-chain-2026-04-18.yaml) |
+| Supply Chain | Suppliers, products, warehouses, inventory, purchase orders, shipments | RAML 1.0 | [`rest/raml/supply-chain-2026-04-18.raml`](rest/raml/supply-chain-2026-04-18.raml) |
+| Supply Chain | Suppliers, products, warehouses, inventory, purchase orders, shipments | GraphQL SDL | [`graphql/supply-chain-2026-04-19.graphql`](graphql/supply-chain-2026-04-19.graphql) |
+| HR Service | Employees, departments, leave requests | SOAP / WSDL 1.1 | [`soap/hr-2026-04-18.wsdl`](soap/hr-2026-04-18.wsdl) |
+| HR Service | Employees, departments, leave requests | RAML 1.0 | [`rest/raml/hr-2026-04-18.raml`](rest/raml/hr-2026-04-18.raml) |
+| HR Service | Employees, departments, leave requests | GraphQL SDL | [`graphql/hr-2026-04-19.graphql`](graphql/hr-2026-04-19.graphql) |
+| Procurement | Vendors, contracts, requisitions, purchase orders, approvals, invoices | WADL | [`rest/wadl/procurement-2026-04-18.wadl`](rest/wadl/procurement-2026-04-18.wadl) |
+| Procurement | Vendors, contracts, requisitions, purchase orders, approvals, invoices | RAML 1.0 | [`rest/raml/procurement-2026-04-18.raml`](rest/raml/procurement-2026-04-18.raml) |
+| Procurement | Vendors, contracts, requisitions, purchase orders, approvals, invoices | GraphQL SDL | [`graphql/procurement-2026-04-19.graphql`](graphql/procurement-2026-04-19.graphql) |
+
 ## 📄 License
 
 [MIT](LICENSE)

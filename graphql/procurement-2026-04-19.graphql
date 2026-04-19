@@ -1,0 +1,731 @@
+"""
+Procurement API — GraphQL SDL
+
+Covers enterprise procurement: vendors, contracts, requisitions,
+purchase orders, approval workflows, and invoices.
+"""
+
+schema {
+  query: Query
+  mutation: Mutation
+  subscription: Subscription
+}
+
+# ---------------------------------------------------------------------------
+# Scalars
+# ---------------------------------------------------------------------------
+
+"""ISO-8601 date-time string"""
+scalar DateTime
+
+"""ISO-8601 calendar date string"""
+scalar Date
+
+"""Monetary amount as a decimal string"""
+scalar Decimal
+
+"""RFC-4122 UUID"""
+scalar UUID
+
+# ---------------------------------------------------------------------------
+# Enums
+# ---------------------------------------------------------------------------
+
+"""Lifecycle status of a vendor"""
+enum VendorStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
+"""Lifecycle status of a contract"""
+enum ContractStatus {
+  DRAFT
+  ACTIVE
+  EXPIRED
+  TERMINATED
+}
+
+"""Status of a requisition"""
+enum RequisitionStatus {
+  DRAFT
+  SUBMITTED
+  APPROVED
+  REJECTED
+  CONVERTED_TO_PURCHASE_ORDER
+}
+
+"""Status of a purchase order"""
+enum PurchaseOrderStatus {
+  DRAFT
+  ISSUED
+  PARTIALLY_RECEIVED
+  RECEIVED
+  CLOSED
+  CANCELLED
+}
+
+"""Status of an invoice"""
+enum InvoiceStatus {
+  RECEIVED
+  MATCHED
+  APPROVED
+  PAID
+  REJECTED
+}
+
+"""Result of an approval decision"""
+enum ApprovalDecision {
+  APPROVED
+  REJECTED
+  REQUEST_CHANGES
+}
+
+"""Priority of a requisition"""
+enum RequisitionPriority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+
+# ---------------------------------------------------------------------------
+# Interfaces
+# ---------------------------------------------------------------------------
+
+"""Audit timestamps shared by all records"""
+interface Auditable {
+  """When this record was created"""
+  createdAt: DateTime!
+  """When this record was last updated"""
+  updatedAt: DateTime!
+}
+
+# ---------------------------------------------------------------------------
+# Types
+# ---------------------------------------------------------------------------
+
+"""A physical or mailing address"""
+type Address {
+  """Street address line 1"""
+  line1: String!
+  """Optional second address line"""
+  line2: String
+  """City name"""
+  city: String!
+  """State or province"""
+  stateOrProvince: String!
+  """Postal / ZIP code"""
+  postalCode: String!
+  """ISO-3166-1 alpha-2 country code"""
+  countryCode: String!
+}
+
+"""A procurement vendor (supplier)"""
+type Vendor implements Auditable {
+  """Unique vendor identifier"""
+  id: UUID!
+  """Vendor code used in the ERP system"""
+  vendorCode: String!
+  """Legal company name"""
+  name: String!
+  """Tax identification number"""
+  taxId: String
+  """Primary contact email"""
+  contactEmail: String!
+  """Primary contact phone"""
+  contactPhone: String
+  """Registered address"""
+  address: Address
+  """Current lifecycle status"""
+  status: VendorStatus!
+  """ISO-4217 default trading currency"""
+  currency: String!
+  """Payment terms (e.g. Net30)"""
+  paymentTerms: String
+  """Contracts with this vendor"""
+  contracts(status: ContractStatus): [Contract!]!
+  """Purchase orders raised for this vendor"""
+  purchaseOrders(status: PurchaseOrderStatus): [PurchaseOrder!]!
+  """Invoices submitted by this vendor"""
+  invoices(status: InvoiceStatus): [Invoice!]!
+  """When this record was created"""
+  createdAt: DateTime!
+  """When this record was last updated"""
+  updatedAt: DateTime!
+}
+
+"""A commercial contract with a vendor"""
+type Contract implements Auditable {
+  """Unique contract identifier"""
+  id: UUID!
+  """Contract reference number"""
+  contractNumber: String!
+  """The vendor party to this contract"""
+  vendor: Vendor!
+  """Contract lifecycle status"""
+  status: ContractStatus!
+  """Contract title / description"""
+  title: String!
+  """Contract effective date"""
+  effectiveDate: Date!
+  """Contract expiration date"""
+  expirationDate: Date!
+  """Maximum contract value"""
+  maxValue: Decimal!
+  """ISO-4217 currency"""
+  currency: String!
+  """Total spend against this contract to date"""
+  totalSpend: Decimal!
+  """Contract owner (internal employee reference)"""
+  ownerEmployeeId: UUID
+  """Renewal reminder date"""
+  renewalReminderDate: Date
+  """Purchase orders referencing this contract"""
+  purchaseOrders: [PurchaseOrder!]!
+  """When this record was created"""
+  createdAt: DateTime!
+  """When this record was last updated"""
+  updatedAt: DateTime!
+}
+
+"""A purchase requisition submitted internally"""
+type Requisition implements Auditable {
+  """Unique requisition identifier"""
+  id: UUID!
+  """Requisition reference number"""
+  requisitionNumber: String!
+  """Current status"""
+  status: RequisitionStatus!
+  """Priority"""
+  priority: RequisitionPriority!
+  """Department requesting the goods/services"""
+  departmentId: UUID!
+  """Employee who raised the requisition"""
+  requestedBy: UUID!
+  """Required delivery date"""
+  requiredByDate: Date!
+  """Business justification"""
+  justification: String
+  """ISO-4217 currency"""
+  currency: String!
+  """Total estimated value"""
+  estimatedTotal: Decimal!
+  """Line items on this requisition"""
+  lineItems: [RequisitionLine!]!
+  """Approval history"""
+  approvals: [ApprovalRecord!]!
+  """Purchase order created from this requisition, if approved"""
+  purchaseOrder: PurchaseOrder
+  """When this record was created"""
+  createdAt: DateTime!
+  """When this record was last updated"""
+  updatedAt: DateTime!
+}
+
+"""A single line on a purchase requisition"""
+type RequisitionLine {
+  """Line identifier"""
+  id: UUID!
+  """Line number (1-based)"""
+  lineNumber: Int!
+  """Description of the item or service"""
+  description: String!
+  """Quantity required"""
+  quantity: Decimal!
+  """Unit of measure"""
+  unitOfMeasure: String!
+  """Estimated unit price"""
+  estimatedUnitPrice: Decimal!
+  """Line total (quantity × estimated unit price)"""
+  lineTotal: Decimal!
+  """Preferred vendor, if known"""
+  preferredVendor: Vendor
+  """GL account code"""
+  glAccountCode: String
+}
+
+"""An approval record on a requisition or invoice"""
+type ApprovalRecord implements Auditable {
+  """Unique approval record identifier"""
+  id: UUID!
+  """ID of the approver (employee)"""
+  approverId: UUID!
+  """Approval decision"""
+  decision: ApprovalDecision!
+  """Approver's comments"""
+  comments: String
+  """When the decision was made"""
+  decidedAt: DateTime!
+  """When this record was created"""
+  createdAt: DateTime!
+  """When this record was last updated"""
+  updatedAt: DateTime!
+}
+
+"""A purchase order issued to a vendor"""
+type PurchaseOrder implements Auditable {
+  """Unique purchase order identifier"""
+  id: UUID!
+  """PO number shown on order documents"""
+  poNumber: String!
+  """The vendor this PO is addressed to"""
+  vendor: Vendor!
+  """The contract this PO is placed under (if any)"""
+  contract: Contract
+  """Source requisition (if any)"""
+  requisition: Requisition
+  """Current status"""
+  status: PurchaseOrderStatus!
+  """ISO-4217 currency"""
+  currency: String!
+  """Expected delivery date"""
+  expectedDeliveryDate: Date!
+  """Actual delivery date"""
+  actualDeliveryDate: Date
+  """Delivery address"""
+  deliveryAddress: Address!
+  """Line items"""
+  lineItems: [PurchaseOrderLine!]!
+  """Total PO value"""
+  totalAmount: Decimal!
+  """Invoices matched to this PO"""
+  invoices: [Invoice!]!
+  """Free-text notes"""
+  notes: String
+  """When this record was created"""
+  createdAt: DateTime!
+  """When this record was last updated"""
+  updatedAt: DateTime!
+}
+
+"""A line item on a purchase order"""
+type PurchaseOrderLine {
+  """Line identifier"""
+  id: UUID!
+  """Line number (1-based)"""
+  lineNumber: Int!
+  """Description of goods/service"""
+  description: String!
+  """Quantity ordered"""
+  quantityOrdered: Decimal!
+  """Quantity received to date"""
+  quantityReceived: Decimal!
+  """Agreed unit price"""
+  unitPrice: Decimal!
+  """Line total"""
+  lineTotal: Decimal!
+  """GL account code"""
+  glAccountCode: String
+}
+
+"""A vendor invoice"""
+type Invoice implements Auditable {
+  """Unique invoice identifier"""
+  id: UUID!
+  """Vendor's invoice number"""
+  invoiceNumber: String!
+  """The vendor who submitted this invoice"""
+  vendor: Vendor!
+  """Purchase order this invoice is matched against"""
+  purchaseOrder: PurchaseOrder
+  """Current status"""
+  status: InvoiceStatus!
+  """Invoice date"""
+  invoiceDate: Date!
+  """Payment due date"""
+  dueDate: Date!
+  """ISO-4217 currency"""
+  currency: String!
+  """Invoice subtotal (before taxes)"""
+  subtotal: Decimal!
+  """Tax amount"""
+  taxAmount: Decimal!
+  """Total amount due"""
+  totalAmount: Decimal!
+  """Amount paid to date"""
+  amountPaid: Decimal!
+  """Date payment was made"""
+  paidAt: DateTime
+  """Approval history on this invoice"""
+  approvals: [ApprovalRecord!]!
+  """When this record was created"""
+  createdAt: DateTime!
+  """When this record was last updated"""
+  updatedAt: DateTime!
+}
+
+"""Connection type for paginated vendors"""
+type VendorConnection {
+  """List of edges in this page"""
+  edges: [VendorEdge!]!
+  """Pagination metadata for this page"""
+  pageInfo: PageInfo!
+  """Total number of matching records"""
+  totalCount: Int!
+}
+
+"""Edge for a single vendor"""
+type VendorEdge {
+  """The record in this edge"""
+  node: Vendor!
+  """Opaque pagination cursor for this edge"""
+  cursor: String!
+}
+
+"""Connection type for paginated requisitions"""
+type RequisitionConnection {
+  """List of edges in this page"""
+  edges: [RequisitionEdge!]!
+  """Pagination metadata for this page"""
+  pageInfo: PageInfo!
+  """Total number of matching records"""
+  totalCount: Int!
+}
+
+"""Edge for a single requisition"""
+type RequisitionEdge {
+  """The record in this edge"""
+  node: Requisition!
+  """Opaque pagination cursor for this edge"""
+  cursor: String!
+}
+
+"""Connection type for paginated purchase orders"""
+type PurchaseOrderConnection {
+  """List of edges in this page"""
+  edges: [PurchaseOrderEdge!]!
+  """Pagination metadata for this page"""
+  pageInfo: PageInfo!
+  """Total number of matching records"""
+  totalCount: Int!
+}
+
+"""Edge for a single purchase order"""
+type PurchaseOrderEdge {
+  """The record in this edge"""
+  node: PurchaseOrder!
+  """Opaque pagination cursor for this edge"""
+  cursor: String!
+}
+
+"""Connection type for paginated invoices"""
+type InvoiceConnection {
+  """List of edges in this page"""
+  edges: [InvoiceEdge!]!
+  """Pagination metadata for this page"""
+  pageInfo: PageInfo!
+  """Total number of matching records"""
+  totalCount: Int!
+}
+
+"""Edge for a single invoice"""
+type InvoiceEdge {
+  """The record in this edge"""
+  node: Invoice!
+  """Opaque pagination cursor for this edge"""
+  cursor: String!
+}
+
+"""Standard pagination metadata"""
+type PageInfo {
+  """Whether more pages exist after this one"""
+  hasNextPage: Boolean!
+  """Whether more pages exist before this one"""
+  hasPreviousPage: Boolean!
+  """Cursor for the first item in this page"""
+  startCursor: String
+  """Cursor for the last item in this page"""
+  endCursor: String
+}
+
+# ---------------------------------------------------------------------------
+# Inputs
+# ---------------------------------------------------------------------------
+
+"""Filter criteria for listing vendors"""
+input VendorFilterInput {
+  status: VendorStatus
+  search: String
+}
+
+"""Filter criteria for listing contracts"""
+input ContractFilterInput {
+  status: ContractStatus
+  vendorId: UUID
+}
+
+"""Filter criteria for listing requisitions"""
+input RequisitionFilterInput {
+  status: RequisitionStatus
+  priority: RequisitionPriority
+  departmentId: UUID
+  requestedBy: UUID
+}
+
+"""Filter criteria for listing purchase orders"""
+input PurchaseOrderFilterInput {
+  status: PurchaseOrderStatus
+  vendorId: UUID
+  contractId: UUID
+}
+
+"""Filter criteria for listing invoices"""
+input InvoiceFilterInput {
+  status: InvoiceStatus
+  vendorId: UUID
+  fromDueDate: Date
+  toDueDate: Date
+}
+
+"""Input for creating a vendor"""
+input CreateVendorInput {
+  vendorCode: String!
+  name: String!
+  taxId: String
+  contactEmail: String!
+  contactPhone: String
+  address: AddressInput
+  currency: String!
+  paymentTerms: String
+}
+
+"""Input for updating a vendor"""
+input UpdateVendorInput {
+  name: String
+  taxId: String
+  contactEmail: String
+  contactPhone: String
+  address: AddressInput
+  status: VendorStatus
+  currency: String
+  paymentTerms: String
+}
+
+"""Input for creating a contract"""
+input CreateContractInput {
+  vendorId: UUID!
+  title: String!
+  effectiveDate: Date!
+  expirationDate: Date!
+  maxValue: Decimal!
+  currency: String!
+  ownerEmployeeId: UUID
+  renewalReminderDate: Date
+}
+
+"""Input for creating a requisition"""
+input CreateRequisitionInput {
+  departmentId: UUID!
+  requestedBy: UUID!
+  requiredByDate: Date!
+  priority: RequisitionPriority!
+  justification: String
+  currency: String!
+  lineItems: [CreateRequisitionLineInput!]!
+}
+
+"""Input for a single requisition line"""
+input CreateRequisitionLineInput {
+  description: String!
+  quantity: Decimal!
+  unitOfMeasure: String!
+  estimatedUnitPrice: Decimal!
+  preferredVendorId: UUID
+  glAccountCode: String
+}
+
+"""Input for submitting an approval decision"""
+input SubmitApprovalInput {
+  """ID of the requisition or invoice being approved"""
+  entityId: UUID!
+  approverId: UUID!
+  decision: ApprovalDecision!
+  comments: String
+}
+
+"""Input for creating a purchase order"""
+input CreatePurchaseOrderInput {
+  vendorId: UUID!
+  contractId: UUID
+  requisitionId: UUID
+  currency: String!
+  expectedDeliveryDate: Date!
+  deliveryAddress: AddressInput!
+  notes: String
+  lineItems: [CreatePurchaseOrderLineInput!]!
+}
+
+"""Input for a purchase order line"""
+input CreatePurchaseOrderLineInput {
+  description: String!
+  quantityOrdered: Decimal!
+  unitPrice: Decimal!
+  glAccountCode: String
+}
+
+"""Input for recording goods receipt"""
+input ReceiveGoodsInput {
+  purchaseOrderId: UUID!
+  receivedAt: DateTime!
+  lineItems: [ReceiveGoodsLineInput!]!
+}
+
+"""Input for receiving a single PO line"""
+input ReceiveGoodsLineInput {
+  lineId: UUID!
+  quantityReceived: Decimal!
+  notes: String
+}
+
+"""Input for creating an invoice"""
+input CreateInvoiceInput {
+  vendorId: UUID!
+  purchaseOrderId: UUID
+  invoiceNumber: String!
+  invoiceDate: Date!
+  dueDate: Date!
+  currency: String!
+  subtotal: Decimal!
+  taxAmount: Decimal!
+}
+
+"""Input for an address"""
+input AddressInput {
+  line1: String!
+  line2: String
+  city: String!
+  stateOrProvince: String!
+  postalCode: String!
+  countryCode: String!
+}
+
+# ---------------------------------------------------------------------------
+# Queries
+# ---------------------------------------------------------------------------
+
+"""Root query type — all read operations"""
+type Query {
+  """Get a single vendor by ID"""
+  vendor(id: UUID!): Vendor
+
+  """List vendors with filtering and pagination"""
+  vendors(
+    first: Int
+    after: String
+    filter: VendorFilterInput
+  ): VendorConnection!
+
+  """Get a single contract by ID"""
+  contract(id: UUID!): Contract
+
+  """List contracts with filtering"""
+  contracts(filter: ContractFilterInput): [Contract!]!
+
+  """List contracts expiring before a given date"""
+  contractsExpiringSoon(before: Date!): [Contract!]!
+
+  """Get a single requisition by ID"""
+  requisition(id: UUID!): Requisition
+
+  """List requisitions with filtering and pagination"""
+  requisitions(
+    first: Int
+    after: String
+    filter: RequisitionFilterInput
+  ): RequisitionConnection!
+
+  """Get a single purchase order by ID"""
+  purchaseOrder(id: UUID!): PurchaseOrder
+
+  """List purchase orders with filtering and pagination"""
+  purchaseOrders(
+    first: Int
+    after: String
+    filter: PurchaseOrderFilterInput
+  ): PurchaseOrderConnection!
+
+  """Get a single invoice by ID"""
+  invoice(id: UUID!): Invoice
+
+  """List invoices with filtering and pagination"""
+  invoices(
+    first: Int
+    after: String
+    filter: InvoiceFilterInput
+  ): InvoiceConnection!
+
+  """List overdue invoices (past due date and not paid)"""
+  overdueInvoices: [Invoice!]!
+}
+
+# ---------------------------------------------------------------------------
+# Mutations
+# ---------------------------------------------------------------------------
+
+"""Root mutation type — all write operations"""
+type Mutation {
+  """Register a new vendor"""
+  createVendor(input: CreateVendorInput!): Vendor!
+
+  """Update vendor details"""
+  updateVendor(id: UUID!, input: UpdateVendorInput!): Vendor!
+
+  """Create a new contract with a vendor"""
+  createContract(input: CreateContractInput!): Contract!
+
+  """Terminate an active contract"""
+  terminateContract(id: UUID!, reason: String): Contract!
+
+  """Submit a new purchase requisition"""
+  createRequisition(input: CreateRequisitionInput!): Requisition!
+
+  """Submit a draft requisition for approval"""
+  submitRequisition(id: UUID!): Requisition!
+
+  """Process an approval decision on a requisition"""
+  approveRequisition(input: SubmitApprovalInput!): Requisition!
+
+  """Convert an approved requisition into a purchase order"""
+  convertRequisitionToPurchaseOrder(
+    requisitionId: UUID!
+    purchaseOrderInput: CreatePurchaseOrderInput!
+  ): PurchaseOrder!
+
+  """Issue a new purchase order directly (without a requisition)"""
+  createPurchaseOrder(input: CreatePurchaseOrderInput!): PurchaseOrder!
+
+  """Cancel a purchase order"""
+  cancelPurchaseOrder(id: UUID!): PurchaseOrder!
+
+  """Record goods receipt against a purchase order"""
+  receiveGoods(input: ReceiveGoodsInput!): PurchaseOrder!
+
+  """Register a new vendor invoice"""
+  createInvoice(input: CreateInvoiceInput!): Invoice!
+
+  """Process an approval decision on an invoice"""
+  approveInvoice(input: SubmitApprovalInput!): Invoice!
+
+  """Record a payment against an invoice"""
+  payInvoice(id: UUID!, paidAmount: Decimal!, paidAt: DateTime!): Invoice!
+
+  """Reject an invoice"""
+  rejectInvoice(id: UUID!, reason: String!): Invoice!
+}
+
+# ---------------------------------------------------------------------------
+# Subscriptions
+# ---------------------------------------------------------------------------
+
+"""Root subscription type — real-time event streams"""
+type Subscription {
+  """Real-time requisition status changes"""
+  requisitionStatusChanged(requisitionId: UUID!): Requisition!
+
+  """Real-time purchase order status changes"""
+  purchaseOrderStatusChanged(purchaseOrderId: UUID!): PurchaseOrder!
+
+  """Alert when an invoice is approaching or past its due date"""
+  invoiceDueDateAlert(vendorId: UUID): Invoice!
+}

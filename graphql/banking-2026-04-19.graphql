@@ -1,0 +1,583 @@
+"""
+Banking API — GraphQL SDL
+
+Covers retail banking customers, accounts, balances, transactions,
+beneficiaries, and payments.
+"""
+
+schema {
+  query: Query
+  mutation: Mutation
+  subscription: Subscription
+}
+
+# ---------------------------------------------------------------------------
+# Scalars
+# ---------------------------------------------------------------------------
+
+"""ISO-8601 date-time string (e.g. 2026-04-19T12:00:00Z)"""
+scalar DateTime
+
+"""ISO-8601 calendar date string (e.g. 2026-04-19)"""
+scalar Date
+
+"""Monetary amount represented as a decimal string to avoid float rounding"""
+scalar Decimal
+
+"""RFC-4122 UUID"""
+scalar UUID
+
+# ---------------------------------------------------------------------------
+# Enums
+# ---------------------------------------------------------------------------
+
+"""Lifecycle status of a customer record"""
+enum CustomerStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
+"""Type of bank account"""
+enum AccountType {
+  CHECKING
+  SAVINGS
+  MONEY_MARKET
+  CERTIFICATE_OF_DEPOSIT
+  LINE_OF_CREDIT
+}
+
+"""Lifecycle status of an account"""
+enum AccountStatus {
+  OPEN
+  CLOSED
+  FROZEN
+  PENDING
+}
+
+"""Direction of a financial transaction"""
+enum TransactionDirection {
+  CREDIT
+  DEBIT
+}
+
+"""High-level category of a transaction"""
+enum TransactionType {
+  DEPOSIT
+  WITHDRAWAL
+  TRANSFER
+  PAYMENT
+  FEE
+  INTEREST
+  REFUND
+  REVERSAL
+}
+
+"""Status of a payment instruction"""
+enum PaymentStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+"""Type of payment rail"""
+enum PaymentType {
+  ACH
+  WIRE
+  INTERNAL_TRANSFER
+  RTP
+  SEPA
+}
+
+# ---------------------------------------------------------------------------
+# Interfaces
+# ---------------------------------------------------------------------------
+
+"""Common audit fields shared by all domain objects"""
+interface Auditable {
+  """When the record was created"""
+  createdAt: DateTime!
+  """When the record was last updated"""
+  updatedAt: DateTime!
+}
+
+# ---------------------------------------------------------------------------
+# Types
+# ---------------------------------------------------------------------------
+
+"""Physical or mailing address"""
+type Address {
+  """Street address line 1"""
+  line1: String!
+  """Optional second address line"""
+  line2: String
+  """City name"""
+  city: String!
+  """State or province"""
+  stateOrProvince: String!
+  """Postal / ZIP code"""
+  postalCode: String!
+  """ISO-3166-1 alpha-2 country code"""
+  countryCode: String!
+}
+
+"""A retail banking customer"""
+type Customer implements Auditable {
+  """Unique customer identifier"""
+  id: UUID!
+  """Customer reference number shown on statements"""
+  customerNumber: String!
+  """Legal first name"""
+  firstName: String!
+  """Legal last name"""
+  lastName: String!
+  """Full display name"""
+  displayName: String!
+  """Primary email address"""
+  email: String!
+  """Primary phone number"""
+  phone: String
+  """Mailing address"""
+  address: Address
+  """Current lifecycle status"""
+  status: CustomerStatus!
+  """Date of birth"""
+  dateOfBirth: Date
+  """All accounts owned by this customer"""
+  accounts(status: AccountStatus): [Account!]!
+  """All beneficiaries registered by this customer"""
+  beneficiaries: [Beneficiary!]!
+  """When this record was created"""
+  createdAt: DateTime!
+  """When this record was last updated"""
+  updatedAt: DateTime!
+}
+
+"""A bank account belonging to a customer"""
+type Account implements Auditable {
+  """Unique account identifier"""
+  id: UUID!
+  """Account number (masked in most contexts)"""
+  accountNumber: String!
+  """Type of account product"""
+  accountType: AccountType!
+  """Current lifecycle status"""
+  status: AccountStatus!
+  """Current available balance"""
+  availableBalance: Decimal!
+  """Current ledger balance"""
+  ledgerBalance: Decimal!
+  """ISO-4217 currency code"""
+  currency: String!
+  """Account nickname set by the customer"""
+  nickname: String
+  """Date the account was opened"""
+  openedAt: Date!
+  """Date the account was closed, if applicable"""
+  closedAt: Date
+  """The customer who owns this account"""
+  customer: Customer!
+  """Paginated transaction history"""
+  transactions(first: Int, after: String, filter: TransactionFilterInput): TransactionConnection!
+  """When this record was created"""
+  createdAt: DateTime!
+  """When this record was last updated"""
+  updatedAt: DateTime!
+}
+
+"""A financial transaction on an account"""
+type Transaction implements Auditable {
+  """Unique transaction identifier"""
+  id: UUID!
+  """Unique reference number for external reconciliation"""
+  referenceNumber: String!
+  """The account this transaction belongs to"""
+  account: Account!
+  """Credit or debit indicator"""
+  direction: TransactionDirection!
+  """High-level transaction category"""
+  transactionType: TransactionType!
+  """Amount of the transaction"""
+  amount: Decimal!
+  """ISO-4217 currency code"""
+  currency: String!
+  """Running balance after this transaction was applied"""
+  runningBalance: Decimal!
+  """Human-readable description"""
+  description: String
+  """Merchant or counter-party name"""
+  merchantName: String
+  """Date the transaction was posted"""
+  postedAt: DateTime!
+  """Date the transaction was valued"""
+  valueDate: Date
+  """When this record was created"""
+  createdAt: DateTime!
+  """When this record was last updated"""
+  updatedAt: DateTime!
+}
+
+"""Pagination cursor-based connection for transactions"""
+type TransactionConnection {
+  """Paginated list of transaction edges"""
+  edges: [TransactionEdge!]!
+  """Pagination metadata"""
+  pageInfo: PageInfo!
+  """Total number of matching transactions"""
+  totalCount: Int!
+}
+
+"""An edge wrapping a single transaction"""
+type TransactionEdge {
+  """The transaction node"""
+  node: Transaction!
+  """Opaque pagination cursor"""
+  cursor: String!
+}
+
+"""A registered beneficiary / payee for a customer"""
+type Beneficiary implements Auditable {
+  """Unique beneficiary identifier"""
+  id: UUID!
+  """The customer who registered this beneficiary"""
+  customer: Customer!
+  """Beneficiary display name"""
+  name: String!
+  """Beneficiary bank name"""
+  bankName: String
+  """Routing / sort code"""
+  routingNumber: String
+  """Account number at the beneficiary bank"""
+  accountNumber: String!
+  """ISO-4217 currency code for this beneficiary"""
+  currency: String!
+  """Whether this beneficiary is active"""
+  active: Boolean!
+  """When this record was created"""
+  createdAt: DateTime!
+  """When this record was last updated"""
+  updatedAt: DateTime!
+}
+
+"""A payment instruction submitted by a customer"""
+type Payment implements Auditable {
+  """Unique payment identifier"""
+  id: UUID!
+  """Client-supplied idempotency reference"""
+  referenceId: String!
+  """The originating account"""
+  sourceAccount: Account!
+  """The beneficiary to pay"""
+  beneficiary: Beneficiary!
+  """Payment rail"""
+  paymentType: PaymentType!
+  """Amount to transfer"""
+  amount: Decimal!
+  """ISO-4217 currency"""
+  currency: String!
+  """Current payment status"""
+  status: PaymentStatus!
+  """Optional free-text payment memo"""
+  memo: String
+  """Date the payment should be executed"""
+  scheduledDate: Date!
+  """Date the payment was completed, if applicable"""
+  completedAt: DateTime
+  """Failure reason, populated when status is FAILED"""
+  failureReason: String
+  """When this record was created"""
+  createdAt: DateTime!
+  """When this record was last updated"""
+  updatedAt: DateTime!
+}
+
+"""Cursor-based pagination for customers"""
+type CustomerConnection {
+  """List of edges in this page"""
+  edges: [CustomerEdge!]!
+  """Pagination metadata for this page"""
+  pageInfo: PageInfo!
+  """Total number of matching records"""
+  totalCount: Int!
+}
+
+"""An edge wrapping a single customer"""
+type CustomerEdge {
+  """The record in this edge"""
+  node: Customer!
+  """Opaque pagination cursor for this edge"""
+  cursor: String!
+}
+
+"""Cursor-based pagination for accounts"""
+type AccountConnection {
+  """List of edges in this page"""
+  edges: [AccountEdge!]!
+  """Pagination metadata for this page"""
+  pageInfo: PageInfo!
+  """Total number of matching records"""
+  totalCount: Int!
+}
+
+"""An edge wrapping a single account"""
+type AccountEdge {
+  """The record in this edge"""
+  node: Account!
+  """Opaque pagination cursor for this edge"""
+  cursor: String!
+}
+
+"""Cursor-based pagination for payments"""
+type PaymentConnection {
+  """List of edges in this page"""
+  edges: [PaymentEdge!]!
+  """Pagination metadata for this page"""
+  pageInfo: PageInfo!
+  """Total number of matching records"""
+  totalCount: Int!
+}
+
+"""An edge wrapping a single payment"""
+type PaymentEdge {
+  """The record in this edge"""
+  node: Payment!
+  """Opaque pagination cursor for this edge"""
+  cursor: String!
+}
+
+"""Standard pagination metadata"""
+type PageInfo {
+  """Whether more pages exist after this one"""
+  hasNextPage: Boolean!
+  """Whether more pages exist before this one"""
+  hasPreviousPage: Boolean!
+  """Cursor for the first item in this page"""
+  startCursor: String
+  """Cursor for the last item in this page"""
+  endCursor: String
+}
+
+# ---------------------------------------------------------------------------
+# Inputs
+# ---------------------------------------------------------------------------
+
+"""Filter criteria when listing customers"""
+input CustomerFilterInput {
+  """Filter by lifecycle status"""
+  status: CustomerStatus
+  """Full-text search on name or email"""
+  search: String
+}
+
+"""Filter criteria when listing accounts"""
+input AccountFilterInput {
+  """Filter by account type"""
+  accountType: AccountType
+  """Filter by status"""
+  status: AccountStatus
+}
+
+"""Filter criteria when listing transactions"""
+input TransactionFilterInput {
+  """Only return transactions on or after this date"""
+  fromDate: Date
+  """Only return transactions on or before this date"""
+  toDate: Date
+  """Filter by transaction direction"""
+  direction: TransactionDirection
+  """Filter by transaction type"""
+  transactionType: TransactionType
+  """Minimum transaction amount (inclusive)"""
+  minAmount: Decimal
+  """Maximum transaction amount (inclusive)"""
+  maxAmount: Decimal
+}
+
+"""Filter criteria when listing payments"""
+input PaymentFilterInput {
+  """Filter by payment status"""
+  status: PaymentStatus
+  """Filter by payment type / rail"""
+  paymentType: PaymentType
+  """Only payments on or after this scheduled date"""
+  fromDate: Date
+  """Only payments on or before this scheduled date"""
+  toDate: Date
+}
+
+"""Fields required to create a new customer"""
+input CreateCustomerInput {
+  firstName: String!
+  lastName: String!
+  email: String!
+  phone: String
+  address: AddressInput
+  dateOfBirth: Date
+}
+
+"""Fields that can be updated on a customer"""
+input UpdateCustomerInput {
+  firstName: String
+  lastName: String
+  email: String
+  phone: String
+  address: AddressInput
+  status: CustomerStatus
+}
+
+"""Input for an address"""
+input AddressInput {
+  line1: String!
+  line2: String
+  city: String!
+  stateOrProvince: String!
+  postalCode: String!
+  countryCode: String!
+}
+
+"""Fields required to open a new account"""
+input CreateAccountInput {
+  """ID of the owning customer"""
+  customerId: UUID!
+  accountType: AccountType!
+  currency: String!
+  nickname: String
+  """Initial deposit amount; defaults to 0"""
+  initialDeposit: Decimal
+}
+
+"""Fields that can be updated on an account"""
+input UpdateAccountInput {
+  nickname: String
+  status: AccountStatus
+}
+
+"""Fields required to register a new beneficiary"""
+input CreateBeneficiaryInput {
+  customerId: UUID!
+  name: String!
+  bankName: String
+  routingNumber: String
+  accountNumber: String!
+  currency: String!
+}
+
+"""Fields required to submit a payment"""
+input CreatePaymentInput {
+  referenceId: String!
+  sourceAccountId: UUID!
+  beneficiaryId: UUID!
+  paymentType: PaymentType!
+  amount: Decimal!
+  currency: String!
+  memo: String
+  scheduledDate: Date!
+}
+
+# ---------------------------------------------------------------------------
+# Queries
+# ---------------------------------------------------------------------------
+
+"""Root query type — all read operations"""
+type Query {
+  """Retrieve a single customer by ID"""
+  customer(id: UUID!): Customer
+
+  """List customers with optional filtering and cursor-based pagination"""
+  customers(
+    first: Int
+    after: String
+    filter: CustomerFilterInput
+  ): CustomerConnection!
+
+  """Retrieve a single account by ID"""
+  account(id: UUID!): Account
+
+  """List accounts for a given customer"""
+  accountsByCustomer(
+    customerId: UUID!
+    first: Int
+    after: String
+    filter: AccountFilterInput
+  ): AccountConnection!
+
+  """Retrieve a single transaction by ID"""
+  transaction(id: UUID!): Transaction
+
+  """List transactions for a given account"""
+  transactionsByAccount(
+    accountId: UUID!
+    first: Int
+    after: String
+    filter: TransactionFilterInput
+  ): TransactionConnection!
+
+  """Retrieve a single beneficiary by ID"""
+  beneficiary(id: UUID!): Beneficiary
+
+  """List beneficiaries for a given customer"""
+  beneficiariesByCustomer(customerId: UUID!): [Beneficiary!]!
+
+  """Retrieve a single payment by ID"""
+  payment(id: UUID!): Payment
+
+  """List payments for a given account"""
+  paymentsByAccount(
+    accountId: UUID!
+    first: Int
+    after: String
+    filter: PaymentFilterInput
+  ): PaymentConnection!
+}
+
+# ---------------------------------------------------------------------------
+# Mutations
+# ---------------------------------------------------------------------------
+
+"""Root mutation type — all write operations"""
+type Mutation {
+  """Register a new customer"""
+  createCustomer(input: CreateCustomerInput!): Customer!
+
+  """Update an existing customer's details"""
+  updateCustomer(id: UUID!, input: UpdateCustomerInput!): Customer!
+
+  """Deactivate (soft-delete) a customer"""
+  deactivateCustomer(id: UUID!): Customer!
+
+  """Open a new bank account for a customer"""
+  createAccount(input: CreateAccountInput!): Account!
+
+  """Update account details (nickname, status)"""
+  updateAccount(id: UUID!, input: UpdateAccountInput!): Account!
+
+  """Close an account"""
+  closeAccount(id: UUID!): Account!
+
+  """Register a new beneficiary for a customer"""
+  createBeneficiary(input: CreateBeneficiaryInput!): Beneficiary!
+
+  """Remove a beneficiary"""
+  deleteBeneficiary(id: UUID!): Boolean!
+
+  """Submit a new payment instruction"""
+  createPayment(input: CreatePaymentInput!): Payment!
+
+  """Cancel a pending or scheduled payment"""
+  cancelPayment(id: UUID!): Payment!
+}
+
+# ---------------------------------------------------------------------------
+# Subscriptions
+# ---------------------------------------------------------------------------
+
+"""Root subscription type — real-time event streams"""
+type Subscription {
+  """Real-time stream of new transactions on a specific account"""
+  transactionPosted(accountId: UUID!): Transaction!
+
+  """Real-time updates on a payment's status"""
+  paymentStatusChanged(paymentId: UUID!): Payment!
+}

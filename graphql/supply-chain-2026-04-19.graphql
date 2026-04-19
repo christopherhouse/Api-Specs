@@ -1,0 +1,693 @@
+"""
+Supply Chain API — GraphQL SDL
+
+Covers suppliers, products, warehouses, inventory, purchase orders,
+and shipments in an enterprise supply chain system.
+"""
+
+schema {
+  query: Query
+  mutation: Mutation
+  subscription: Subscription
+}
+
+# ---------------------------------------------------------------------------
+# Scalars
+# ---------------------------------------------------------------------------
+
+"""ISO-8601 date-time string"""
+scalar DateTime
+
+"""ISO-8601 calendar date string"""
+scalar Date
+
+"""Monetary amount as a decimal string"""
+scalar Decimal
+
+"""RFC-4122 UUID"""
+scalar UUID
+
+# ---------------------------------------------------------------------------
+# Enums
+# ---------------------------------------------------------------------------
+
+"""Lifecycle status of a supplier"""
+enum SupplierStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+  UNDER_REVIEW
+}
+
+"""Risk tier for a supplier"""
+enum SupplierRiskTier {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+"""Unit of measure for a product"""
+enum UnitOfMeasure {
+  EACH
+  KG
+  LB
+  LITER
+  METER
+  FOOT
+  BOX
+  PALLET
+  CARTON
+}
+
+"""Lifecycle status of a product"""
+enum ProductStatus {
+  ACTIVE
+  DISCONTINUED
+  PENDING_APPROVAL
+  DRAFT
+}
+
+"""Type of warehouse"""
+enum WarehouseType {
+  DISTRIBUTION_CENTER
+  FULFILLMENT_CENTER
+  COLD_STORAGE
+  BONDED
+  RETAIL_BACKROOM
+}
+
+"""Lifecycle status of a warehouse"""
+enum WarehouseStatus {
+  OPERATIONAL
+  UNDER_MAINTENANCE
+  CLOSED
+}
+
+"""Current state of a purchase order"""
+enum PurchaseOrderStatus {
+  DRAFT
+  SUBMITTED
+  ACKNOWLEDGED
+  PARTIALLY_RECEIVED
+  RECEIVED
+  CLOSED
+  CANCELLED
+}
+
+"""Current state of a shipment"""
+enum ShipmentStatus {
+  CREATED
+  PICKED_UP
+  IN_TRANSIT
+  OUT_FOR_DELIVERY
+  DELIVERED
+  EXCEPTION
+  RETURNED
+}
+
+"""Mode of transportation for a shipment"""
+enum ShipmentMode {
+  AIR
+  SEA
+  ROAD
+  RAIL
+  INTERMODAL
+}
+
+"""Reason for a purchase-order line adjustment"""
+enum AdjustmentReason {
+  SHORT_SHIPMENT
+  DAMAGED_GOODS
+  QUALITY_REJECTION
+  OVERAGE
+  ADMIN_CORRECTION
+}
+
+# ---------------------------------------------------------------------------
+# Interfaces
+# ---------------------------------------------------------------------------
+
+"""Audit timestamps shared by all records"""
+interface Auditable {
+  """When this record was created"""
+  createdAt: DateTime!
+  """When this record was last updated"""
+  updatedAt: DateTime!
+}
+
+# ---------------------------------------------------------------------------
+# Types
+# ---------------------------------------------------------------------------
+
+"""Physical or mailing address"""
+type Address {
+  """Street address line 1"""
+  line1: String!
+  """Optional second address line"""
+  line2: String
+  """City name"""
+  city: String!
+  """State or province"""
+  stateOrProvince: String!
+  """Postal / ZIP code"""
+  postalCode: String!
+  """ISO-3166-1 alpha-2 country code"""
+  countryCode: String!
+}
+
+"""A product or material supplier"""
+type Supplier implements Auditable {
+  """Unique supplier identifier"""
+  id: UUID!
+  """External supplier code used in ERP systems"""
+  supplierCode: String!
+  """Legal company name"""
+  name: String!
+  """Primary contact email"""
+  contactEmail: String!
+  """Primary contact phone"""
+  contactPhone: String
+  """Registered address"""
+  address: Address
+  """Current lifecycle status"""
+  status: SupplierStatus!
+  """ISO-4217 currency for transactions with this supplier"""
+  currency: String!
+  """Payment terms (e.g. Net30, Net60)"""
+  paymentTerms: String
+  """Risk classification"""
+  riskTier: SupplierRiskTier
+  """Products catalogued from this supplier"""
+  products(status: ProductStatus): [Product!]!
+  """Purchase orders raised for this supplier"""
+  purchaseOrders(status: PurchaseOrderStatus): [PurchaseOrder!]!
+  """When this record was created"""
+  createdAt: DateTime!
+  """When this record was last updated"""
+  updatedAt: DateTime!
+}
+
+"""A catalogued product or SKU"""
+type Product implements Auditable {
+  """Unique product identifier"""
+  id: UUID!
+  """Stock-keeping unit code"""
+  sku: String!
+  """Product display name"""
+  name: String!
+  """Extended description"""
+  description: String
+  """Product lifecycle status"""
+  status: ProductStatus!
+  """Unit of measure"""
+  unitOfMeasure: UnitOfMeasure!
+  """Standard cost per unit"""
+  unitCost: Decimal!
+  """ISO-4217 currency code"""
+  currency: String!
+  """Primary supplier"""
+  primarySupplier: Supplier!
+  """GTIN or barcode"""
+  barcode: String
+  """Weight per unit (kg)"""
+  weightKg: Decimal
+  """Current inventory levels across all warehouses"""
+  inventory: [InventoryLevel!]!
+  """When this record was created"""
+  createdAt: DateTime!
+  """When this record was last updated"""
+  updatedAt: DateTime!
+}
+
+"""A storage facility"""
+type Warehouse implements Auditable {
+  """Unique warehouse identifier"""
+  id: UUID!
+  """Warehouse code"""
+  warehouseCode: String!
+  """Human-readable name"""
+  name: String!
+  """Warehouse type"""
+  warehouseType: WarehouseType!
+  """Operational status"""
+  status: WarehouseStatus!
+  """Physical address"""
+  address: Address!
+  """Total storage capacity (square meters)"""
+  capacitySqm: Decimal
+  """Current inventory levels at this warehouse"""
+  inventory(productId: UUID): [InventoryLevel!]!
+  """When this record was created"""
+  createdAt: DateTime!
+  """When this record was last updated"""
+  updatedAt: DateTime!
+}
+
+"""Quantity of a product held at a specific warehouse"""
+type InventoryLevel implements Auditable {
+  """Unique inventory record identifier"""
+  id: UUID!
+  """The product"""
+  product: Product!
+  """The warehouse"""
+  warehouse: Warehouse!
+  """Quantity on hand"""
+  quantityOnHand: Decimal!
+  """Quantity reserved for open orders"""
+  quantityReserved: Decimal!
+  """Quantity available to promise"""
+  quantityAvailable: Decimal!
+  """Reorder point threshold"""
+  reorderPoint: Decimal!
+  """Target reorder quantity"""
+  reorderQuantity: Decimal!
+  """Date of last physical count"""
+  lastCountedAt: Date
+  """When this record was created"""
+  createdAt: DateTime!
+  """When this record was last updated"""
+  updatedAt: DateTime!
+}
+
+"""A purchase order issued to a supplier"""
+type PurchaseOrder implements Auditable {
+  """Unique purchase order identifier"""
+  id: UUID!
+  """PO number shown on documents"""
+  poNumber: String!
+  """Supplier for this PO"""
+  supplier: Supplier!
+  """Destination warehouse"""
+  destinationWarehouse: Warehouse!
+  """Current status"""
+  status: PurchaseOrderStatus!
+  """ISO-4217 currency"""
+  currency: String!
+  """Expected delivery date"""
+  expectedDeliveryDate: Date!
+  """Actual delivery date, if received"""
+  actualDeliveryDate: Date
+  """Line items on this PO"""
+  lineItems: [PurchaseOrderLine!]!
+  """Total order value (computed from lines)"""
+  totalAmount: Decimal!
+  """Associated shipments"""
+  shipments: [Shipment!]!
+  """Free-text notes"""
+  notes: String
+  """When this record was created"""
+  createdAt: DateTime!
+  """When this record was last updated"""
+  updatedAt: DateTime!
+}
+
+"""A single line on a purchase order"""
+type PurchaseOrderLine {
+  """Line identifier"""
+  id: UUID!
+  """Line number (1-based)"""
+  lineNumber: Int!
+  """The product ordered"""
+  product: Product!
+  """Quantity ordered"""
+  quantityOrdered: Decimal!
+  """Quantity received to date"""
+  quantityReceived: Decimal!
+  """Negotiated unit price"""
+  unitPrice: Decimal!
+  """Line total (ordered qty × unit price)"""
+  lineTotal: Decimal!
+  """Delivery date for this line (may differ from PO level)"""
+  requestedDeliveryDate: Date
+}
+
+"""A physical shipment of goods"""
+type Shipment implements Auditable {
+  """Unique shipment identifier"""
+  id: UUID!
+  """Carrier tracking number"""
+  trackingNumber: String!
+  """Carrier name"""
+  carrier: String!
+  """Mode of transport"""
+  mode: ShipmentMode!
+  """Current status"""
+  status: ShipmentStatus!
+  """Origin address"""
+  originAddress: Address!
+  """Destination address"""
+  destinationAddress: Address!
+  """Estimated arrival date"""
+  estimatedArrivalDate: Date
+  """Actual arrival date"""
+  actualArrivalDate: Date
+  """Purchase orders included in this shipment"""
+  purchaseOrders: [PurchaseOrder!]!
+  """Shipment events / tracking milestones"""
+  events: [ShipmentEvent!]!
+  """When this record was created"""
+  createdAt: DateTime!
+  """When this record was last updated"""
+  updatedAt: DateTime!
+}
+
+"""A tracking event on a shipment"""
+type ShipmentEvent {
+  """Unique event identifier"""
+  id: UUID!
+  """Event timestamp"""
+  occurredAt: DateTime!
+  """Location description"""
+  location: String!
+  """Human-readable status description"""
+  description: String!
+}
+
+"""Connection type for paginated suppliers"""
+type SupplierConnection {
+  """List of edges in this page"""
+  edges: [SupplierEdge!]!
+  """Pagination metadata for this page"""
+  pageInfo: PageInfo!
+  """Total number of matching records"""
+  totalCount: Int!
+}
+
+"""Edge for a supplier"""
+type SupplierEdge {
+  """The record in this edge"""
+  node: Supplier!
+  """Opaque pagination cursor for this edge"""
+  cursor: String!
+}
+
+"""Connection type for paginated products"""
+type ProductConnection {
+  """List of edges in this page"""
+  edges: [ProductEdge!]!
+  """Pagination metadata for this page"""
+  pageInfo: PageInfo!
+  """Total number of matching records"""
+  totalCount: Int!
+}
+
+"""Edge for a product"""
+type ProductEdge {
+  """The record in this edge"""
+  node: Product!
+  """Opaque pagination cursor for this edge"""
+  cursor: String!
+}
+
+"""Connection type for paginated purchase orders"""
+type PurchaseOrderConnection {
+  """List of edges in this page"""
+  edges: [PurchaseOrderEdge!]!
+  """Pagination metadata for this page"""
+  pageInfo: PageInfo!
+  """Total number of matching records"""
+  totalCount: Int!
+}
+
+"""Edge for a purchase order"""
+type PurchaseOrderEdge {
+  """The record in this edge"""
+  node: PurchaseOrder!
+  """Opaque pagination cursor for this edge"""
+  cursor: String!
+}
+
+"""Standard pagination metadata"""
+type PageInfo {
+  """Whether more pages exist after this one"""
+  hasNextPage: Boolean!
+  """Whether more pages exist before this one"""
+  hasPreviousPage: Boolean!
+  """Cursor for the first item in this page"""
+  startCursor: String
+  """Cursor for the last item in this page"""
+  endCursor: String
+}
+
+# ---------------------------------------------------------------------------
+# Inputs
+# ---------------------------------------------------------------------------
+
+"""Filter criteria for listing suppliers"""
+input SupplierFilterInput {
+  status: SupplierStatus
+  riskTier: SupplierRiskTier
+  search: String
+}
+
+"""Filter criteria for listing products"""
+input ProductFilterInput {
+  status: ProductStatus
+  supplierId: UUID
+  search: String
+}
+
+"""Filter criteria for listing purchase orders"""
+input PurchaseOrderFilterInput {
+  status: PurchaseOrderStatus
+  supplierId: UUID
+  warehouseId: UUID
+  fromExpectedDeliveryDate: Date
+  toExpectedDeliveryDate: Date
+}
+
+"""Filter criteria for listing shipments"""
+input ShipmentFilterInput {
+  status: ShipmentStatus
+  carrier: String
+  mode: ShipmentMode
+}
+
+"""Input for creating a supplier"""
+input CreateSupplierInput {
+  supplierCode: String!
+  name: String!
+  contactEmail: String!
+  contactPhone: String
+  address: AddressInput
+  currency: String!
+  paymentTerms: String
+  riskTier: SupplierRiskTier
+}
+
+"""Input for updating a supplier"""
+input UpdateSupplierInput {
+  name: String
+  contactEmail: String
+  contactPhone: String
+  address: AddressInput
+  status: SupplierStatus
+  currency: String
+  paymentTerms: String
+  riskTier: SupplierRiskTier
+}
+
+"""Input for creating a product"""
+input CreateProductInput {
+  sku: String!
+  name: String!
+  description: String
+  unitOfMeasure: UnitOfMeasure!
+  unitCost: Decimal!
+  currency: String!
+  primarySupplierId: UUID!
+  barcode: String
+  weightKg: Decimal
+}
+
+"""Input for updating a product"""
+input UpdateProductInput {
+  name: String
+  description: String
+  status: ProductStatus
+  unitCost: Decimal
+  barcode: String
+  weightKg: Decimal
+}
+
+"""Input for creating a warehouse"""
+input CreateWarehouseInput {
+  warehouseCode: String!
+  name: String!
+  warehouseType: WarehouseType!
+  address: AddressInput!
+  capacitySqm: Decimal
+}
+
+"""Input for creating a purchase order"""
+input CreatePurchaseOrderInput {
+  supplierId: UUID!
+  destinationWarehouseId: UUID!
+  currency: String!
+  expectedDeliveryDate: Date!
+  notes: String
+  lineItems: [CreatePurchaseOrderLineInput!]!
+}
+
+"""Input for a purchase order line item"""
+input CreatePurchaseOrderLineInput {
+  productId: UUID!
+  quantityOrdered: Decimal!
+  unitPrice: Decimal!
+  requestedDeliveryDate: Date
+}
+
+"""Input for receiving goods against a PO line"""
+input ReceiveGoodsInput {
+  purchaseOrderId: UUID!
+  lineItems: [ReceiveGoodsLineInput!]!
+}
+
+"""Input for a single line in a goods receipt"""
+input ReceiveGoodsLineInput {
+  lineId: UUID!
+  quantityReceived: Decimal!
+  adjustmentReason: AdjustmentReason
+  notes: String
+}
+
+"""Input for creating a shipment"""
+input CreateShipmentInput {
+  trackingNumber: String!
+  carrier: String!
+  mode: ShipmentMode!
+  originAddress: AddressInput!
+  destinationAddress: AddressInput!
+  estimatedArrivalDate: Date
+  purchaseOrderIds: [UUID!]!
+}
+
+"""Input for an address"""
+input AddressInput {
+  line1: String!
+  line2: String
+  city: String!
+  stateOrProvince: String!
+  postalCode: String!
+  countryCode: String!
+}
+
+# ---------------------------------------------------------------------------
+# Queries
+# ---------------------------------------------------------------------------
+
+"""Root query type — all read operations"""
+type Query {
+  """Get a single supplier by ID"""
+  supplier(id: UUID!): Supplier
+
+  """List suppliers with filtering and pagination"""
+  suppliers(
+    first: Int
+    after: String
+    filter: SupplierFilterInput
+  ): SupplierConnection!
+
+  """Get a single product by ID"""
+  product(id: UUID!): Product
+
+  """List products with filtering and pagination"""
+  products(
+    first: Int
+    after: String
+    filter: ProductFilterInput
+  ): ProductConnection!
+
+  """Get a single warehouse by ID"""
+  warehouse(id: UUID!): Warehouse
+
+  """List all warehouses"""
+  warehouses(status: WarehouseStatus, type: WarehouseType): [Warehouse!]!
+
+  """Get inventory level for a specific product at a specific warehouse"""
+  inventoryLevel(productId: UUID!, warehouseId: UUID!): InventoryLevel
+
+  """List all inventory levels; filter by warehouse or product"""
+  inventoryLevels(warehouseId: UUID, productId: UUID): [InventoryLevel!]!
+
+  """Get a single purchase order by ID"""
+  purchaseOrder(id: UUID!): PurchaseOrder
+
+  """List purchase orders with filtering and pagination"""
+  purchaseOrders(
+    first: Int
+    after: String
+    filter: PurchaseOrderFilterInput
+  ): PurchaseOrderConnection!
+
+  """Get a single shipment by ID"""
+  shipment(id: UUID!): Shipment
+
+  """List shipments; optionally filter by status or purchase order"""
+  shipments(
+    filter: ShipmentFilterInput
+    purchaseOrderId: UUID
+  ): [Shipment!]!
+}
+
+# ---------------------------------------------------------------------------
+# Mutations
+# ---------------------------------------------------------------------------
+
+"""Root mutation type — all write operations"""
+type Mutation {
+  """Onboard a new supplier"""
+  createSupplier(input: CreateSupplierInput!): Supplier!
+
+  """Update supplier details"""
+  updateSupplier(id: UUID!, input: UpdateSupplierInput!): Supplier!
+
+  """Create a new product"""
+  createProduct(input: CreateProductInput!): Product!
+
+  """Update product details"""
+  updateProduct(id: UUID!, input: UpdateProductInput!): Product!
+
+  """Register a new warehouse"""
+  createWarehouse(input: CreateWarehouseInput!): Warehouse!
+
+  """Issue a new purchase order"""
+  createPurchaseOrder(input: CreatePurchaseOrderInput!): PurchaseOrder!
+
+  """Submit a draft purchase order to the supplier"""
+  submitPurchaseOrder(id: UUID!): PurchaseOrder!
+
+  """Cancel a purchase order"""
+  cancelPurchaseOrder(id: UUID!): PurchaseOrder!
+
+  """Record receipt of goods against a purchase order"""
+  receiveGoods(input: ReceiveGoodsInput!): PurchaseOrder!
+
+  """Create a new shipment"""
+  createShipment(input: CreateShipmentInput!): Shipment!
+
+  """Record a tracking event on a shipment"""
+  addShipmentEvent(
+    shipmentId: UUID!
+    occurredAt: DateTime!
+    location: String!
+    description: String!
+  ): Shipment!
+}
+
+# ---------------------------------------------------------------------------
+# Subscriptions
+# ---------------------------------------------------------------------------
+
+"""Root subscription type — real-time event streams"""
+type Subscription {
+  """Real-time purchase order status changes"""
+  purchaseOrderStatusChanged(purchaseOrderId: UUID!): PurchaseOrder!
+
+  """Real-time shipment tracking updates"""
+  shipmentUpdated(shipmentId: UUID!): Shipment!
+
+  """Alert when inventory for a product falls below its reorder point"""
+  inventoryBelowReorderPoint(warehouseId: UUID): InventoryLevel!
+}

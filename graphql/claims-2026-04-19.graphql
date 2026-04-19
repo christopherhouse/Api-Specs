@@ -1,0 +1,665 @@
+"""
+Claims Management API — GraphQL SDL
+
+Covers insurance policyholders, policies, claims, claim documents,
+reserve updates, adjuster assignments, and payouts.
+"""
+
+schema {
+  query: Query
+  mutation: Mutation
+  subscription: Subscription
+}
+
+# ---------------------------------------------------------------------------
+# Scalars
+# ---------------------------------------------------------------------------
+
+"""ISO-8601 date-time string"""
+scalar DateTime
+
+"""ISO-8601 calendar date string"""
+scalar Date
+
+"""Monetary amount represented as a decimal string"""
+scalar Decimal
+
+"""RFC-4122 UUID"""
+scalar UUID
+
+# ---------------------------------------------------------------------------
+# Enums
+# ---------------------------------------------------------------------------
+
+"""Lifecycle status of a policyholder record"""
+enum PolicyholderStatus {
+  ACTIVE
+  INACTIVE
+}
+
+"""Line of insurance business"""
+enum PolicyType {
+  AUTO
+  HOME
+  LIFE
+  HEALTH
+  COMMERCIAL_PROPERTY
+  GENERAL_LIABILITY
+  WORKERS_COMPENSATION
+  UMBRELLA
+}
+
+"""Lifecycle status of a policy"""
+enum PolicyStatus {
+  DRAFT
+  ACTIVE
+  LAPSED
+  CANCELLED
+  EXPIRED
+  RENEWED
+}
+
+"""Current state of a claim in the lifecycle"""
+enum ClaimStatus {
+  SUBMITTED
+  ACKNOWLEDGED
+  UNDER_INVESTIGATION
+  PENDING_INFORMATION
+  RESERVED
+  APPROVED
+  DENIED
+  SETTLED
+  CLOSED
+  REOPENED
+}
+
+"""Claim intake channel"""
+enum ClaimChannel {
+  ONLINE
+  PHONE
+  AGENT
+  DIRECT_REPAIR
+  MAIL
+}
+
+"""Priority level assigned to a claim"""
+enum ClaimPriority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+"""Type of document attached to a claim"""
+enum DocumentType {
+  POLICE_REPORT
+  MEDICAL_REPORT
+  REPAIR_ESTIMATE
+  INVOICE
+  PHOTO
+  STATEMENT
+  LEGAL_DOCUMENT
+  OTHER
+}
+
+"""Status of a document review"""
+enum DocumentStatus {
+  PENDING_REVIEW
+  ACCEPTED
+  REJECTED
+}
+
+"""Outcome of a reserve update"""
+enum ReserveType {
+  INITIAL
+  INCREASE
+  DECREASE
+  RELEASE
+}
+
+"""Status of a payout"""
+enum PayoutStatus {
+  PENDING
+  APPROVED
+  PROCESSING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+"""Type of payout"""
+enum PayoutType {
+  CLAIM_SETTLEMENT
+  PARTIAL_PAYMENT
+  ADVANCE_PAYMENT
+  EXPENSE_REIMBURSEMENT
+}
+
+# ---------------------------------------------------------------------------
+# Interfaces
+# ---------------------------------------------------------------------------
+
+"""Audit timestamps common to all records"""
+interface Auditable {
+  """When this record was created"""
+  createdAt: DateTime!
+  """When this record was last updated"""
+  updatedAt: DateTime!
+}
+
+# ---------------------------------------------------------------------------
+# Types
+# ---------------------------------------------------------------------------
+
+"""Physical or mailing address"""
+type Address {
+  """Street address line 1"""
+  line1: String!
+  """Optional second address line"""
+  line2: String
+  """City name"""
+  city: String!
+  """State or province"""
+  stateOrProvince: String!
+  """Postal / ZIP code"""
+  postalCode: String!
+  """ISO-3166-1 alpha-2 country code"""
+  countryCode: String!
+}
+
+"""A person or entity that holds one or more insurance policies"""
+type Policyholder implements Auditable {
+  """Unique policyholder identifier"""
+  id: UUID!
+  """System reference number"""
+  policyholderNumber: String!
+  """First name"""
+  firstName: String!
+  """Last name"""
+  lastName: String!
+  """Company name (for commercial customers)"""
+  companyName: String
+  """Primary contact email"""
+  email: String!
+  """Primary phone number"""
+  phone: String
+  """Mailing address"""
+  address: Address
+  """Current status"""
+  status: PolicyholderStatus!
+  """All policies held by this policyholder"""
+  policies(status: PolicyStatus): [Policy!]!
+  """When this record was created"""
+  createdAt: DateTime!
+  """When this record was last updated"""
+  updatedAt: DateTime!
+}
+
+"""An insurance policy"""
+type Policy implements Auditable {
+  """Unique policy identifier"""
+  id: UUID!
+  """Policy number shown on declarations page"""
+  policyNumber: String!
+  """The policyholder who holds this policy"""
+  policyholder: Policyholder!
+  """Line of business"""
+  policyType: PolicyType!
+  """Current status"""
+  status: PolicyStatus!
+  """Policy effective date"""
+  effectiveDate: Date!
+  """Policy expiration date"""
+  expirationDate: Date!
+  """Annual premium amount"""
+  premiumAmount: Decimal!
+  """ISO-4217 currency code"""
+  currency: String!
+  """Coverage limit"""
+  coverageLimit: Decimal!
+  """Deductible amount"""
+  deductible: Decimal!
+  """Underlying insured risk description"""
+  insuredRisk: String
+  """Claims filed under this policy"""
+  claims(status: ClaimStatus): [Claim!]!
+  """When this record was created"""
+  createdAt: DateTime!
+  """When this record was last updated"""
+  updatedAt: DateTime!
+}
+
+"""An insurance claim"""
+type Claim implements Auditable {
+  """Unique claim identifier"""
+  id: UUID!
+  """Claim reference number"""
+  claimNumber: String!
+  """The policy under which this claim was filed"""
+  policy: Policy!
+  """Current claim status"""
+  status: ClaimStatus!
+  """Loss date"""
+  lossDate: Date!
+  """Date the claim was reported"""
+  reportedAt: DateTime!
+  """Brief description of the loss"""
+  lossDescription: String!
+  """Intake channel"""
+  channel: ClaimChannel!
+  """Priority level"""
+  priority: ClaimPriority!
+  """Total amount claimed by the policyholder"""
+  claimedAmount: Decimal!
+  """Current reserve (estimated liability)"""
+  reserveAmount: Decimal!
+  """ISO-4217 currency code"""
+  currency: String!
+  """Adjuster currently assigned, if any"""
+  assignedAdjuster: Adjuster
+  """Documents attached to this claim"""
+  documents(status: DocumentStatus): [ClaimDocument!]!
+  """Reserve update history"""
+  reserveHistory: [ReserveUpdate!]!
+  """Payouts issued on this claim"""
+  payouts(status: PayoutStatus): [Payout!]!
+  """Date the claim was closed, if applicable"""
+  closedAt: DateTime
+  """When this record was created"""
+  createdAt: DateTime!
+  """When this record was last updated"""
+  updatedAt: DateTime!
+}
+
+"""A claims adjuster"""
+type Adjuster implements Auditable {
+  """Unique adjuster identifier"""
+  id: UUID!
+  """Employee number"""
+  employeeNumber: String!
+  """First name"""
+  firstName: String!
+  """Last name"""
+  lastName: String!
+  """Email address"""
+  email: String!
+  """Phone number"""
+  phone: String
+  """Lines of business this adjuster handles"""
+  specializations: [PolicyType!]!
+  """Whether the adjuster is currently available for new assignments"""
+  available: Boolean!
+  """Current open claim assignments"""
+  assignedClaims(status: ClaimStatus): [Claim!]!
+  """When this record was created"""
+  createdAt: DateTime!
+  """When this record was last updated"""
+  updatedAt: DateTime!
+}
+
+"""A document attached to a claim"""
+type ClaimDocument implements Auditable {
+  """Unique document identifier"""
+  id: UUID!
+  """The claim this document belongs to"""
+  claim: Claim!
+  """Document type"""
+  documentType: DocumentType!
+  """Review status"""
+  status: DocumentStatus!
+  """Original filename"""
+  fileName: String!
+  """MIME content type"""
+  contentType: String!
+  """Storage URI"""
+  storageUri: String!
+  """File size in bytes"""
+  sizeBytes: Int
+  """Free-text notes from the reviewer"""
+  reviewNotes: String
+  """When the document was uploaded"""
+  uploadedAt: DateTime!
+  """When this record was created"""
+  createdAt: DateTime!
+  """When this record was last updated"""
+  updatedAt: DateTime!
+}
+
+"""A reserve adjustment on a claim"""
+type ReserveUpdate implements Auditable {
+  """Unique reserve update identifier"""
+  id: UUID!
+  """The claim being updated"""
+  claim: Claim!
+  """Type of reserve movement"""
+  reserveType: ReserveType!
+  """Reserve amount before this update"""
+  previousReserve: Decimal!
+  """Reserve amount after this update"""
+  newReserve: Decimal!
+  """ISO-4217 currency code"""
+  currency: String!
+  """Reason or justification for the change"""
+  reason: String!
+  """Adjuster who made the update"""
+  updatedBy: Adjuster!
+  """When this record was created"""
+  createdAt: DateTime!
+  """When this record was last updated"""
+  updatedAt: DateTime!
+}
+
+"""A payment issued on a claim"""
+type Payout implements Auditable {
+  """Unique payout identifier"""
+  id: UUID!
+  """The claim this payout applies to"""
+  claim: Claim!
+  """Type of payout"""
+  payoutType: PayoutType!
+  """Current status"""
+  status: PayoutStatus!
+  """Amount to be paid"""
+  amount: Decimal!
+  """ISO-4217 currency code"""
+  currency: String!
+  """Payee name"""
+  payeeName: String!
+  """Payment method (e.g. ACH, check)"""
+  paymentMethod: String!
+  """Bank account reference (masked)"""
+  bankAccountRef: String
+  """Payment memo"""
+  memo: String
+  """Date payment was authorized"""
+  authorizedAt: DateTime
+  """Date payment was completed"""
+  completedAt: DateTime
+  """Failure reason, if applicable"""
+  failureReason: String
+  """When this record was created"""
+  createdAt: DateTime!
+  """When this record was last updated"""
+  updatedAt: DateTime!
+}
+
+"""Connection type for paginated policyholders"""
+type PolicyholderConnection {
+  """List of edges in this page"""
+  edges: [PolicyholderEdge!]!
+  """Pagination metadata for this page"""
+  pageInfo: PageInfo!
+  """Total number of matching records"""
+  totalCount: Int!
+}
+
+"""Edge for a single policyholder"""
+type PolicyholderEdge {
+  """The record in this edge"""
+  node: Policyholder!
+  """Opaque pagination cursor for this edge"""
+  cursor: String!
+}
+
+"""Connection type for paginated claims"""
+type ClaimConnection {
+  """List of edges in this page"""
+  edges: [ClaimEdge!]!
+  """Pagination metadata for this page"""
+  pageInfo: PageInfo!
+  """Total number of matching records"""
+  totalCount: Int!
+}
+
+"""Edge for a single claim"""
+type ClaimEdge {
+  """The record in this edge"""
+  node: Claim!
+  """Opaque pagination cursor for this edge"""
+  cursor: String!
+}
+
+"""Standard pagination metadata"""
+type PageInfo {
+  """Whether more pages exist after this one"""
+  hasNextPage: Boolean!
+  """Whether more pages exist before this one"""
+  hasPreviousPage: Boolean!
+  """Cursor for the first item in this page"""
+  startCursor: String
+  """Cursor for the last item in this page"""
+  endCursor: String
+}
+
+# ---------------------------------------------------------------------------
+# Inputs
+# ---------------------------------------------------------------------------
+
+"""Filter criteria for listing policyholders"""
+input PolicyholderFilterInput {
+  status: PolicyholderStatus
+  search: String
+}
+
+"""Filter criteria for listing policies"""
+input PolicyFilterInput {
+  policyType: PolicyType
+  status: PolicyStatus
+}
+
+"""Filter criteria for listing claims"""
+input ClaimFilterInput {
+  status: ClaimStatus
+  priority: ClaimPriority
+  adjusterId: UUID
+  fromLossDate: Date
+  toLossDate: Date
+}
+
+"""Fields required to create a new policyholder"""
+input CreatePolicyholderInput {
+  firstName: String!
+  lastName: String!
+  companyName: String
+  email: String!
+  phone: String
+  address: AddressInput
+}
+
+"""Fields that can be updated on a policyholder"""
+input UpdatePolicyholderInput {
+  firstName: String
+  lastName: String
+  companyName: String
+  email: String
+  phone: String
+  address: AddressInput
+  status: PolicyholderStatus
+}
+
+"""Input for address"""
+input AddressInput {
+  line1: String!
+  line2: String
+  city: String!
+  stateOrProvince: String!
+  postalCode: String!
+  countryCode: String!
+}
+
+"""Fields required to create a new policy"""
+input CreatePolicyInput {
+  policyholderId: UUID!
+  policyType: PolicyType!
+  effectiveDate: Date!
+  expirationDate: Date!
+  premiumAmount: Decimal!
+  currency: String!
+  coverageLimit: Decimal!
+  deductible: Decimal!
+  insuredRisk: String
+}
+
+"""Fields required to file a new claim"""
+input CreateClaimInput {
+  policyId: UUID!
+  lossDate: Date!
+  lossDescription: String!
+  channel: ClaimChannel!
+  priority: ClaimPriority!
+  claimedAmount: Decimal!
+  currency: String!
+}
+
+"""Fields to update on an existing claim"""
+input UpdateClaimInput {
+  status: ClaimStatus
+  priority: ClaimPriority
+  lossDescription: String
+}
+
+"""Input for assigning an adjuster to a claim"""
+input AssignAdjusterInput {
+  claimId: UUID!
+  adjusterId: UUID!
+}
+
+"""Input for recording a reserve update"""
+input CreateReserveUpdateInput {
+  claimId: UUID!
+  reserveType: ReserveType!
+  newReserve: Decimal!
+  reason: String!
+}
+
+"""Input for creating a payout"""
+input CreatePayoutInput {
+  claimId: UUID!
+  payoutType: PayoutType!
+  amount: Decimal!
+  currency: String!
+  payeeName: String!
+  paymentMethod: String!
+  bankAccountRef: String
+  memo: String
+}
+
+# ---------------------------------------------------------------------------
+# Queries
+# ---------------------------------------------------------------------------
+
+"""Root query type — all read operations"""
+type Query {
+  """Get a single policyholder by ID"""
+  policyholder(id: UUID!): Policyholder
+
+  """List policyholders with optional filtering and pagination"""
+  policyholders(
+    first: Int
+    after: String
+    filter: PolicyholderFilterInput
+  ): PolicyholderConnection!
+
+  """Get a single policy by ID"""
+  policy(id: UUID!): Policy
+
+  """List policies for a given policyholder"""
+  policiesByPolicyholder(
+    policyholderId: UUID!
+    filter: PolicyFilterInput
+  ): [Policy!]!
+
+  """Get a single claim by ID"""
+  claim(id: UUID!): Claim
+
+  """List claims with optional filtering and pagination"""
+  claims(
+    first: Int
+    after: String
+    filter: ClaimFilterInput
+  ): ClaimConnection!
+
+  """List claims filed under a specific policy"""
+  claimsByPolicy(policyId: UUID!, filter: ClaimFilterInput): [Claim!]!
+
+  """Get a single adjuster by ID"""
+  adjuster(id: UUID!): Adjuster
+
+  """List all adjusters; optionally filter by availability or specialization"""
+  adjusters(available: Boolean, specialization: PolicyType): [Adjuster!]!
+
+  """Get a single document by ID"""
+  claimDocument(id: UUID!): ClaimDocument
+
+  """Get a single payout by ID"""
+  payout(id: UUID!): Payout
+}
+
+# ---------------------------------------------------------------------------
+# Mutations
+# ---------------------------------------------------------------------------
+
+"""Root mutation type — all write operations"""
+type Mutation {
+  """Register a new policyholder"""
+  createPolicyholder(input: CreatePolicyholderInput!): Policyholder!
+
+  """Update policyholder details"""
+  updatePolicyholder(id: UUID!, input: UpdatePolicyholderInput!): Policyholder!
+
+  """Create a new policy"""
+  createPolicy(input: CreatePolicyInput!): Policy!
+
+  """Cancel a policy"""
+  cancelPolicy(id: UUID!): Policy!
+
+  """File a new insurance claim"""
+  createClaim(input: CreateClaimInput!): Claim!
+
+  """Update claim details or advance its status"""
+  updateClaim(id: UUID!, input: UpdateClaimInput!): Claim!
+
+  """Close a claim"""
+  closeClaim(id: UUID!): Claim!
+
+  """Reopen a previously closed claim"""
+  reopenClaim(id: UUID!): Claim!
+
+  """Assign an adjuster to a claim"""
+  assignAdjuster(input: AssignAdjusterInput!): Claim!
+
+  """Record a reserve adjustment"""
+  createReserveUpdate(input: CreateReserveUpdateInput!): ReserveUpdate!
+
+  """Attach a document to a claim"""
+  attachDocument(
+    claimId: UUID!
+    documentType: DocumentType!
+    fileName: String!
+    contentType: String!
+    storageUri: String!
+    sizeBytes: Int
+  ): ClaimDocument!
+
+  """Update the review status of a document"""
+  reviewDocument(id: UUID!, status: DocumentStatus!, notes: String): ClaimDocument!
+
+  """Create a payout for a claim"""
+  createPayout(input: CreatePayoutInput!): Payout!
+
+  """Cancel a pending payout"""
+  cancelPayout(id: UUID!): Payout!
+}
+
+# ---------------------------------------------------------------------------
+# Subscriptions
+# ---------------------------------------------------------------------------
+
+"""Root subscription type — real-time event streams"""
+type Subscription {
+  """Real-time status changes on a specific claim"""
+  claimStatusChanged(claimId: UUID!): Claim!
+
+  """Real-time payout status updates"""
+  payoutStatusChanged(payoutId: UUID!): Payout!
+}
