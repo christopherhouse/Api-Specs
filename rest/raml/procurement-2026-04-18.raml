@@ -1,0 +1,1139 @@
+#%RAML 1.0
+title: Procurement API
+version: v1
+baseUri: https://api.contoso.com/procurement/v1
+mediaType: application/json
+description: >
+  Enterprise procurement API for managing vendors, contracts, requisitions,
+  purchase orders, approvals, and invoices. Supports the end-to-end procurement
+  lifecycle from vendor onboarding and contract management through requisition
+  approval workflows and invoice processing.
+
+securitySchemes:
+  bearerAuth:
+    type: Pass Through
+    describedBy:
+      headers:
+        Authorization:
+          description: Bearer JWT token
+          type: string
+          pattern: "^Bearer .+"
+
+traits:
+  secured:
+    headers:
+      Authorization:
+        description: Bearer JWT access token
+        type: string
+        required: true
+    responses:
+      401:
+        description: Unauthorized
+        body:
+          application/json:
+            type: ErrorResponse
+      500:
+        description: Internal server error
+        body:
+          application/json:
+            type: ErrorResponse
+
+  paged:
+    queryParameters:
+      page:
+        type: integer
+        minimum: 1
+        default: 1
+        required: false
+      pageSize:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 25
+        required: false
+
+resourceTypes:
+  collection:
+    get:
+      is: [secured, paged]
+      responses:
+        200:
+          description: Collection retrieved successfully
+    post:
+      is: [secured]
+      responses:
+        201:
+          description: Resource created
+        400:
+          description: Bad request
+          body:
+            application/json:
+              type: ErrorResponse
+
+  item:
+    get:
+      is: [secured]
+      responses:
+        200:
+          description: Resource retrieved successfully
+        404:
+          description: Resource not found
+          body:
+            application/json:
+              type: ErrorResponse
+    put:
+      is: [secured]
+      responses:
+        200:
+          description: Resource updated
+        400:
+          description: Bad request
+          body:
+            application/json:
+              type: ErrorResponse
+        404:
+          description: Resource not found
+          body:
+            application/json:
+              type: ErrorResponse
+
+types:
+  ErrorResponse:
+    type: object
+    properties:
+      code:
+        type: string
+        required: true
+      message:
+        type: string
+        required: true
+      correlationId:
+        type: string
+        required: false
+      details:
+        type: string
+        required: false
+
+  Address:
+    type: object
+    properties:
+      line1:
+        type: string
+        required: false
+      line2:
+        type: string
+        required: false
+      city:
+        type: string
+        required: false
+      stateOrProvince:
+        type: string
+        required: false
+      postalCode:
+        type: string
+        required: false
+      countryCode:
+        type: string
+        required: false
+
+  Vendor:
+    type: object
+    properties:
+      vendorId:
+        type: string
+        required: true
+      vendorNumber:
+        type: string
+        required: false
+      legalName:
+        type: string
+        required: true
+      displayName:
+        type: string
+        required: false
+      taxId:
+        type: string
+        required: false
+      status:
+        type: string
+        required: true
+        enum: [Active, Inactive, Suspended]
+      primaryContactName:
+        type: string
+        required: false
+      primaryContactEmail:
+        type: string
+        required: false
+      phone:
+        type: string
+        required: false
+      address:
+        type: Address
+        required: false
+      createdUtc:
+        type: datetime
+        required: false
+      lastUpdatedUtc:
+        type: datetime
+        required: false
+
+  CreateVendorRequest:
+    type: object
+    properties:
+      legalName:
+        type: string
+        required: true
+      displayName:
+        type: string
+        required: false
+      taxId:
+        type: string
+        required: false
+      primaryContactName:
+        type: string
+        required: false
+      primaryContactEmail:
+        type: string
+        required: false
+      phone:
+        type: string
+        required: false
+      address:
+        type: Address
+        required: false
+
+  UpdateVendorRequest:
+    type: object
+    properties:
+      legalName:
+        type: string
+        required: false
+      displayName:
+        type: string
+        required: false
+      status:
+        type: string
+        required: false
+        enum: [Active, Inactive, Suspended]
+      primaryContactName:
+        type: string
+        required: false
+      primaryContactEmail:
+        type: string
+        required: false
+      phone:
+        type: string
+        required: false
+      address:
+        type: Address
+        required: false
+
+  VendorListResponse:
+    type: object
+    properties:
+      items:
+        type: Vendor[]
+        required: true
+      totalCount:
+        type: integer
+        required: true
+      page:
+        type: integer
+        required: true
+      pageSize:
+        type: integer
+        required: true
+
+  Contract:
+    type: object
+    properties:
+      contractId:
+        type: string
+        required: true
+      contractNumber:
+        type: string
+        required: true
+      vendorId:
+        type: string
+        required: true
+      title:
+        type: string
+        required: true
+      status:
+        type: string
+        required: true
+        enum: [Draft, Active, Expired, Terminated]
+      effectiveDate:
+        type: date-only
+        required: false
+      expirationDate:
+        type: date-only
+        required: false
+      currencyCode:
+        type: string
+        required: false
+      ceilingAmount:
+        type: number
+        required: false
+      lastUpdatedUtc:
+        type: datetime
+        required: false
+
+  CreateContractRequest:
+    type: object
+    properties:
+      vendorId:
+        type: string
+        required: true
+      title:
+        type: string
+        required: true
+      effectiveDate:
+        type: date-only
+        required: false
+      expirationDate:
+        type: date-only
+        required: false
+      currencyCode:
+        type: string
+        required: false
+      ceilingAmount:
+        type: number
+        required: false
+
+  UpdateContractRequest:
+    type: object
+    properties:
+      title:
+        type: string
+        required: false
+      status:
+        type: string
+        required: false
+        enum: [Draft, Active, Expired, Terminated]
+      expirationDate:
+        type: date-only
+        required: false
+      ceilingAmount:
+        type: number
+        required: false
+
+  ContractListResponse:
+    type: object
+    properties:
+      items:
+        type: Contract[]
+        required: true
+      totalCount:
+        type: integer
+        required: true
+
+  RequisitionLine:
+    type: object
+    properties:
+      lineNumber:
+        type: integer
+        required: true
+      categoryCode:
+        type: string
+        required: false
+      description:
+        type: string
+        required: true
+      quantity:
+        type: number
+        required: true
+      unitOfMeasure:
+        type: string
+        required: false
+      estimatedUnitPrice:
+        type: number
+        required: false
+      currencyCode:
+        type: string
+        required: false
+
+  Requisition:
+    type: object
+    properties:
+      requisitionId:
+        type: string
+        required: true
+      requisitionNumber:
+        type: string
+        required: true
+      requestorEmployeeId:
+        type: string
+        required: true
+      departmentCode:
+        type: string
+        required: false
+      status:
+        type: string
+        required: true
+        enum: [Draft, Submitted, Approved, Rejected, ConvertedToPurchaseOrder]
+      justification:
+        type: string
+        required: false
+      currencyCode:
+        type: string
+        required: false
+      totalEstimatedAmount:
+        type: number
+        required: false
+      submittedUtc:
+        type: datetime
+        required: false
+      lastUpdatedUtc:
+        type: datetime
+        required: false
+      lines:
+        type: RequisitionLine[]
+        required: false
+
+  CreateRequisitionRequest:
+    type: object
+    properties:
+      requestorEmployeeId:
+        type: string
+        required: true
+      departmentCode:
+        type: string
+        required: false
+      justification:
+        type: string
+        required: false
+      currencyCode:
+        type: string
+        required: false
+      lines:
+        type: RequisitionLine[]
+        required: true
+
+  UpdateRequisitionRequest:
+    type: object
+    properties:
+      justification:
+        type: string
+        required: false
+      lines:
+        type: RequisitionLine[]
+        required: false
+
+  RequisitionListResponse:
+    type: object
+    properties:
+      items:
+        type: Requisition[]
+        required: true
+      totalCount:
+        type: integer
+        required: true
+
+  PurchaseOrderLine:
+    type: object
+    properties:
+      lineNumber:
+        type: integer
+        required: true
+      description:
+        type: string
+        required: true
+      quantity:
+        type: number
+        required: true
+      unitOfMeasure:
+        type: string
+        required: false
+      unitPrice:
+        type: number
+        required: true
+      currencyCode:
+        type: string
+        required: false
+      receivedQuantity:
+        type: number
+        required: false
+
+  PurchaseOrder:
+    type: object
+    properties:
+      purchaseOrderId:
+        type: string
+        required: true
+      purchaseOrderNumber:
+        type: string
+        required: true
+      vendorId:
+        type: string
+        required: true
+      contractId:
+        type: string
+        required: false
+      sourceRequisitionId:
+        type: string
+        required: false
+      status:
+        type: string
+        required: true
+        enum: [Draft, Issued, PartiallyReceived, Received, Closed, Cancelled]
+      orderDate:
+        type: date-only
+        required: false
+      currencyCode:
+        type: string
+        required: false
+      totalAmount:
+        type: number
+        required: false
+      lastUpdatedUtc:
+        type: datetime
+        required: false
+      lines:
+        type: PurchaseOrderLine[]
+        required: false
+
+  CreatePurchaseOrderRequest:
+    type: object
+    properties:
+      vendorId:
+        type: string
+        required: true
+      contractId:
+        type: string
+        required: false
+      sourceRequisitionId:
+        type: string
+        required: false
+      orderDate:
+        type: date-only
+        required: false
+      currencyCode:
+        type: string
+        required: false
+      lines:
+        type: PurchaseOrderLine[]
+        required: true
+
+  UpdatePurchaseOrderRequest:
+    type: object
+    properties:
+      status:
+        type: string
+        required: false
+        enum: [Draft, Issued, PartiallyReceived, Received, Closed, Cancelled]
+      currencyCode:
+        type: string
+        required: false
+
+  PurchaseOrderListResponse:
+    type: object
+    properties:
+      items:
+        type: PurchaseOrder[]
+        required: true
+      totalCount:
+        type: integer
+        required: true
+
+  Approval:
+    type: object
+    properties:
+      approvalId:
+        type: string
+        required: true
+      entityType:
+        type: string
+        required: true
+      entityId:
+        type: string
+        required: true
+      approverEmployeeId:
+        type: string
+        required: true
+      decision:
+        type: string
+        required: false
+        enum: [Approve, Reject, RequestChanges]
+      comments:
+        type: string
+        required: false
+      decisionUtc:
+        type: datetime
+        required: false
+      status:
+        type: string
+        required: true
+
+  SubmitApprovalRequest:
+    type: object
+    properties:
+      approverEmployeeId:
+        type: string
+        required: true
+      decision:
+        type: string
+        required: true
+        enum: [Approve, Reject, RequestChanges]
+      comments:
+        type: string
+        required: false
+
+  ApprovalListResponse:
+    type: object
+    properties:
+      items:
+        type: Approval[]
+        required: true
+      totalCount:
+        type: integer
+        required: true
+
+  Invoice:
+    type: object
+    properties:
+      invoiceId:
+        type: string
+        required: true
+      invoiceNumber:
+        type: string
+        required: true
+      vendorId:
+        type: string
+        required: true
+      purchaseOrderId:
+        type: string
+        required: false
+      invoiceDate:
+        type: date-only
+        required: false
+      dueDate:
+        type: date-only
+        required: false
+      currencyCode:
+        type: string
+        required: false
+      amount:
+        type: number
+        required: true
+      status:
+        type: string
+        required: true
+        enum: [Received, Matched, Approved, Paid, Rejected]
+      receivedUtc:
+        type: datetime
+        required: false
+      lastUpdatedUtc:
+        type: datetime
+        required: false
+
+  CreateInvoiceRequest:
+    type: object
+    properties:
+      invoiceNumber:
+        type: string
+        required: true
+      vendorId:
+        type: string
+        required: true
+      purchaseOrderId:
+        type: string
+        required: false
+      invoiceDate:
+        type: date-only
+        required: false
+      dueDate:
+        type: date-only
+        required: false
+      currencyCode:
+        type: string
+        required: false
+      amount:
+        type: number
+        required: true
+
+  UpdateInvoiceRequest:
+    type: object
+    properties:
+      status:
+        type: string
+        required: false
+        enum: [Received, Matched, Approved, Paid, Rejected]
+      dueDate:
+        type: date-only
+        required: false
+
+  InvoiceListResponse:
+    type: object
+    properties:
+      items:
+        type: Invoice[]
+        required: true
+      totalCount:
+        type: integer
+        required: true
+
+/vendors:
+  description: Manage procurement vendors.
+  get:
+    is: [secured, paged]
+    description: List vendors with optional status filter.
+    queryParameters:
+      status:
+        type: string
+        enum: [Active, Inactive, Suspended]
+        required: false
+    responses:
+      200:
+        description: Vendors retrieved successfully
+        body:
+          application/json:
+            type: VendorListResponse
+  post:
+    is: [secured]
+    description: Create a new vendor.
+    body:
+      application/json:
+        type: CreateVendorRequest
+    responses:
+      201:
+        description: Vendor created
+        body:
+          application/json:
+            type: Vendor
+      400:
+        description: Bad request
+        body:
+          application/json:
+            type: ErrorResponse
+
+  /{vendorId}:
+    description: Operations on a specific vendor.
+    uriParameters:
+      vendorId:
+        type: string
+        description: Vendor identifier
+    get:
+      is: [secured]
+      description: Get vendor by ID.
+      responses:
+        200:
+          description: Vendor retrieved successfully
+          body:
+            application/json:
+              type: Vendor
+        404:
+          description: Vendor not found
+          body:
+            application/json:
+              type: ErrorResponse
+    put:
+      is: [secured]
+      description: Update vendor details.
+      body:
+        application/json:
+          type: UpdateVendorRequest
+      responses:
+        200:
+          description: Vendor updated
+          body:
+            application/json:
+              type: Vendor
+        400:
+          description: Bad request
+          body:
+            application/json:
+              type: ErrorResponse
+        404:
+          description: Vendor not found
+          body:
+            application/json:
+              type: ErrorResponse
+
+/contracts:
+  description: Manage procurement contracts with vendors.
+  get:
+    is: [secured]
+    description: List contracts with optional filters.
+    queryParameters:
+      vendorId:
+        type: string
+        required: false
+      status:
+        type: string
+        enum: [Draft, Active, Expired, Terminated]
+        required: false
+    responses:
+      200:
+        description: Contracts retrieved successfully
+        body:
+          application/json:
+            type: ContractListResponse
+  post:
+    is: [secured]
+    description: Create a new contract.
+    body:
+      application/json:
+        type: CreateContractRequest
+    responses:
+      201:
+        description: Contract created
+        body:
+          application/json:
+            type: Contract
+      400:
+        description: Bad request
+        body:
+          application/json:
+            type: ErrorResponse
+
+  /{contractId}:
+    description: Operations on a specific contract.
+    uriParameters:
+      contractId:
+        type: string
+        description: Contract identifier
+    get:
+      is: [secured]
+      description: Get contract by ID.
+      responses:
+        200:
+          description: Contract retrieved successfully
+          body:
+            application/json:
+              type: Contract
+        404:
+          description: Contract not found
+          body:
+            application/json:
+              type: ErrorResponse
+    put:
+      is: [secured]
+      description: Update contract details.
+      body:
+        application/json:
+          type: UpdateContractRequest
+      responses:
+        200:
+          description: Contract updated
+          body:
+            application/json:
+              type: Contract
+        400:
+          description: Bad request
+          body:
+            application/json:
+              type: ErrorResponse
+        404:
+          description: Contract not found
+          body:
+            application/json:
+              type: ErrorResponse
+
+/requisitions:
+  description: Manage purchase requisitions.
+  get:
+    is: [secured, paged]
+    description: List requisitions with optional filters.
+    queryParameters:
+      requestorEmployeeId:
+        type: string
+        required: false
+      status:
+        type: string
+        enum: [Draft, Submitted, Approved, Rejected, ConvertedToPurchaseOrder]
+        required: false
+      departmentCode:
+        type: string
+        required: false
+    responses:
+      200:
+        description: Requisitions retrieved successfully
+        body:
+          application/json:
+            type: RequisitionListResponse
+  post:
+    is: [secured]
+    description: Create a new purchase requisition.
+    body:
+      application/json:
+        type: CreateRequisitionRequest
+    responses:
+      201:
+        description: Requisition created
+        body:
+          application/json:
+            type: Requisition
+      400:
+        description: Bad request
+        body:
+          application/json:
+            type: ErrorResponse
+
+  /{requisitionId}:
+    description: Operations on a specific requisition.
+    uriParameters:
+      requisitionId:
+        type: string
+        description: Requisition identifier
+    get:
+      is: [secured]
+      description: Get requisition by ID.
+      responses:
+        200:
+          description: Requisition retrieved successfully
+          body:
+            application/json:
+              type: Requisition
+        404:
+          description: Requisition not found
+          body:
+            application/json:
+              type: ErrorResponse
+    put:
+      is: [secured]
+      description: Update a draft requisition.
+      body:
+        application/json:
+          type: UpdateRequisitionRequest
+      responses:
+        200:
+          description: Requisition updated
+          body:
+            application/json:
+              type: Requisition
+        400:
+          description: Bad request
+          body:
+            application/json:
+              type: ErrorResponse
+        404:
+          description: Requisition not found
+          body:
+            application/json:
+              type: ErrorResponse
+
+    /submit:
+      description: Submit a requisition for approval.
+      post:
+        is: [secured]
+        description: Submit the requisition into the approval workflow.
+        responses:
+          200:
+            description: Requisition submitted successfully
+            body:
+              application/json:
+                type: Requisition
+          409:
+            description: Requisition is not in a submittable state
+            body:
+              application/json:
+                type: ErrorResponse
+
+/purchase-orders:
+  description: Manage purchase orders issued to vendors.
+  get:
+    is: [secured, paged]
+    description: List purchase orders with optional filters.
+    queryParameters:
+      vendorId:
+        type: string
+        required: false
+      status:
+        type: string
+        enum: [Draft, Issued, PartiallyReceived, Received, Closed, Cancelled]
+        required: false
+      sourceRequisitionId:
+        type: string
+        required: false
+    responses:
+      200:
+        description: Purchase orders retrieved successfully
+        body:
+          application/json:
+            type: PurchaseOrderListResponse
+  post:
+    is: [secured]
+    description: Create a new purchase order.
+    body:
+      application/json:
+        type: CreatePurchaseOrderRequest
+    responses:
+      201:
+        description: Purchase order created
+        body:
+          application/json:
+            type: PurchaseOrder
+      400:
+        description: Bad request
+        body:
+          application/json:
+            type: ErrorResponse
+
+  /{purchaseOrderId}:
+    description: Operations on a specific purchase order.
+    uriParameters:
+      purchaseOrderId:
+        type: string
+        description: Purchase order identifier
+    get:
+      is: [secured]
+      description: Get purchase order by ID.
+      responses:
+        200:
+          description: Purchase order retrieved successfully
+          body:
+            application/json:
+              type: PurchaseOrder
+        404:
+          description: Purchase order not found
+          body:
+            application/json:
+              type: ErrorResponse
+    put:
+      is: [secured]
+      description: Update purchase order details.
+      body:
+        application/json:
+          type: UpdatePurchaseOrderRequest
+      responses:
+        200:
+          description: Purchase order updated
+          body:
+            application/json:
+              type: PurchaseOrder
+        400:
+          description: Bad request
+          body:
+            application/json:
+              type: ErrorResponse
+        404:
+          description: Purchase order not found
+          body:
+            application/json:
+              type: ErrorResponse
+
+    /approve:
+      description: Submit an approval decision for a purchase order.
+      post:
+        is: [secured]
+        description: Record an approval or rejection decision for the purchase order.
+        body:
+          application/json:
+            type: SubmitApprovalRequest
+        responses:
+          200:
+            description: Approval decision recorded
+            body:
+              application/json:
+                type: PurchaseOrder
+          409:
+            description: Purchase order is not in an approvable state
+            body:
+              application/json:
+                type: ErrorResponse
+
+/approvals:
+  description: View pending and completed approval records.
+  get:
+    is: [secured]
+    description: List approval records with optional filters.
+    queryParameters:
+      approverEmployeeId:
+        type: string
+        required: false
+      entityType:
+        type: string
+        required: false
+      entityId:
+        type: string
+        required: false
+    responses:
+      200:
+        description: Approvals retrieved successfully
+        body:
+          application/json:
+            type: ApprovalListResponse
+
+/invoices:
+  description: Manage vendor invoices.
+  get:
+    is: [secured, paged]
+    description: List invoices with optional filters.
+    queryParameters:
+      vendorId:
+        type: string
+        required: false
+      purchaseOrderId:
+        type: string
+        required: false
+      status:
+        type: string
+        enum: [Received, Matched, Approved, Paid, Rejected]
+        required: false
+    responses:
+      200:
+        description: Invoices retrieved successfully
+        body:
+          application/json:
+            type: InvoiceListResponse
+  post:
+    is: [secured]
+    description: Register a new vendor invoice.
+    body:
+      application/json:
+        type: CreateInvoiceRequest
+    responses:
+      201:
+        description: Invoice created
+        body:
+          application/json:
+            type: Invoice
+      400:
+        description: Bad request
+        body:
+          application/json:
+            type: ErrorResponse
+
+  /{invoiceId}:
+    description: Operations on a specific invoice.
+    uriParameters:
+      invoiceId:
+        type: string
+        description: Invoice identifier
+    get:
+      is: [secured]
+      description: Get invoice by ID.
+      responses:
+        200:
+          description: Invoice retrieved successfully
+          body:
+            application/json:
+              type: Invoice
+        404:
+          description: Invoice not found
+          body:
+            application/json:
+              type: ErrorResponse
+    put:
+      is: [secured]
+      description: Update invoice status or details.
+      body:
+        application/json:
+          type: UpdateInvoiceRequest
+      responses:
+        200:
+          description: Invoice updated
+          body:
+            application/json:
+              type: Invoice
+        400:
+          description: Bad request
+          body:
+            application/json:
+              type: ErrorResponse
+        404:
+          description: Invoice not found
+          body:
+            application/json:
+              type: ErrorResponse

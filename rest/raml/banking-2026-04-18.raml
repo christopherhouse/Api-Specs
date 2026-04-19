@@ -1,0 +1,821 @@
+#%RAML 1.0
+title: Banking API
+version: v1
+baseUri: https://api.examplebank.com/v1
+mediaType: application/json
+description: >
+  API for managing retail banking customers, accounts, balances, transactions,
+  beneficiaries, and payments. Supports full lifecycle management for bank
+  customers and their associated financial products.
+
+securitySchemes:
+  bearerAuth:
+    type: Pass Through
+    describedBy:
+      headers:
+        Authorization:
+          description: Bearer JWT token
+          type: string
+          pattern: "^Bearer .+"
+
+traits:
+  secured:
+    headers:
+      Authorization:
+        description: Bearer JWT access token
+        type: string
+        required: true
+    responses:
+      401:
+        description: Unauthorized
+        body:
+          application/json:
+            type: ErrorResponse
+      500:
+        description: Internal server error
+        body:
+          application/json:
+            type: ErrorResponse
+
+  paged:
+    queryParameters:
+      page:
+        type: integer
+        minimum: 1
+        default: 1
+        required: false
+      pageSize:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 25
+        required: false
+
+resourceTypes:
+  collection:
+    get:
+      is: [secured, paged]
+      responses:
+        200:
+          description: Collection retrieved successfully
+    post:
+      is: [secured]
+      responses:
+        201:
+          description: Resource created
+        400:
+          description: Bad request
+          body:
+            application/json:
+              type: ErrorResponse
+
+  item:
+    get:
+      is: [secured]
+      responses:
+        200:
+          description: Resource retrieved successfully
+        404:
+          description: Resource not found
+          body:
+            application/json:
+              type: ErrorResponse
+    put:
+      is: [secured]
+      responses:
+        200:
+          description: Resource updated
+        400:
+          description: Bad request
+          body:
+            application/json:
+              type: ErrorResponse
+        404:
+          description: Resource not found
+          body:
+            application/json:
+              type: ErrorResponse
+
+types:
+  ErrorResponse:
+    type: object
+    properties:
+      code:
+        type: string
+        required: true
+      message:
+        type: string
+        required: true
+      details:
+        type: string
+        required: false
+      correlationId:
+        type: string
+        required: false
+
+  Customer:
+    type: object
+    properties:
+      id:
+        type: string
+        required: true
+        description: UUID identifier
+      customerNumber:
+        type: string
+        required: false
+      firstName:
+        type: string
+        required: true
+      lastName:
+        type: string
+        required: true
+      dateOfBirth:
+        type: date-only
+        required: false
+      email:
+        type: string
+        required: false
+      phone:
+        type: string
+        required: false
+      status:
+        type: string
+        required: true
+        enum: [active, inactive, suspended]
+      createdAt:
+        type: datetime
+        required: false
+
+  CreateCustomerRequest:
+    type: object
+    properties:
+      firstName:
+        type: string
+        required: true
+      lastName:
+        type: string
+        required: true
+      dateOfBirth:
+        type: date-only
+        required: true
+      email:
+        type: string
+        required: false
+      phone:
+        type: string
+        required: false
+
+  UpdateCustomerRequest:
+    type: object
+    properties:
+      firstName:
+        type: string
+        required: false
+      lastName:
+        type: string
+        required: false
+      email:
+        type: string
+        required: false
+      phone:
+        type: string
+        required: false
+      status:
+        type: string
+        required: false
+        enum: [active, inactive, suspended]
+
+  CustomerListResponse:
+    type: object
+    properties:
+      items:
+        type: Customer[]
+        required: true
+      totalCount:
+        type: integer
+        required: true
+      page:
+        type: integer
+        required: true
+      pageSize:
+        type: integer
+        required: true
+
+  Account:
+    type: object
+    properties:
+      id:
+        type: string
+        required: true
+      customerId:
+        type: string
+        required: true
+      accountNumber:
+        type: string
+        required: true
+      iban:
+        type: string
+        required: false
+      accountType:
+        type: string
+        required: true
+        enum: [checking, savings, loan, credit_card]
+      currency:
+        type: string
+        required: true
+      nickname:
+        type: string
+        required: false
+      status:
+        type: string
+        required: true
+        enum: [open, restricted, closed, dormant]
+      openedAt:
+        type: datetime
+        required: false
+
+  CreateAccountRequest:
+    type: object
+    properties:
+      customerId:
+        type: string
+        required: true
+      accountType:
+        type: string
+        required: true
+        enum: [checking, savings, loan, credit_card]
+      currency:
+        type: string
+        required: true
+      nickname:
+        type: string
+        required: false
+
+  UpdateAccountRequest:
+    type: object
+    properties:
+      nickname:
+        type: string
+        required: false
+      status:
+        type: string
+        required: false
+        enum: [open, restricted, closed, dormant]
+
+  AccountListResponse:
+    type: object
+    properties:
+      items:
+        type: Account[]
+        required: true
+      totalCount:
+        type: integer
+        required: true
+
+  AccountBalance:
+    type: object
+    properties:
+      accountId:
+        type: string
+        required: true
+      currency:
+        type: string
+        required: true
+      ledgerBalance:
+        type: number
+        required: true
+      availableBalance:
+        type: number
+        required: true
+      pendingCredits:
+        type: number
+        required: false
+      pendingDebits:
+        type: number
+        required: false
+      asOf:
+        type: datetime
+        required: false
+
+  Transaction:
+    type: object
+    properties:
+      id:
+        type: string
+        required: true
+      accountId:
+        type: string
+        required: true
+      transactionType:
+        type: string
+        required: true
+        enum: [debit, credit, fee, interest, transfer, payment]
+      amount:
+        type: number
+        required: true
+      currency:
+        type: string
+        required: true
+      description:
+        type: string
+        required: false
+      merchantName:
+        type: string
+        required: false
+      reference:
+        type: string
+        required: false
+      postedAt:
+        type: datetime
+        required: true
+      valueDate:
+        type: date-only
+        required: false
+
+  TransactionListResponse:
+    type: object
+    properties:
+      items:
+        type: Transaction[]
+        required: true
+      totalCount:
+        type: integer
+        required: true
+      page:
+        type: integer
+        required: true
+      pageSize:
+        type: integer
+        required: true
+
+  Beneficiary:
+    type: object
+    properties:
+      id:
+        type: string
+        required: true
+      accountId:
+        type: string
+        required: true
+      name:
+        type: string
+        required: true
+      bankAccountNumber:
+        type: string
+        required: true
+      iban:
+        type: string
+        required: false
+      bankCode:
+        type: string
+        required: true
+      country:
+        type: string
+        required: false
+      status:
+        type: string
+        required: true
+        enum: [active, inactive]
+
+  CreateBeneficiaryRequest:
+    type: object
+    properties:
+      name:
+        type: string
+        required: true
+      bankAccountNumber:
+        type: string
+        required: true
+      iban:
+        type: string
+        required: false
+      bankCode:
+        type: string
+        required: true
+      country:
+        type: string
+        required: false
+
+  BeneficiaryListResponse:
+    type: object
+    properties:
+      items:
+        type: Beneficiary[]
+        required: true
+      totalCount:
+        type: integer
+        required: true
+
+  Payment:
+    type: object
+    properties:
+      id:
+        type: string
+        required: true
+      sourceAccountId:
+        type: string
+        required: true
+      beneficiaryId:
+        type: string
+        required: false
+      amount:
+        type: number
+        required: true
+      currency:
+        type: string
+        required: true
+      reference:
+        type: string
+        required: false
+      description:
+        type: string
+        required: false
+      status:
+        type: string
+        required: true
+        enum: [pending, processing, completed, failed, cancelled]
+      scheduledDate:
+        type: date-only
+        required: false
+      createdAt:
+        type: datetime
+        required: false
+
+  CreatePaymentRequest:
+    type: object
+    properties:
+      sourceAccountId:
+        type: string
+        required: true
+      beneficiaryId:
+        type: string
+        required: false
+      destinationAccountNumber:
+        type: string
+        required: false
+      amount:
+        type: number
+        required: true
+      currency:
+        type: string
+        required: true
+      reference:
+        type: string
+        required: false
+      description:
+        type: string
+        required: false
+      scheduledDate:
+        type: date-only
+        required: false
+
+  PaymentListResponse:
+    type: object
+    properties:
+      items:
+        type: Payment[]
+        required: true
+      totalCount:
+        type: integer
+        required: true
+      page:
+        type: integer
+        required: true
+      pageSize:
+        type: integer
+        required: true
+
+/customers:
+  description: Manage retail banking customers.
+  get:
+    is: [secured, paged]
+    description: List customers with optional status filter.
+    queryParameters:
+      status:
+        type: string
+        enum: [active, inactive, suspended]
+        required: false
+    responses:
+      200:
+        description: Customers retrieved successfully
+        body:
+          application/json:
+            type: CustomerListResponse
+  post:
+    is: [secured]
+    description: Create a new customer.
+    body:
+      application/json:
+        type: CreateCustomerRequest
+    responses:
+      201:
+        description: Customer created
+        body:
+          application/json:
+            type: Customer
+      400:
+        description: Bad request
+        body:
+          application/json:
+            type: ErrorResponse
+
+  /{customerId}:
+    description: Operations on a specific customer.
+    uriParameters:
+      customerId:
+        type: string
+        description: UUID of the customer
+    get:
+      is: [secured]
+      description: Get customer by ID.
+      responses:
+        200:
+          description: Customer retrieved successfully
+          body:
+            application/json:
+              type: Customer
+        404:
+          description: Customer not found
+          body:
+            application/json:
+              type: ErrorResponse
+    put:
+      is: [secured]
+      description: Update customer details.
+      body:
+        application/json:
+          type: UpdateCustomerRequest
+      responses:
+        200:
+          description: Customer updated
+          body:
+            application/json:
+              type: Customer
+        400:
+          description: Bad request
+          body:
+            application/json:
+              type: ErrorResponse
+        404:
+          description: Customer not found
+          body:
+            application/json:
+              type: ErrorResponse
+
+/accounts:
+  description: Manage bank accounts.
+  get:
+    is: [secured, paged]
+    description: List accounts with optional filters.
+    queryParameters:
+      customerId:
+        type: string
+        required: false
+      accountType:
+        type: string
+        enum: [checking, savings, loan, credit_card]
+        required: false
+      status:
+        type: string
+        enum: [open, restricted, closed, dormant]
+        required: false
+    responses:
+      200:
+        description: Accounts retrieved successfully
+        body:
+          application/json:
+            type: AccountListResponse
+  post:
+    is: [secured]
+    description: Open a new bank account.
+    body:
+      application/json:
+        type: CreateAccountRequest
+    responses:
+      201:
+        description: Account created
+        body:
+          application/json:
+            type: Account
+      400:
+        description: Bad request
+        body:
+          application/json:
+            type: ErrorResponse
+
+  /{accountId}:
+    description: Operations on a specific account.
+    uriParameters:
+      accountId:
+        type: string
+        description: UUID of the account
+    get:
+      is: [secured]
+      description: Get account by ID.
+      responses:
+        200:
+          description: Account retrieved successfully
+          body:
+            application/json:
+              type: Account
+        404:
+          description: Account not found
+          body:
+            application/json:
+              type: ErrorResponse
+    put:
+      is: [secured]
+      description: Update account details.
+      body:
+        application/json:
+          type: UpdateAccountRequest
+      responses:
+        200:
+          description: Account updated
+          body:
+            application/json:
+              type: Account
+        400:
+          description: Bad request
+          body:
+            application/json:
+              type: ErrorResponse
+        404:
+          description: Account not found
+          body:
+            application/json:
+              type: ErrorResponse
+
+    /balances:
+      description: Account balance information.
+      get:
+        is: [secured]
+        description: Get current balance for an account.
+        responses:
+          200:
+            description: Balances retrieved successfully
+            body:
+              application/json:
+                type: AccountBalance
+          404:
+            description: Account not found
+            body:
+              application/json:
+                type: ErrorResponse
+
+    /transactions:
+      description: Transactions associated with an account.
+      get:
+        is: [secured, paged]
+        description: List transactions for an account.
+        queryParameters:
+          fromDate:
+            type: date-only
+            required: false
+          toDate:
+            type: date-only
+            required: false
+          transactionType:
+            type: string
+            enum: [debit, credit, fee, interest, transfer, payment]
+            required: false
+        responses:
+          200:
+            description: Transactions retrieved successfully
+            body:
+              application/json:
+                type: TransactionListResponse
+          404:
+            description: Account not found
+            body:
+              application/json:
+                type: ErrorResponse
+
+    /beneficiaries:
+      description: Beneficiaries registered to an account.
+      get:
+        is: [secured]
+        description: List beneficiaries for an account.
+        responses:
+          200:
+            description: Beneficiaries retrieved successfully
+            body:
+              application/json:
+                type: BeneficiaryListResponse
+          404:
+            description: Account not found
+            body:
+              application/json:
+                type: ErrorResponse
+      post:
+        is: [secured]
+        description: Register a new beneficiary for an account.
+        body:
+          application/json:
+            type: CreateBeneficiaryRequest
+        responses:
+          201:
+            description: Beneficiary created
+            body:
+              application/json:
+                type: Beneficiary
+          400:
+            description: Bad request
+            body:
+              application/json:
+                type: ErrorResponse
+
+      /{beneficiaryId}:
+        description: Operations on a specific beneficiary.
+        uriParameters:
+          beneficiaryId:
+            type: string
+            description: UUID of the beneficiary
+        get:
+          is: [secured]
+          description: Get beneficiary by ID.
+          responses:
+            200:
+              description: Beneficiary retrieved successfully
+              body:
+                application/json:
+                  type: Beneficiary
+            404:
+              description: Beneficiary not found
+              body:
+                application/json:
+                  type: ErrorResponse
+        delete:
+          is: [secured]
+          description: Remove a beneficiary.
+          responses:
+            204:
+              description: Beneficiary deleted
+            404:
+              description: Beneficiary not found
+              body:
+                application/json:
+                  type: ErrorResponse
+
+/payments:
+  description: Initiate and manage payments.
+  get:
+    is: [secured, paged]
+    description: List payments with optional filters.
+    queryParameters:
+      customerId:
+        type: string
+        required: false
+      status:
+        type: string
+        enum: [pending, processing, completed, failed, cancelled]
+        required: false
+    responses:
+      200:
+        description: Payments retrieved successfully
+        body:
+          application/json:
+            type: PaymentListResponse
+  post:
+    is: [secured]
+    description: Initiate a new payment.
+    body:
+      application/json:
+        type: CreatePaymentRequest
+    responses:
+      201:
+        description: Payment initiated
+        body:
+          application/json:
+            type: Payment
+      400:
+        description: Bad request
+        body:
+          application/json:
+            type: ErrorResponse
+      409:
+        description: Conflict — duplicate payment detected
+        body:
+          application/json:
+            type: ErrorResponse
+
+  /{paymentId}:
+    description: Operations on a specific payment.
+    uriParameters:
+      paymentId:
+        type: string
+        description: UUID of the payment
+    get:
+      is: [secured]
+      description: Get payment by ID.
+      responses:
+        200:
+          description: Payment retrieved successfully
+          body:
+            application/json:
+              type: Payment
+        404:
+          description: Payment not found
+          body:
+            application/json:
+              type: ErrorResponse

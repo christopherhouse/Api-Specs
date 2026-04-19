@@ -1,0 +1,1075 @@
+#%RAML 1.0
+title: Supply Chain API
+version: v1
+baseUri: https://api.example.com/v1
+mediaType: application/json
+description: >
+  API for managing suppliers, products, warehouses, inventory, purchase orders,
+  and shipments in an enterprise supply chain system. Supports end-to-end
+  procurement and logistics operations from supplier onboarding through
+  goods receipt and shipment tracking.
+
+securitySchemes:
+  bearerAuth:
+    type: Pass Through
+    describedBy:
+      headers:
+        Authorization:
+          description: Bearer JWT token
+          type: string
+          pattern: "^Bearer .+"
+
+traits:
+  secured:
+    headers:
+      Authorization:
+        description: Bearer JWT access token
+        type: string
+        required: true
+    responses:
+      401:
+        description: Unauthorized
+        body:
+          application/json:
+            type: ErrorResponse
+      500:
+        description: Internal server error
+        body:
+          application/json:
+            type: ErrorResponse
+
+  paged:
+    queryParameters:
+      page:
+        type: integer
+        minimum: 1
+        default: 1
+        required: false
+      pageSize:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 25
+        required: false
+
+resourceTypes:
+  collection:
+    get:
+      is: [secured, paged]
+      responses:
+        200:
+          description: Collection retrieved successfully
+    post:
+      is: [secured]
+      responses:
+        201:
+          description: Resource created
+        400:
+          description: Bad request
+          body:
+            application/json:
+              type: ErrorResponse
+
+  item:
+    get:
+      is: [secured]
+      responses:
+        200:
+          description: Resource retrieved successfully
+        404:
+          description: Resource not found
+          body:
+            application/json:
+              type: ErrorResponse
+    put:
+      is: [secured]
+      responses:
+        200:
+          description: Resource updated
+        400:
+          description: Bad request
+          body:
+            application/json:
+              type: ErrorResponse
+        404:
+          description: Resource not found
+          body:
+            application/json:
+              type: ErrorResponse
+
+types:
+  ErrorResponse:
+    type: object
+    properties:
+      code:
+        type: string
+        required: true
+      message:
+        type: string
+        required: true
+      details:
+        type: string
+        required: false
+      correlationId:
+        type: string
+        required: false
+
+  Address:
+    type: object
+    properties:
+      line1:
+        type: string
+        required: false
+      line2:
+        type: string
+        required: false
+      city:
+        type: string
+        required: false
+      state:
+        type: string
+        required: false
+      postalCode:
+        type: string
+        required: false
+      country:
+        type: string
+        required: false
+
+  Supplier:
+    type: object
+    properties:
+      id:
+        type: string
+        required: true
+      name:
+        type: string
+        required: true
+      status:
+        type: string
+        required: true
+        enum: [active, inactive]
+      contactName:
+        type: string
+        required: false
+      contactEmail:
+        type: string
+        required: true
+      phone:
+        type: string
+        required: false
+      address:
+        type: Address
+        required: false
+      createdAt:
+        type: datetime
+        required: false
+
+  CreateSupplierRequest:
+    type: object
+    properties:
+      name:
+        type: string
+        required: true
+      contactName:
+        type: string
+        required: false
+      contactEmail:
+        type: string
+        required: true
+      phone:
+        type: string
+        required: false
+      address:
+        type: Address
+        required: false
+
+  UpdateSupplierRequest:
+    type: object
+    properties:
+      name:
+        type: string
+        required: false
+      status:
+        type: string
+        required: false
+        enum: [active, inactive]
+      contactName:
+        type: string
+        required: false
+      contactEmail:
+        type: string
+        required: false
+      phone:
+        type: string
+        required: false
+      address:
+        type: Address
+        required: false
+
+  SupplierListResponse:
+    type: object
+    properties:
+      data:
+        type: Supplier[]
+        required: true
+      totalCount:
+        type: integer
+        required: true
+      page:
+        type: integer
+        required: true
+      pageSize:
+        type: integer
+        required: true
+
+  Product:
+    type: object
+    properties:
+      id:
+        type: string
+        required: true
+      sku:
+        type: string
+        required: true
+      name:
+        type: string
+        required: true
+      description:
+        type: string
+        required: false
+      supplierId:
+        type: string
+        required: false
+      unitOfMeasure:
+        type: string
+        required: true
+        enum: [each, box, case, pallet, kilogram, pound, liter]
+      unitPrice:
+        type: number
+        required: false
+      reorderPoint:
+        type: integer
+        required: false
+      createdAt:
+        type: datetime
+        required: false
+
+  CreateProductRequest:
+    type: object
+    properties:
+      sku:
+        type: string
+        required: true
+      name:
+        type: string
+        required: true
+      description:
+        type: string
+        required: false
+      supplierId:
+        type: string
+        required: false
+      unitOfMeasure:
+        type: string
+        required: true
+        enum: [each, box, case, pallet, kilogram, pound, liter]
+      unitPrice:
+        type: number
+        required: false
+      reorderPoint:
+        type: integer
+        minimum: 0
+        required: false
+
+  UpdateProductRequest:
+    type: object
+    properties:
+      name:
+        type: string
+        required: false
+      description:
+        type: string
+        required: false
+      supplierId:
+        type: string
+        required: false
+      unitOfMeasure:
+        type: string
+        required: false
+        enum: [each, box, case, pallet, kilogram, pound, liter]
+      unitPrice:
+        type: number
+        required: false
+      reorderPoint:
+        type: integer
+        required: false
+
+  ProductListResponse:
+    type: object
+    properties:
+      data:
+        type: Product[]
+        required: true
+      totalCount:
+        type: integer
+        required: true
+      page:
+        type: integer
+        required: true
+      pageSize:
+        type: integer
+        required: true
+
+  Warehouse:
+    type: object
+    properties:
+      id:
+        type: string
+        required: true
+      code:
+        type: string
+        required: true
+      name:
+        type: string
+        required: true
+      address:
+        type: Address
+        required: false
+      capacity:
+        type: integer
+        required: false
+      createdAt:
+        type: datetime
+        required: false
+
+  CreateWarehouseRequest:
+    type: object
+    properties:
+      code:
+        type: string
+        required: true
+      name:
+        type: string
+        required: true
+      address:
+        type: Address
+        required: false
+      capacity:
+        type: integer
+        minimum: 0
+        required: false
+
+  WarehouseListResponse:
+    type: object
+    properties:
+      data:
+        type: Warehouse[]
+        required: true
+      totalCount:
+        type: integer
+        required: true
+
+  InventoryRecord:
+    type: object
+    properties:
+      id:
+        type: string
+        required: true
+      productId:
+        type: string
+        required: true
+      warehouseId:
+        type: string
+        required: true
+      quantityOnHand:
+        type: integer
+        required: true
+      quantityReserved:
+        type: integer
+        required: false
+      quantityAvailable:
+        type: integer
+        required: false
+      lastUpdatedAt:
+        type: datetime
+        required: false
+
+  AdjustInventoryRequest:
+    type: object
+    properties:
+      adjustmentType:
+        type: string
+        required: true
+        enum: [increase, decrease, set]
+      quantity:
+        type: integer
+        required: true
+      reason:
+        type: string
+        required: false
+
+  InventoryListResponse:
+    type: object
+    properties:
+      data:
+        type: InventoryRecord[]
+        required: true
+      totalCount:
+        type: integer
+        required: true
+
+  PurchaseOrderItem:
+    type: object
+    properties:
+      productId:
+        type: string
+        required: true
+      quantity:
+        type: integer
+        minimum: 1
+        required: true
+      unitPrice:
+        type: number
+        required: true
+      receivedQuantity:
+        type: integer
+        minimum: 0
+        required: false
+
+  PurchaseOrder:
+    type: object
+    properties:
+      id:
+        type: string
+        required: true
+      supplierId:
+        type: string
+        required: true
+      status:
+        type: string
+        required: true
+        enum: [draft, submitted, approved, partially_received, received, cancelled]
+      orderDate:
+        type: date-only
+        required: true
+      expectedDeliveryDate:
+        type: date-only
+        required: false
+      currency:
+        type: string
+        required: false
+      totalAmount:
+        type: number
+        required: false
+      items:
+        type: PurchaseOrderItem[]
+        required: true
+
+  CreatePurchaseOrderRequest:
+    type: object
+    properties:
+      supplierId:
+        type: string
+        required: true
+      orderDate:
+        type: date-only
+        required: true
+      expectedDeliveryDate:
+        type: date-only
+        required: false
+      currency:
+        type: string
+        required: false
+      items:
+        type: PurchaseOrderItem[]
+        required: true
+
+  ReceivedItem:
+    type: object
+    properties:
+      productId:
+        type: string
+        required: true
+      quantity:
+        type: integer
+        minimum: 1
+        required: true
+
+  ReceivePurchaseOrderRequest:
+    type: object
+    properties:
+      warehouseId:
+        type: string
+        required: true
+      receivedItems:
+        type: ReceivedItem[]
+        required: true
+
+  PurchaseOrderListResponse:
+    type: object
+    properties:
+      data:
+        type: PurchaseOrder[]
+        required: true
+      totalCount:
+        type: integer
+        required: true
+
+  TrackingEvent:
+    type: object
+    properties:
+      timestamp:
+        type: datetime
+        required: true
+      location:
+        type: string
+        required: false
+      description:
+        type: string
+        required: true
+
+  Shipment:
+    type: object
+    properties:
+      id:
+        type: string
+        required: true
+      shipmentNumber:
+        type: string
+        required: true
+      purchaseOrderId:
+        type: string
+        required: false
+      carrier:
+        type: string
+        required: false
+      trackingNumber:
+        type: string
+        required: false
+      originWarehouseId:
+        type: string
+        required: false
+      destinationWarehouseId:
+        type: string
+        required: false
+      status:
+        type: string
+        required: true
+        enum: [planned, in_transit, delivered, delayed, cancelled]
+      estimatedArrival:
+        type: datetime
+        required: false
+      shippedAt:
+        type: datetime
+        required: false
+      deliveredAt:
+        type: datetime
+        required: false
+
+  CreateShipmentRequest:
+    type: object
+    properties:
+      shipmentNumber:
+        type: string
+        required: true
+      purchaseOrderId:
+        type: string
+        required: false
+      carrier:
+        type: string
+        required: false
+      trackingNumber:
+        type: string
+        required: false
+      originWarehouseId:
+        type: string
+        required: false
+      destinationWarehouseId:
+        type: string
+        required: false
+      status:
+        type: string
+        required: true
+        enum: [planned, in_transit, delivered, delayed, cancelled]
+      estimatedArrival:
+        type: datetime
+        required: false
+
+  ShipmentTracking:
+    type: object
+    properties:
+      shipmentId:
+        type: string
+        required: true
+      status:
+        type: string
+        required: true
+        enum: [planned, in_transit, delivered, delayed, cancelled]
+      currentLocation:
+        type: string
+        required: false
+      events:
+        type: TrackingEvent[]
+        required: true
+
+  ShipmentListResponse:
+    type: object
+    properties:
+      data:
+        type: Shipment[]
+        required: true
+      totalCount:
+        type: integer
+        required: true
+
+/suppliers:
+  description: Manage supply chain suppliers.
+  get:
+    is: [secured, paged]
+    description: List suppliers with optional status filter.
+    queryParameters:
+      status:
+        type: string
+        enum: [active, inactive]
+        required: false
+    responses:
+      200:
+        description: Suppliers retrieved successfully
+        body:
+          application/json:
+            type: SupplierListResponse
+  post:
+    is: [secured]
+    description: Create a new supplier.
+    body:
+      application/json:
+        type: CreateSupplierRequest
+    responses:
+      201:
+        description: Supplier created
+        body:
+          application/json:
+            type: Supplier
+      400:
+        description: Bad request
+        body:
+          application/json:
+            type: ErrorResponse
+
+  /{supplierId}:
+    description: Operations on a specific supplier.
+    uriParameters:
+      supplierId:
+        type: string
+        description: UUID of the supplier
+    get:
+      is: [secured]
+      description: Get supplier by ID.
+      responses:
+        200:
+          description: Supplier retrieved successfully
+          body:
+            application/json:
+              type: Supplier
+        404:
+          description: Supplier not found
+          body:
+            application/json:
+              type: ErrorResponse
+    put:
+      is: [secured]
+      description: Update supplier details.
+      body:
+        application/json:
+          type: UpdateSupplierRequest
+      responses:
+        200:
+          description: Supplier updated
+          body:
+            application/json:
+              type: Supplier
+        400:
+          description: Bad request
+          body:
+            application/json:
+              type: ErrorResponse
+        404:
+          description: Supplier not found
+          body:
+            application/json:
+              type: ErrorResponse
+    delete:
+      is: [secured]
+      description: Delete a supplier.
+      responses:
+        204:
+          description: Supplier deleted
+        404:
+          description: Supplier not found
+          body:
+            application/json:
+              type: ErrorResponse
+
+/products:
+  description: Manage product catalogue.
+  get:
+    is: [secured, paged]
+    description: List products with optional filters.
+    queryParameters:
+      sku:
+        type: string
+        required: false
+      supplierId:
+        type: string
+        required: false
+    responses:
+      200:
+        description: Products retrieved successfully
+        body:
+          application/json:
+            type: ProductListResponse
+  post:
+    is: [secured]
+    description: Create a new product.
+    body:
+      application/json:
+        type: CreateProductRequest
+    responses:
+      201:
+        description: Product created
+        body:
+          application/json:
+            type: Product
+      400:
+        description: Bad request
+        body:
+          application/json:
+            type: ErrorResponse
+
+  /{productId}:
+    description: Operations on a specific product.
+    uriParameters:
+      productId:
+        type: string
+        description: UUID of the product
+    get:
+      is: [secured]
+      description: Get product by ID.
+      responses:
+        200:
+          description: Product retrieved successfully
+          body:
+            application/json:
+              type: Product
+        404:
+          description: Product not found
+          body:
+            application/json:
+              type: ErrorResponse
+    put:
+      is: [secured]
+      description: Update product details.
+      body:
+        application/json:
+          type: UpdateProductRequest
+      responses:
+        200:
+          description: Product updated
+          body:
+            application/json:
+              type: Product
+        400:
+          description: Bad request
+          body:
+            application/json:
+              type: ErrorResponse
+        404:
+          description: Product not found
+          body:
+            application/json:
+              type: ErrorResponse
+    delete:
+      is: [secured]
+      description: Delete a product.
+      responses:
+        204:
+          description: Product deleted
+        404:
+          description: Product not found
+          body:
+            application/json:
+              type: ErrorResponse
+
+/warehouses:
+  description: Manage warehouse locations.
+  get:
+    is: [secured]
+    description: List all warehouses.
+    responses:
+      200:
+        description: Warehouses retrieved successfully
+        body:
+          application/json:
+            type: WarehouseListResponse
+  post:
+    is: [secured]
+    description: Create a new warehouse.
+    body:
+      application/json:
+        type: CreateWarehouseRequest
+    responses:
+      201:
+        description: Warehouse created
+        body:
+          application/json:
+            type: Warehouse
+      400:
+        description: Bad request
+        body:
+          application/json:
+            type: ErrorResponse
+
+  /{warehouseId}:
+    description: Operations on a specific warehouse.
+    uriParameters:
+      warehouseId:
+        type: string
+        description: UUID of the warehouse
+    get:
+      is: [secured]
+      description: Get warehouse by ID.
+      responses:
+        200:
+          description: Warehouse retrieved successfully
+          body:
+            application/json:
+              type: Warehouse
+        404:
+          description: Warehouse not found
+          body:
+            application/json:
+              type: ErrorResponse
+
+/inventory:
+  description: Manage inventory records across warehouses.
+  get:
+    is: [secured]
+    description: List inventory records with optional filters.
+    queryParameters:
+      productId:
+        type: string
+        required: false
+      warehouseId:
+        type: string
+        required: false
+      lowStockOnly:
+        type: boolean
+        required: false
+    responses:
+      200:
+        description: Inventory retrieved successfully
+        body:
+          application/json:
+            type: InventoryListResponse
+
+  /{inventoryId}:
+    description: Operations on a specific inventory record.
+    uriParameters:
+      inventoryId:
+        type: string
+        description: UUID of the inventory record
+    get:
+      is: [secured]
+      description: Get inventory record by ID.
+      responses:
+        200:
+          description: Inventory record retrieved successfully
+          body:
+            application/json:
+              type: InventoryRecord
+        404:
+          description: Inventory record not found
+          body:
+            application/json:
+              type: ErrorResponse
+    patch:
+      is: [secured]
+      description: Adjust inventory quantity.
+      body:
+        application/json:
+          type: AdjustInventoryRequest
+      responses:
+        200:
+          description: Inventory adjusted successfully
+          body:
+            application/json:
+              type: InventoryRecord
+        400:
+          description: Bad request
+          body:
+            application/json:
+              type: ErrorResponse
+        404:
+          description: Inventory record not found
+          body:
+            application/json:
+              type: ErrorResponse
+
+/purchase-orders:
+  description: Manage purchase orders issued to suppliers.
+  get:
+    is: [secured]
+    description: List purchase orders with optional filters.
+    queryParameters:
+      supplierId:
+        type: string
+        required: false
+      status:
+        type: string
+        enum: [draft, submitted, approved, partially_received, received, cancelled]
+        required: false
+    responses:
+      200:
+        description: Purchase orders retrieved successfully
+        body:
+          application/json:
+            type: PurchaseOrderListResponse
+  post:
+    is: [secured]
+    description: Create a new purchase order.
+    body:
+      application/json:
+        type: CreatePurchaseOrderRequest
+    responses:
+      201:
+        description: Purchase order created
+        body:
+          application/json:
+            type: PurchaseOrder
+      400:
+        description: Bad request
+        body:
+          application/json:
+            type: ErrorResponse
+
+  /{purchaseOrderId}:
+    description: Operations on a specific purchase order.
+    uriParameters:
+      purchaseOrderId:
+        type: string
+        description: UUID of the purchase order
+    get:
+      is: [secured]
+      description: Get purchase order by ID.
+      responses:
+        200:
+          description: Purchase order retrieved successfully
+          body:
+            application/json:
+              type: PurchaseOrder
+        404:
+          description: Purchase order not found
+          body:
+            application/json:
+              type: ErrorResponse
+
+    /receive:
+      description: Record goods receipt for a purchase order.
+      post:
+        is: [secured]
+        description: Record receipt of items against a purchase order.
+        body:
+          application/json:
+            type: ReceivePurchaseOrderRequest
+        responses:
+          200:
+            description: Purchase order receipt recorded
+            body:
+              application/json:
+                type: PurchaseOrder
+          400:
+            description: Bad request
+            body:
+              application/json:
+                type: ErrorResponse
+          404:
+            description: Purchase order not found
+            body:
+              application/json:
+                type: ErrorResponse
+
+/shipments:
+  description: Manage shipments and logistics tracking.
+  get:
+    is: [secured]
+    description: List shipments with optional filters.
+    queryParameters:
+      status:
+        type: string
+        enum: [planned, in_transit, delivered, delayed, cancelled]
+        required: false
+      purchaseOrderId:
+        type: string
+        required: false
+    responses:
+      200:
+        description: Shipments retrieved successfully
+        body:
+          application/json:
+            type: ShipmentListResponse
+  post:
+    is: [secured]
+    description: Create a new shipment record.
+    body:
+      application/json:
+        type: CreateShipmentRequest
+    responses:
+      201:
+        description: Shipment created
+        body:
+          application/json:
+            type: Shipment
+      400:
+        description: Bad request
+        body:
+          application/json:
+            type: ErrorResponse
+
+  /{shipmentId}:
+    description: Operations on a specific shipment.
+    uriParameters:
+      shipmentId:
+        type: string
+        description: UUID of the shipment
+    get:
+      is: [secured]
+      description: Get shipment by ID.
+      responses:
+        200:
+          description: Shipment retrieved successfully
+          body:
+            application/json:
+              type: Shipment
+        404:
+          description: Shipment not found
+          body:
+            application/json:
+              type: ErrorResponse
+
+    /track:
+      description: Real-time shipment tracking information.
+      get:
+        is: [secured]
+        description: Get tracking events and current status for a shipment.
+        responses:
+          200:
+            description: Shipment tracking retrieved successfully
+            body:
+              application/json:
+                type: ShipmentTracking
+          404:
+            description: Shipment not found
+            body:
+              application/json:
+                type: ErrorResponse
