@@ -10,6 +10,7 @@ This repository is a curated catalog of API specifications in various formats. S
 rest/
   openapi/          # OpenAPI 3.0.x specs (.json or .yaml)
   wadl/             # WADL specs (.wadl, XML-based)
+  raml/             # RAML 1.0 specs (.raml)
 soap/
   *.wsdl            # WSDL specs (.wsdl, XML-based)
 ```
@@ -24,9 +25,9 @@ All spec files follow the pattern:
 
 - `<api-name>` — lowercase, hyphen-separated (e.g. `banking`, `supply-chain`, `hr`)
 - `<YYYY-MM-DD>` — the date the spec was created
-- `<ext>` — one of `json`, `yaml`, `wadl`, `wsdl`
+- `<ext>` — one of `json`, `yaml`, `wadl`, `wsdl`, `raml`
 
-Examples: `banking-2026-04-18.json`, `hr-2026-04-18.wsdl`
+Examples: `banking-2026-04-18.json`, `hr-2026-04-18.wsdl`, `logistics-2026-04-18.raml`
 
 ## Spec Authoring Guidelines
 
@@ -62,6 +63,21 @@ Examples: `banking-2026-04-18.json`, `hr-2026-04-18.wsdl`
 - Use document/literal style.
 - Name operations clearly (e.g. `GetEmployee`, `CreateOrder`).
 - Include `<wsdl:service>` with a descriptive endpoint URL.
+
+### RAML (REST)
+
+- Use **RAML 1.0** only. Do **not** use RAML 0.8.
+- Place files in `rest/raml/` with the `.raml` extension.
+- Begin every spec with `#%RAML 1.0` as the first line.
+- Include `title`, `version`, `baseUri`, and `mediaType` at the root.
+- Define reusable data types under the `types` section.
+- Use `traits` for cross-cutting concerns (e.g. paging, secured).
+- Use `resourceTypes` to describe common resource patterns (collection, item).
+- Include at least 5 resources/methods covering CRUD operations.
+- Add `description` to all resources and methods.
+- Specify request and response bodies with type references.
+- Use standard HTTP status codes; include `400`, `401`, `404`, and `500` responses.
+- Secure APIs with an `OAuth 2.0` or `Bearer Token` security scheme defined under `securitySchemes`.
 
 ## General Rules
 

@@ -25,6 +25,9 @@ jobs:
       - name: Install Spectral
         run: npm install -g @stoplight/spectral-cli
 
+      - name: Install raml-cop
+        run: npm install -g raml-cop
+
       - name: Install libxml2 utilities
         run: sudo apt-get update && sudo apt-get install -y libxml2-utils
 
@@ -49,6 +52,19 @@ jobs:
             [ -f "$wadl" ] || continue
             echo "  ➜ $wadl"
             if ! xmllint --noout "$wadl"; then
+              EXIT_CODE=1
+            fi
+          done
+          exit $EXIT_CODE
+
+      - name: Lint RAML specs
+        run: |
+          echo "🔍 Linting RAML specs..."
+          EXIT_CODE=0
+          for spec in rest/raml/*.raml; do
+            [ -f "$spec" ] || continue
+            echo "  ➜ $spec"
+            if ! raml-cop "$spec"; then
               EXIT_CODE=1
             fi
           done
