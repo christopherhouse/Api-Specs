@@ -14,6 +14,7 @@ You generate high-quality, realistic API specifications in the requested format 
 | RAML    | `rest/raml/`     | `.raml`        |
 | WADL    | `rest/wadl/`     | `.wadl`        |
 | WSDL    | `soap/`          | `.wsdl`        |
+| GraphQL | `graphql/`       | `.graphql`     |
 
 ## File Naming
 
@@ -73,9 +74,25 @@ Always name files as `<api-name>-<YYYY-MM-DD>.<ext>` with the date in `YYYY-MM-D
 - Include a `<wsdl:service>` endpoint.
 - Use the `http://schemas.example.com/<domain>/<year>/<month>` namespace pattern.
 
+## GraphQL Specs
+
+- Place the file in `graphql/` named `<api-name>-<YYYY-MM-DD>.graphql`.
+- Use **GraphQL SDL** (Schema Definition Language) — no resolver code.
+- Open with a `schema { query: Query, mutation: Mutation }` block (add `subscription: Subscription` if relevant).
+- Define a `Query` type with at least 5 fields covering list lookups (paginated) and single-item retrieval.
+- Define a `Mutation` type with create, update, and delete operations, each accepting a typed `input` argument.
+- Use `"""triple-quoted docstrings"""` on every type, field, input, and enum value.
+- Define `input` types for all mutation arguments.
+- Use `enum` types for fields with a fixed set of values.
+- Use connection/edge pagination patterns (`XxxConnection`, `XxxEdge`, `PageInfo`) on list queries.
+- Include custom `scalar` declarations (e.g. `DateTime`, `UUID`) as needed.
+- Define `interface` or `union` types where multiple object types share common structure.
+- Apply `@deprecated(reason: "...")` on any fields that are superseded.
+- Use non-null `!` modifiers deliberately — required fields and non-nullable return values should be `!`.
+
 ## Process
 
 1. Ask what kind of API the user wants (domain, format) if not specified.
 2. Generate the spec following all conventions above.
 3. Place the file in the correct directory with the proper naming convention.
-4. Verify the spec is well-formed (valid JSON/YAML/XML).
+4. Verify the spec is well-formed (valid JSON/YAML/XML/GraphQL SDL).

@@ -13,6 +13,8 @@ rest/
   raml/             # RAML 1.0 specs (.raml)
 soap/
   *.wsdl            # WSDL specs (.wsdl, XML-based)
+graphql/
+  *.graphql         # GraphQL SDL specs (.graphql)
 ```
 
 ## Naming Conventions
@@ -25,9 +27,9 @@ All spec files follow the pattern:
 
 - `<api-name>` — lowercase, hyphen-separated (e.g. `banking`, `supply-chain`, `hr`)
 - `<YYYY-MM-DD>` — the date the spec was created
-- `<ext>` — one of `json`, `yaml`, `wadl`, `wsdl`, `raml`
+- `<ext>` — one of `json`, `yaml`, `wadl`, `wsdl`, `raml`, `graphql`
 
-Examples: `banking-2026-04-18.json`, `hr-2026-04-18.wsdl`, `logistics-2026-04-18.raml`
+Examples: `banking-2026-04-18.json`, `hr-2026-04-18.wsdl`, `logistics-2026-04-18.raml`, `inventory-2026-04-19.graphql`
 
 ## Spec Authoring Guidelines
 
@@ -78,6 +80,23 @@ Examples: `banking-2026-04-18.json`, `hr-2026-04-18.wsdl`, `logistics-2026-04-18
 - Specify request and response bodies with type references.
 - Use standard HTTP status codes; include `400`, `401`, `404`, and `500` responses.
 - Secure APIs with an `OAuth 2.0` or `Bearer Token` security scheme defined under `securitySchemes`.
+
+### GraphQL (SDL)
+
+- Place files in `graphql/` with the `.graphql` extension.
+- Use **GraphQL SDL** (Schema Definition Language) format.
+- Begin the schema with a `schema { query: Query, mutation: Mutation }` block (include `subscription` if used).
+- Define a `Query` type with at least 5 query fields covering list and single-item lookups.
+- Define a `Mutation` type with create, update, and delete operations.
+- Use `"""triple-quoted docstrings"""` to describe all types, fields, inputs, and enum values.
+- Define reusable input types (`input` keyword) for mutation arguments.
+- Use enumerations (`enum`) for fields with a fixed set of values.
+- Define interfaces or unions where multiple types share common fields.
+- Use connection/edge patterns (e.g. `XxxConnection`, `XxxEdge`, `PageInfo`) for paginated list queries.
+- Apply the `@deprecated` directive with a `reason` on any fields marked for removal.
+- Include a `scalar` declaration for custom scalars (e.g. `DateTime`, `UUID`, `JSON`).
+- Avoid using `ID!` as the only identifier — include domain-meaningful fields as well.
+- Do **not** include resolver logic, only the schema definition.
 
 ## General Rules
 
