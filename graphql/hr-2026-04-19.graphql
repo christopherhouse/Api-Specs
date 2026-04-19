@@ -1,0 +1,442 @@
+"""
+HR Service API — GraphQL SDL
+
+Covers employee and department management: creating, retrieving,
+updating, and terminating employees, and listing organisational
+departments.
+"""
+
+schema {
+  query: Query
+  mutation: Mutation
+  subscription: Subscription
+}
+
+# ---------------------------------------------------------------------------
+# Scalars
+# ---------------------------------------------------------------------------
+
+"""ISO-8601 date-time string"""
+scalar DateTime
+
+"""ISO-8601 calendar date string"""
+scalar Date
+
+"""RFC-4122 UUID"""
+scalar UUID
+
+# ---------------------------------------------------------------------------
+# Enums
+# ---------------------------------------------------------------------------
+
+"""Employment lifecycle status"""
+enum EmploymentStatus {
+  ACTIVE
+  INACTIVE
+  LEAVE_OF_ABSENCE
+  TERMINATED
+}
+
+"""Employment type"""
+enum EmploymentType {
+  FULL_TIME
+  PART_TIME
+  CONTRACT
+  TEMPORARY
+  INTERN
+}
+
+"""Gender identity (self-reported, optional)"""
+enum Gender {
+  MALE
+  FEMALE
+  NON_BINARY
+  PREFER_NOT_TO_SAY
+}
+
+"""Payroll cycle"""
+enum PayCycle {
+  WEEKLY
+  BIWEEKLY
+  SEMI_MONTHLY
+  MONTHLY
+}
+
+"""Leave request type"""
+enum LeaveType {
+  ANNUAL
+  SICK
+  PARENTAL
+  BEREAVEMENT
+  UNPAID
+  OTHER
+}
+
+"""Status of a leave request"""
+enum LeaveRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+# ---------------------------------------------------------------------------
+# Interfaces
+# ---------------------------------------------------------------------------
+
+"""Audit timestamps shared by all records"""
+interface Auditable {
+  """When this record was created"""
+  createdAt: DateTime!
+  """When this record was last updated"""
+  updatedAt: DateTime!
+}
+
+# ---------------------------------------------------------------------------
+# Types
+# ---------------------------------------------------------------------------
+
+"""An organisational department"""
+type Department implements Auditable {
+  """Unique department identifier"""
+  id: UUID!
+  """Short department code used in ERP systems"""
+  departmentCode: String!
+  """Full department name"""
+  name: String!
+  """Manager of this department (employee)"""
+  manager: Employee
+  """Cost-centre code"""
+  costCenter: String
+  """Whether the department is currently active"""
+  active: Boolean!
+  """Employees belonging to this department"""
+  employees(status: EmploymentStatus): [Employee!]!
+  """When this record was created"""
+  createdAt: DateTime!
+  """When this record was last updated"""
+  updatedAt: DateTime!
+}
+
+"""An employee record"""
+type Employee implements Auditable {
+  """Unique employee identifier"""
+  id: UUID!
+  """Human-readable employee number"""
+  employeeNumber: String!
+  """Legal first name"""
+  firstName: String!
+  """Legal last name"""
+  lastName: String!
+  """Preferred display name"""
+  displayName: String!
+  """Work email address"""
+  email: String!
+  """Work phone number"""
+  phone: String
+  """Home address"""
+  address: Address
+  """Department this employee belongs to"""
+  department: Department
+  """Job title"""
+  jobTitle: String
+  """Manager (reporting relationship)"""
+  manager: Employee
+  """Direct reports"""
+  directReports: [Employee!]!
+  """Current employment status"""
+  employmentStatus: EmploymentStatus!
+  """Employment type"""
+  employmentType: EmploymentType!
+  """Gender identity (self-reported)"""
+  gender: Gender
+  """Date of birth"""
+  dateOfBirth: Date
+  """Hire date"""
+  hireDate: Date!
+  """Termination date, if applicable"""
+  terminationDate: Date
+  """Pay cycle"""
+  payCycle: PayCycle
+  """Base salary (annual, in company currency)"""
+  baseSalary: Float
+  """ISO-4217 salary currency"""
+  salaryCurrency: String
+  """Leave requests for this employee"""
+  leaveRequests(status: LeaveRequestStatus): [LeaveRequest!]!
+  """When this record was created"""
+  createdAt: DateTime!
+  """When this record was last updated"""
+  updatedAt: DateTime!
+}
+
+"""A physical or mailing address"""
+type Address {
+  """Street address line 1"""
+  line1: String!
+  """Optional second address line"""
+  line2: String
+  """City name"""
+  city: String!
+  """State or province"""
+  stateOrProvince: String!
+  """Postal / ZIP code"""
+  postalCode: String!
+  """ISO-3166-1 alpha-2 country code"""
+  countryCode: String!
+}
+
+"""An employee leave request"""
+type LeaveRequest implements Auditable {
+  """Unique leave request identifier"""
+  id: UUID!
+  """The employee requesting leave"""
+  employee: Employee!
+  """Type of leave"""
+  leaveType: LeaveType!
+  """Current status"""
+  status: LeaveRequestStatus!
+  """First day of leave"""
+  startDate: Date!
+  """Last day of leave"""
+  endDate: Date!
+  """Number of calendar days"""
+  totalDays: Int!
+  """Optional reason or notes"""
+  reason: String
+  """Manager who approved or rejected the request"""
+  reviewedBy: Employee
+  """Date the request was reviewed"""
+  reviewedAt: DateTime
+  """Reviewer's notes"""
+  reviewNotes: String
+  """When this record was created"""
+  createdAt: DateTime!
+  """When this record was last updated"""
+  updatedAt: DateTime!
+}
+
+"""Connection type for paginated employees"""
+type EmployeeConnection {
+  """List of edges in this page"""
+  edges: [EmployeeEdge!]!
+  """Pagination metadata for this page"""
+  pageInfo: PageInfo!
+  """Total number of matching records"""
+  totalCount: Int!
+}
+
+"""Edge for a single employee"""
+type EmployeeEdge {
+  """The record in this edge"""
+  node: Employee!
+  """Opaque pagination cursor for this edge"""
+  cursor: String!
+}
+
+"""Standard pagination metadata"""
+type PageInfo {
+  """Whether more pages exist after this one"""
+  hasNextPage: Boolean!
+  """Whether more pages exist before this one"""
+  hasPreviousPage: Boolean!
+  """Cursor for the first item in this page"""
+  startCursor: String
+  """Cursor for the last item in this page"""
+  endCursor: String
+}
+
+# ---------------------------------------------------------------------------
+# Inputs
+# ---------------------------------------------------------------------------
+
+"""Filter criteria for listing employees"""
+input EmployeeFilterInput {
+  """Filter by employment status"""
+  status: EmploymentStatus
+  """Filter by department"""
+  departmentId: UUID
+  """Filter by direct manager"""
+  managerId: UUID
+  """Full-text search on name or email"""
+  search: String
+}
+
+"""Input for creating a new employee"""
+input CreateEmployeeInput {
+  employeeNumber: String
+  firstName: String!
+  lastName: String!
+  displayName: String
+  email: String!
+  phone: String
+  address: AddressInput
+  departmentId: UUID
+  jobTitle: String
+  managerId: UUID
+  employmentType: EmploymentType!
+  hireDate: Date!
+  payCycle: PayCycle
+  baseSalary: Float
+  salaryCurrency: String
+  gender: Gender
+  dateOfBirth: Date
+}
+
+"""Input for updating an employee record"""
+input UpdateEmployeeInput {
+  firstName: String
+  lastName: String
+  displayName: String
+  email: String
+  phone: String
+  address: AddressInput
+  departmentId: UUID
+  jobTitle: String
+  managerId: UUID
+  employmentStatus: EmploymentStatus
+  employmentType: EmploymentType
+  payCycle: PayCycle
+  baseSalary: Float
+  salaryCurrency: String
+}
+
+"""Input for terminating an employee"""
+input TerminateEmployeeInput {
+  """ID of the employee to terminate"""
+  employeeId: UUID!
+  """Date employment ends"""
+  terminationDate: Date!
+  """Reason for termination"""
+  reason: String
+}
+
+"""Input for creating a department"""
+input CreateDepartmentInput {
+  departmentCode: String!
+  name: String!
+  managerEmployeeId: UUID
+  costCenter: String
+}
+
+"""Input for updating a department"""
+input UpdateDepartmentInput {
+  name: String
+  managerEmployeeId: UUID
+  costCenter: String
+  active: Boolean
+}
+
+"""Input for submitting a leave request"""
+input CreateLeaveRequestInput {
+  employeeId: UUID!
+  leaveType: LeaveType!
+  startDate: Date!
+  endDate: Date!
+  reason: String
+}
+
+"""Input for reviewing a leave request"""
+input ReviewLeaveRequestInput {
+  leaveRequestId: UUID!
+  decision: LeaveRequestStatus!
+  reviewNotes: String
+}
+
+"""Input for an address"""
+input AddressInput {
+  line1: String!
+  line2: String
+  city: String!
+  stateOrProvince: String!
+  postalCode: String!
+  countryCode: String!
+}
+
+# ---------------------------------------------------------------------------
+# Queries
+# ---------------------------------------------------------------------------
+
+"""Root query type — all read operations"""
+type Query {
+  """Get a single employee by ID"""
+  employee(id: UUID!): Employee
+
+  """Get an employee by employee number"""
+  employeeByNumber(employeeNumber: String!): Employee
+
+  """List employees with optional filtering and pagination"""
+  employees(
+    first: Int
+    after: String
+    filter: EmployeeFilterInput
+  ): EmployeeConnection!
+
+  """Get an organisational chart rooted at a given employee"""
+  orgChart(rootEmployeeId: UUID!): Employee
+
+  """Get a single department by ID"""
+  department(id: UUID!): Department
+
+  """List all departments; optionally filter by active status"""
+  departments(activeOnly: Boolean): [Department!]!
+
+  """Get a single leave request by ID"""
+  leaveRequest(id: UUID!): LeaveRequest
+
+  """List leave requests for a specific employee"""
+  leaveRequestsByEmployee(
+    employeeId: UUID!
+    status: LeaveRequestStatus
+  ): [LeaveRequest!]!
+
+  """List pending leave requests for a manager's direct reports"""
+  pendingLeaveRequestsForManager(managerId: UUID!): [LeaveRequest!]!
+}
+
+# ---------------------------------------------------------------------------
+# Mutations
+# ---------------------------------------------------------------------------
+
+"""Root mutation type — all write operations"""
+type Mutation {
+  """Onboard a new employee"""
+  createEmployee(input: CreateEmployeeInput!): Employee!
+
+  """Update an employee record"""
+  updateEmployee(id: UUID!, input: UpdateEmployeeInput!): Employee!
+
+  """Terminate an employee"""
+  terminateEmployee(input: TerminateEmployeeInput!): Employee!
+
+  """Reinstate a terminated or inactive employee"""
+  reinstateEmployee(id: UUID!, hireDate: Date!): Employee!
+
+  """Create a new department"""
+  createDepartment(input: CreateDepartmentInput!): Department!
+
+  """Update a department"""
+  updateDepartment(id: UUID!, input: UpdateDepartmentInput!): Department!
+
+  """Submit a leave request"""
+  createLeaveRequest(input: CreateLeaveRequestInput!): LeaveRequest!
+
+  """Review (approve or reject) a leave request"""
+  reviewLeaveRequest(input: ReviewLeaveRequestInput!): LeaveRequest!
+
+  """Cancel a pending leave request"""
+  cancelLeaveRequest(id: UUID!): LeaveRequest!
+}
+
+# ---------------------------------------------------------------------------
+# Subscriptions
+# ---------------------------------------------------------------------------
+
+"""Root subscription type — real-time event streams"""
+type Subscription {
+  """Real-time notifications when an employee's status changes"""
+  employeeStatusChanged(employeeId: UUID!): Employee!
+
+  """Real-time notifications when a leave request status changes"""
+  leaveRequestStatusChanged(employeeId: UUID!): LeaveRequest!
+}
