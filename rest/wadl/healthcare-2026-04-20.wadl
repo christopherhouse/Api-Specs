@@ -1,0 +1,597 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<application
+    xmlns="http://wadl.dev.java.net/2009/02"
+    xmlns:xs="http://www.w3.org/2001/XMLSchema"
+    xmlns:tns="http://schemas.example.com/healthcare/2026/01"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+
+  <doc title="Healthcare API">
+    Enterprise healthcare and patient management API providing full lifecycle
+    support for patients, providers, appointments, prescriptions, and medical
+    records. Designed for interoperability across hospital information systems,
+    electronic health record platforms, and practice management solutions.
+  </doc>
+
+  <grammars>
+    <xs:schema
+        targetNamespace="http://schemas.example.com/healthcare/2026/01"
+        elementFormDefault="qualified"
+        attributeFormDefault="unqualified">
+
+      <!-- ================================================================
+           Enumerations
+      ================================================================ -->
+
+      <xs:simpleType name="Gender">
+        <xs:restriction base="xs:string">
+          <xs:enumeration value="Male"/>
+          <xs:enumeration value="Female"/>
+          <xs:enumeration value="NonBinary"/>
+          <xs:enumeration value="Other"/>
+        </xs:restriction>
+      </xs:simpleType>
+
+      <xs:simpleType name="PatientStatus">
+        <xs:restriction base="xs:string">
+          <xs:enumeration value="Active"/>
+          <xs:enumeration value="Inactive"/>
+          <xs:enumeration value="Deceased"/>
+        </xs:restriction>
+      </xs:simpleType>
+
+      <xs:simpleType name="ProviderStatus">
+        <xs:restriction base="xs:string">
+          <xs:enumeration value="Active"/>
+          <xs:enumeration value="OnLeave"/>
+          <xs:enumeration value="Inactive"/>
+        </xs:restriction>
+      </xs:simpleType>
+
+      <xs:simpleType name="AppointmentType">
+        <xs:restriction base="xs:string">
+          <xs:enumeration value="Consultation"/>
+          <xs:enumeration value="FollowUp"/>
+          <xs:enumeration value="Procedure"/>
+          <xs:enumeration value="Screening"/>
+          <xs:enumeration value="Urgent"/>
+        </xs:restriction>
+      </xs:simpleType>
+
+      <xs:simpleType name="AppointmentStatus">
+        <xs:restriction base="xs:string">
+          <xs:enumeration value="Scheduled"/>
+          <xs:enumeration value="CheckedIn"/>
+          <xs:enumeration value="InProgress"/>
+          <xs:enumeration value="Completed"/>
+          <xs:enumeration value="Cancelled"/>
+          <xs:enumeration value="NoShow"/>
+        </xs:restriction>
+      </xs:simpleType>
+
+      <xs:simpleType name="PrescriptionStatus">
+        <xs:restriction base="xs:string">
+          <xs:enumeration value="Active"/>
+          <xs:enumeration value="Completed"/>
+          <xs:enumeration value="Cancelled"/>
+          <xs:enumeration value="OnHold"/>
+        </xs:restriction>
+      </xs:simpleType>
+
+      <xs:simpleType name="MedicationRoute">
+        <xs:restriction base="xs:string">
+          <xs:enumeration value="Oral"/>
+          <xs:enumeration value="Topical"/>
+          <xs:enumeration value="Injection"/>
+          <xs:enumeration value="Inhalation"/>
+          <xs:enumeration value="Intravenous"/>
+        </xs:restriction>
+      </xs:simpleType>
+
+      <xs:simpleType name="RecordType">
+        <xs:restriction base="xs:string">
+          <xs:enumeration value="LabResult"/>
+          <xs:enumeration value="Imaging"/>
+          <xs:enumeration value="Diagnosis"/>
+          <xs:enumeration value="Procedure"/>
+          <xs:enumeration value="Note"/>
+          <xs:enumeration value="Referral"/>
+        </xs:restriction>
+      </xs:simpleType>
+
+      <xs:simpleType name="Confidentiality">
+        <xs:restriction base="xs:string">
+          <xs:enumeration value="Normal"/>
+          <xs:enumeration value="Restricted"/>
+          <xs:enumeration value="VeryRestricted"/>
+        </xs:restriction>
+      </xs:simpleType>
+
+      <!-- ================================================================
+           Common complex types
+      ================================================================ -->
+
+      <xs:complexType name="Address">
+        <xs:sequence>
+          <xs:element name="line1" type="xs:string" minOccurs="0"/>
+          <xs:element name="line2" type="xs:string" minOccurs="0"/>
+          <xs:element name="city" type="xs:string" minOccurs="0"/>
+          <xs:element name="stateOrProvince" type="xs:string" minOccurs="0"/>
+          <xs:element name="postalCode" type="xs:string" minOccurs="0"/>
+          <xs:element name="country" type="xs:string" minOccurs="0"/>
+        </xs:sequence>
+      </xs:complexType>
+
+      <xs:complexType name="Error">
+        <xs:sequence>
+          <xs:element name="code" type="xs:string"/>
+          <xs:element name="message" type="xs:string"/>
+          <xs:element name="details" type="xs:string" minOccurs="0"/>
+        </xs:sequence>
+      </xs:complexType>
+
+      <!-- ================================================================
+           Patient types
+      ================================================================ -->
+
+      <xs:complexType name="Patient">
+        <xs:sequence>
+          <xs:element name="patientId" type="xs:string"/>
+          <xs:element name="mrn" type="xs:string"/>
+          <xs:element name="firstName" type="xs:string"/>
+          <xs:element name="lastName" type="xs:string"/>
+          <xs:element name="dateOfBirth" type="xs:date"/>
+          <xs:element name="gender" type="tns:Gender"/>
+          <xs:element name="email" type="xs:string" minOccurs="0"/>
+          <xs:element name="phone" type="xs:string" minOccurs="0"/>
+          <xs:element name="address" type="tns:Address" minOccurs="0"/>
+          <xs:element name="insuranceProvider" type="xs:string" minOccurs="0"/>
+          <xs:element name="insurancePolicyNumber" type="xs:string" minOccurs="0"/>
+          <xs:element name="primaryProviderId" type="xs:string" minOccurs="0"/>
+          <xs:element name="status" type="tns:PatientStatus"/>
+          <xs:element name="bloodType" type="xs:string" minOccurs="0"/>
+          <xs:element name="allergies" type="xs:string" minOccurs="0"/>
+        </xs:sequence>
+      </xs:complexType>
+
+      <xs:complexType name="PatientList">
+        <xs:sequence>
+          <xs:element name="patient" type="tns:Patient" minOccurs="0" maxOccurs="unbounded"/>
+        </xs:sequence>
+      </xs:complexType>
+
+      <!-- ================================================================
+           Provider types
+      ================================================================ -->
+
+      <xs:complexType name="Provider">
+        <xs:sequence>
+          <xs:element name="providerId" type="xs:string"/>
+          <xs:element name="npi" type="xs:string"/>
+          <xs:element name="firstName" type="xs:string"/>
+          <xs:element name="lastName" type="xs:string"/>
+          <xs:element name="specialty" type="xs:string"/>
+          <xs:element name="email" type="xs:string" minOccurs="0"/>
+          <xs:element name="phone" type="xs:string" minOccurs="0"/>
+          <xs:element name="department" type="xs:string" minOccurs="0"/>
+          <xs:element name="status" type="tns:ProviderStatus"/>
+          <xs:element name="licenseNumber" type="xs:string"/>
+          <xs:element name="licenseState" type="xs:string"/>
+          <xs:element name="acceptingNewPatients" type="xs:boolean"/>
+        </xs:sequence>
+      </xs:complexType>
+
+      <xs:complexType name="ProviderList">
+        <xs:sequence>
+          <xs:element name="provider" type="tns:Provider" minOccurs="0" maxOccurs="unbounded"/>
+        </xs:sequence>
+      </xs:complexType>
+
+      <!-- ================================================================
+           Appointment types
+      ================================================================ -->
+
+      <xs:complexType name="Appointment">
+        <xs:sequence>
+          <xs:element name="appointmentId" type="xs:string"/>
+          <xs:element name="patientId" type="xs:string"/>
+          <xs:element name="providerId" type="xs:string"/>
+          <xs:element name="scheduledStart" type="xs:dateTime"/>
+          <xs:element name="scheduledEnd" type="xs:dateTime"/>
+          <xs:element name="type" type="tns:AppointmentType"/>
+          <xs:element name="status" type="tns:AppointmentStatus"/>
+          <xs:element name="reason" type="xs:string" minOccurs="0"/>
+          <xs:element name="notes" type="xs:string" minOccurs="0"/>
+          <xs:element name="location" type="xs:string" minOccurs="0"/>
+        </xs:sequence>
+      </xs:complexType>
+
+      <xs:complexType name="AppointmentList">
+        <xs:sequence>
+          <xs:element name="appointment" type="tns:Appointment" minOccurs="0" maxOccurs="unbounded"/>
+        </xs:sequence>
+      </xs:complexType>
+
+      <!-- ================================================================
+           Prescription types
+      ================================================================ -->
+
+      <xs:complexType name="Prescription">
+        <xs:sequence>
+          <xs:element name="prescriptionId" type="xs:string"/>
+          <xs:element name="patientId" type="xs:string"/>
+          <xs:element name="providerId" type="xs:string"/>
+          <xs:element name="medication" type="xs:string"/>
+          <xs:element name="dosage" type="xs:string"/>
+          <xs:element name="frequency" type="xs:string"/>
+          <xs:element name="route" type="tns:MedicationRoute"/>
+          <xs:element name="startDate" type="xs:date"/>
+          <xs:element name="endDate" type="xs:date" minOccurs="0"/>
+          <xs:element name="refillsRemaining" type="xs:int"/>
+          <xs:element name="refillsTotal" type="xs:int"/>
+          <xs:element name="status" type="tns:PrescriptionStatus"/>
+          <xs:element name="pharmacy" type="xs:string" minOccurs="0"/>
+          <xs:element name="notes" type="xs:string" minOccurs="0"/>
+        </xs:sequence>
+      </xs:complexType>
+
+      <xs:complexType name="PrescriptionList">
+        <xs:sequence>
+          <xs:element name="prescription" type="tns:Prescription" minOccurs="0" maxOccurs="unbounded"/>
+        </xs:sequence>
+      </xs:complexType>
+
+      <!-- ================================================================
+           Medical Record types
+      ================================================================ -->
+
+      <xs:complexType name="MedicalRecord">
+        <xs:sequence>
+          <xs:element name="recordId" type="xs:string"/>
+          <xs:element name="patientId" type="xs:string"/>
+          <xs:element name="providerId" type="xs:string"/>
+          <xs:element name="encounterDate" type="xs:dateTime"/>
+          <xs:element name="type" type="tns:RecordType"/>
+          <xs:element name="title" type="xs:string"/>
+          <xs:element name="description" type="xs:string" minOccurs="0"/>
+          <xs:element name="findings" type="xs:string" minOccurs="0"/>
+          <xs:element name="attachmentUrl" type="xs:anyURI" minOccurs="0"/>
+          <xs:element name="confidentiality" type="tns:Confidentiality"/>
+        </xs:sequence>
+      </xs:complexType>
+
+      <xs:complexType name="MedicalRecordList">
+        <xs:sequence>
+          <xs:element name="medicalRecord" type="tns:MedicalRecord" minOccurs="0" maxOccurs="unbounded"/>
+        </xs:sequence>
+      </xs:complexType>
+
+    </xs:schema>
+  </grammars>
+
+  <!-- ==================================================================
+       Resources
+  ================================================================== -->
+
+  <resources base="https://api.contoso.com/healthcare/v1">
+
+    <!-- ===== Patients ===== -->
+    <resource path="patients">
+      <method name="GET" id="listPatients">
+        <doc>List patients with optional filtering by status</doc>
+        <request>
+          <param name="page" style="query" type="xs:int" default="1"/>
+          <param name="pageSize" style="query" type="xs:int" default="25"/>
+          <param name="status" style="query" type="xs:string"/>
+        </request>
+        <response status="200">
+          <representation mediaType="application/json" element="tns:PatientList"/>
+        </response>
+        <response status="400">
+          <representation mediaType="application/json" element="tns:Error"/>
+        </response>
+      </method>
+
+      <method name="POST" id="createPatient">
+        <doc>Register a new patient</doc>
+        <request>
+          <representation mediaType="application/json" element="tns:Patient"/>
+        </request>
+        <response status="201">
+          <representation mediaType="application/json" element="tns:Patient"/>
+        </response>
+        <response status="400">
+          <representation mediaType="application/json" element="tns:Error"/>
+        </response>
+      </method>
+
+      <resource path="{patientId}">
+        <param name="patientId" style="template" type="xs:string" required="true"/>
+
+        <method name="GET" id="getPatient">
+          <doc>Retrieve a specific patient by identifier</doc>
+          <response status="200">
+            <representation mediaType="application/json" element="tns:Patient"/>
+          </response>
+          <response status="404">
+            <representation mediaType="application/json" element="tns:Error"/>
+          </response>
+        </method>
+
+        <method name="PUT" id="updatePatient">
+          <doc>Update an existing patient record</doc>
+          <request>
+            <representation mediaType="application/json" element="tns:Patient"/>
+          </request>
+          <response status="200">
+            <representation mediaType="application/json" element="tns:Patient"/>
+          </response>
+          <response status="400">
+            <representation mediaType="application/json" element="tns:Error"/>
+          </response>
+          <response status="404">
+            <representation mediaType="application/json" element="tns:Error"/>
+          </response>
+        </method>
+
+        <method name="DELETE" id="deletePatient">
+          <doc>Remove a patient record from the system</doc>
+          <response status="200">
+            <representation mediaType="application/json"/>
+          </response>
+          <response status="404">
+            <representation mediaType="application/json" element="tns:Error"/>
+          </response>
+        </method>
+      </resource>
+    </resource>
+
+    <!-- ===== Providers ===== -->
+    <resource path="providers">
+      <method name="GET" id="listProviders">
+        <doc>List healthcare providers with optional filtering by specialty and status</doc>
+        <request>
+          <param name="page" style="query" type="xs:int" default="1"/>
+          <param name="pageSize" style="query" type="xs:int" default="25"/>
+          <param name="specialty" style="query" type="xs:string"/>
+          <param name="status" style="query" type="xs:string"/>
+        </request>
+        <response status="200">
+          <representation mediaType="application/json" element="tns:ProviderList"/>
+        </response>
+        <response status="400">
+          <representation mediaType="application/json" element="tns:Error"/>
+        </response>
+      </method>
+
+      <method name="POST" id="createProvider">
+        <doc>Register a new healthcare provider</doc>
+        <request>
+          <representation mediaType="application/json" element="tns:Provider"/>
+        </request>
+        <response status="201">
+          <representation mediaType="application/json" element="tns:Provider"/>
+        </response>
+        <response status="400">
+          <representation mediaType="application/json" element="tns:Error"/>
+        </response>
+      </method>
+
+      <resource path="{providerId}">
+        <param name="providerId" style="template" type="xs:string" required="true"/>
+
+        <method name="GET" id="getProvider">
+          <doc>Retrieve a specific provider by identifier</doc>
+          <response status="200">
+            <representation mediaType="application/json" element="tns:Provider"/>
+          </response>
+          <response status="404">
+            <representation mediaType="application/json" element="tns:Error"/>
+          </response>
+        </method>
+
+        <method name="PUT" id="updateProvider">
+          <doc>Update an existing provider record</doc>
+          <request>
+            <representation mediaType="application/json" element="tns:Provider"/>
+          </request>
+          <response status="200">
+            <representation mediaType="application/json" element="tns:Provider"/>
+          </response>
+          <response status="400">
+            <representation mediaType="application/json" element="tns:Error"/>
+          </response>
+          <response status="404">
+            <representation mediaType="application/json" element="tns:Error"/>
+          </response>
+        </method>
+      </resource>
+    </resource>
+
+    <!-- ===== Appointments ===== -->
+    <resource path="appointments">
+      <method name="GET" id="listAppointments">
+        <doc>List appointments with optional filtering by patient, provider, or status</doc>
+        <request>
+          <param name="page" style="query" type="xs:int" default="1"/>
+          <param name="pageSize" style="query" type="xs:int" default="25"/>
+          <param name="patientId" style="query" type="xs:string"/>
+          <param name="providerId" style="query" type="xs:string"/>
+          <param name="status" style="query" type="xs:string"/>
+        </request>
+        <response status="200">
+          <representation mediaType="application/json" element="tns:AppointmentList"/>
+        </response>
+        <response status="400">
+          <representation mediaType="application/json" element="tns:Error"/>
+        </response>
+      </method>
+
+      <method name="POST" id="createAppointment">
+        <doc>Schedule a new appointment</doc>
+        <request>
+          <representation mediaType="application/json" element="tns:Appointment"/>
+        </request>
+        <response status="201">
+          <representation mediaType="application/json" element="tns:Appointment"/>
+        </response>
+        <response status="400">
+          <representation mediaType="application/json" element="tns:Error"/>
+        </response>
+      </method>
+
+      <resource path="{appointmentId}">
+        <param name="appointmentId" style="template" type="xs:string" required="true"/>
+
+        <method name="GET" id="getAppointment">
+          <doc>Retrieve a specific appointment by identifier</doc>
+          <response status="200">
+            <representation mediaType="application/json" element="tns:Appointment"/>
+          </response>
+          <response status="404">
+            <representation mediaType="application/json" element="tns:Error"/>
+          </response>
+        </method>
+
+        <method name="PUT" id="updateAppointment">
+          <doc>Update an existing appointment</doc>
+          <request>
+            <representation mediaType="application/json" element="tns:Appointment"/>
+          </request>
+          <response status="200">
+            <representation mediaType="application/json" element="tns:Appointment"/>
+          </response>
+          <response status="400">
+            <representation mediaType="application/json" element="tns:Error"/>
+          </response>
+          <response status="404">
+            <representation mediaType="application/json" element="tns:Error"/>
+          </response>
+        </method>
+
+        <resource path="cancel">
+          <method name="POST" id="cancelAppointment">
+            <doc>Cancel a scheduled appointment</doc>
+            <response status="200">
+              <representation mediaType="application/json" element="tns:Appointment"/>
+            </response>
+            <response status="400">
+              <representation mediaType="application/json" element="tns:Error"/>
+            </response>
+            <response status="404">
+              <representation mediaType="application/json" element="tns:Error"/>
+            </response>
+          </method>
+        </resource>
+      </resource>
+    </resource>
+
+    <!-- ===== Prescriptions ===== -->
+    <resource path="prescriptions">
+      <method name="GET" id="listPrescriptions">
+        <doc>List prescriptions with optional filtering by patient or status</doc>
+        <request>
+          <param name="page" style="query" type="xs:int" default="1"/>
+          <param name="pageSize" style="query" type="xs:int" default="25"/>
+          <param name="patientId" style="query" type="xs:string"/>
+          <param name="status" style="query" type="xs:string"/>
+        </request>
+        <response status="200">
+          <representation mediaType="application/json" element="tns:PrescriptionList"/>
+        </response>
+        <response status="400">
+          <representation mediaType="application/json" element="tns:Error"/>
+        </response>
+      </method>
+
+      <method name="POST" id="createPrescription">
+        <doc>Create a new prescription</doc>
+        <request>
+          <representation mediaType="application/json" element="tns:Prescription"/>
+        </request>
+        <response status="201">
+          <representation mediaType="application/json" element="tns:Prescription"/>
+        </response>
+        <response status="400">
+          <representation mediaType="application/json" element="tns:Error"/>
+        </response>
+      </method>
+
+      <resource path="{prescriptionId}">
+        <param name="prescriptionId" style="template" type="xs:string" required="true"/>
+
+        <method name="GET" id="getPrescription">
+          <doc>Retrieve a specific prescription by identifier</doc>
+          <response status="200">
+            <representation mediaType="application/json" element="tns:Prescription"/>
+          </response>
+          <response status="404">
+            <representation mediaType="application/json" element="tns:Error"/>
+          </response>
+        </method>
+
+        <method name="PUT" id="updatePrescription">
+          <doc>Update an existing prescription</doc>
+          <request>
+            <representation mediaType="application/json" element="tns:Prescription"/>
+          </request>
+          <response status="200">
+            <representation mediaType="application/json" element="tns:Prescription"/>
+          </response>
+          <response status="400">
+            <representation mediaType="application/json" element="tns:Error"/>
+          </response>
+          <response status="404">
+            <representation mediaType="application/json" element="tns:Error"/>
+          </response>
+        </method>
+      </resource>
+    </resource>
+
+    <!-- ===== Medical Records ===== -->
+    <resource path="medical-records">
+      <method name="GET" id="listMedicalRecords">
+        <doc>List medical records with optional filtering by patient or record type</doc>
+        <request>
+          <param name="page" style="query" type="xs:int" default="1"/>
+          <param name="pageSize" style="query" type="xs:int" default="25"/>
+          <param name="patientId" style="query" type="xs:string"/>
+          <param name="type" style="query" type="xs:string"/>
+        </request>
+        <response status="200">
+          <representation mediaType="application/json" element="tns:MedicalRecordList"/>
+        </response>
+        <response status="400">
+          <representation mediaType="application/json" element="tns:Error"/>
+        </response>
+      </method>
+
+      <method name="POST" id="createMedicalRecord">
+        <doc>Create a new medical record entry</doc>
+        <request>
+          <representation mediaType="application/json" element="tns:MedicalRecord"/>
+        </request>
+        <response status="201">
+          <representation mediaType="application/json" element="tns:MedicalRecord"/>
+        </response>
+        <response status="400">
+          <representation mediaType="application/json" element="tns:Error"/>
+        </response>
+      </method>
+
+      <resource path="{recordId}">
+        <param name="recordId" style="template" type="xs:string" required="true"/>
+
+        <method name="GET" id="getMedicalRecord">
+          <doc>Retrieve a specific medical record by identifier</doc>
+          <response status="200">
+            <representation mediaType="application/json" element="tns:MedicalRecord"/>
+          </response>
+          <response status="404">
+            <representation mediaType="application/json" element="tns:Error"/>
+          </response>
+        </method>
+      </resource>
+    </resource>
+
+  </resources>
+</application>
