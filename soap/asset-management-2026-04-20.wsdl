@@ -1,0 +1,776 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wsdl:definitions
+    name="AssetManagementService"
+    targetNamespace="http://schemas.example.com/assets/2026/01"
+    xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/"
+    xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/"
+    xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+    xmlns:tns="http://schemas.example.com/assets/2026/01">
+
+  <wsdl:types>
+    <xsd:schema
+        targetNamespace="http://schemas.example.com/assets/2026/01"
+        elementFormDefault="qualified"
+        attributeFormDefault="unqualified">
+
+      <!-- ==================== Simple Types (Enumerations) ==================== -->
+
+      <xsd:simpleType name="AssetStatus">
+        <xsd:restriction base="xsd:string">
+          <xsd:enumeration value="Active"/>
+          <xsd:enumeration value="InStorage"/>
+          <xsd:enumeration value="InRepair"/>
+          <xsd:enumeration value="Reserved"/>
+          <xsd:enumeration value="Decommissioned"/>
+          <xsd:enumeration value="Disposed"/>
+        </xsd:restriction>
+      </xsd:simpleType>
+
+      <xsd:simpleType name="AssetCondition">
+        <xsd:restriction base="xsd:string">
+          <xsd:enumeration value="New"/>
+          <xsd:enumeration value="Good"/>
+          <xsd:enumeration value="Fair"/>
+          <xsd:enumeration value="Poor"/>
+          <xsd:enumeration value="NonFunctional"/>
+        </xsd:restriction>
+      </xsd:simpleType>
+
+      <xsd:simpleType name="DepreciationMethod">
+        <xsd:restriction base="xsd:string">
+          <xsd:enumeration value="StraightLine"/>
+          <xsd:enumeration value="DecliningBalance"/>
+          <xsd:enumeration value="DoubleDecliningBalance"/>
+          <xsd:enumeration value="SumOfYearsDigits"/>
+          <xsd:enumeration value="UnitsOfProduction"/>
+        </xsd:restriction>
+      </xsd:simpleType>
+
+      <xsd:simpleType name="LocationType">
+        <xsd:restriction base="xsd:string">
+          <xsd:enumeration value="Warehouse"/>
+          <xsd:enumeration value="Office"/>
+          <xsd:enumeration value="DataCenter"/>
+          <xsd:enumeration value="Factory"/>
+          <xsd:enumeration value="Field"/>
+          <xsd:enumeration value="Remote"/>
+        </xsd:restriction>
+      </xsd:simpleType>
+
+      <xsd:simpleType name="WorkOrderType">
+        <xsd:restriction base="xsd:string">
+          <xsd:enumeration value="Preventive"/>
+          <xsd:enumeration value="Corrective"/>
+          <xsd:enumeration value="Emergency"/>
+          <xsd:enumeration value="Inspection"/>
+          <xsd:enumeration value="Calibration"/>
+        </xsd:restriction>
+      </xsd:simpleType>
+
+      <xsd:simpleType name="WorkOrderPriority">
+        <xsd:restriction base="xsd:string">
+          <xsd:enumeration value="Critical"/>
+          <xsd:enumeration value="High"/>
+          <xsd:enumeration value="Medium"/>
+          <xsd:enumeration value="Low"/>
+        </xsd:restriction>
+      </xsd:simpleType>
+
+      <xsd:simpleType name="WorkOrderStatus">
+        <xsd:restriction base="xsd:string">
+          <xsd:enumeration value="Open"/>
+          <xsd:enumeration value="InProgress"/>
+          <xsd:enumeration value="OnHold"/>
+          <xsd:enumeration value="Completed"/>
+          <xsd:enumeration value="Cancelled"/>
+        </xsd:restriction>
+      </xsd:simpleType>
+
+      <!-- ==================== Complex Types ==================== -->
+
+      <xsd:complexType name="Address">
+        <xsd:sequence>
+          <xsd:element name="street" type="xsd:string"/>
+          <xsd:element name="city" type="xsd:string"/>
+          <xsd:element name="stateOrProvince" type="xsd:string" minOccurs="0"/>
+          <xsd:element name="postalCode" type="xsd:string"/>
+          <xsd:element name="country" type="xsd:string"/>
+        </xsd:sequence>
+      </xsd:complexType>
+
+      <xsd:complexType name="Category">
+        <xsd:sequence>
+          <xsd:element name="categoryId" type="xsd:string"/>
+          <xsd:element name="name" type="xsd:string"/>
+          <xsd:element name="description" type="xsd:string" minOccurs="0"/>
+          <xsd:element name="parentCategoryId" type="xsd:string" minOccurs="0"/>
+          <xsd:element name="depreciationMethod" type="tns:DepreciationMethod" minOccurs="0"/>
+          <xsd:element name="usefulLifeMonths" type="xsd:int" minOccurs="0"/>
+          <xsd:element name="active" type="xsd:boolean"/>
+        </xsd:sequence>
+      </xsd:complexType>
+
+      <xsd:complexType name="Location">
+        <xsd:sequence>
+          <xsd:element name="locationId" type="xsd:string"/>
+          <xsd:element name="name" type="xsd:string"/>
+          <xsd:element name="locationType" type="tns:LocationType"/>
+          <xsd:element name="address" type="tns:Address" minOccurs="0"/>
+          <xsd:element name="parentLocationId" type="xsd:string" minOccurs="0"/>
+          <xsd:element name="managerName" type="xsd:string" minOccurs="0"/>
+          <xsd:element name="managerEmail" type="xsd:string" minOccurs="0"/>
+          <xsd:element name="active" type="xsd:boolean"/>
+        </xsd:sequence>
+      </xsd:complexType>
+
+      <xsd:complexType name="Asset">
+        <xsd:sequence>
+          <xsd:element name="assetId" type="xsd:string"/>
+          <xsd:element name="assetTag" type="xsd:string"/>
+          <xsd:element name="name" type="xsd:string"/>
+          <xsd:element name="description" type="xsd:string" minOccurs="0"/>
+          <xsd:element name="categoryId" type="xsd:string"/>
+          <xsd:element name="categoryName" type="xsd:string" minOccurs="0"/>
+          <xsd:element name="locationId" type="xsd:string" minOccurs="0"/>
+          <xsd:element name="locationName" type="xsd:string" minOccurs="0"/>
+          <xsd:element name="status" type="tns:AssetStatus"/>
+          <xsd:element name="condition" type="tns:AssetCondition"/>
+          <xsd:element name="serialNumber" type="xsd:string" minOccurs="0"/>
+          <xsd:element name="manufacturer" type="xsd:string" minOccurs="0"/>
+          <xsd:element name="model" type="xsd:string" minOccurs="0"/>
+          <xsd:element name="purchaseDate" type="xsd:date" minOccurs="0"/>
+          <xsd:element name="purchaseCost" type="xsd:decimal" minOccurs="0"/>
+          <xsd:element name="currentValue" type="xsd:decimal" minOccurs="0"/>
+          <xsd:element name="depreciationMethod" type="tns:DepreciationMethod" minOccurs="0"/>
+          <xsd:element name="warrantyExpirationDate" type="xsd:date" minOccurs="0"/>
+          <xsd:element name="assignedTo" type="xsd:string" minOccurs="0"/>
+          <xsd:element name="notes" type="xsd:string" minOccurs="0"/>
+          <xsd:element name="createdUtc" type="xsd:dateTime" minOccurs="0"/>
+          <xsd:element name="lastUpdatedUtc" type="xsd:dateTime" minOccurs="0"/>
+        </xsd:sequence>
+      </xsd:complexType>
+
+      <xsd:complexType name="WorkOrder">
+        <xsd:sequence>
+          <xsd:element name="workOrderId" type="xsd:string"/>
+          <xsd:element name="assetId" type="xsd:string"/>
+          <xsd:element name="assetName" type="xsd:string" minOccurs="0"/>
+          <xsd:element name="workOrderType" type="tns:WorkOrderType"/>
+          <xsd:element name="priority" type="tns:WorkOrderPriority"/>
+          <xsd:element name="status" type="tns:WorkOrderStatus"/>
+          <xsd:element name="title" type="xsd:string"/>
+          <xsd:element name="description" type="xsd:string" minOccurs="0"/>
+          <xsd:element name="assignedTo" type="xsd:string" minOccurs="0"/>
+          <xsd:element name="scheduledDate" type="xsd:date" minOccurs="0"/>
+          <xsd:element name="completedDate" type="xsd:date" minOccurs="0"/>
+          <xsd:element name="estimatedCost" type="xsd:decimal" minOccurs="0"/>
+          <xsd:element name="actualCost" type="xsd:decimal" minOccurs="0"/>
+          <xsd:element name="completionNotes" type="xsd:string" minOccurs="0"/>
+          <xsd:element name="createdUtc" type="xsd:dateTime" minOccurs="0"/>
+          <xsd:element name="lastUpdatedUtc" type="xsd:dateTime" minOccurs="0"/>
+        </xsd:sequence>
+      </xsd:complexType>
+
+      <xsd:complexType name="Audit">
+        <xsd:sequence>
+          <xsd:element name="auditId" type="xsd:string"/>
+          <xsd:element name="assetId" type="xsd:string"/>
+          <xsd:element name="assetName" type="xsd:string" minOccurs="0"/>
+          <xsd:element name="locationId" type="xsd:string" minOccurs="0"/>
+          <xsd:element name="auditDate" type="xsd:date"/>
+          <xsd:element name="auditorName" type="xsd:string"/>
+          <xsd:element name="conditionAtAudit" type="tns:AssetCondition"/>
+          <xsd:element name="verified" type="xsd:boolean"/>
+          <xsd:element name="discrepancies" type="xsd:string" minOccurs="0"/>
+          <xsd:element name="remarks" type="xsd:string" minOccurs="0"/>
+          <xsd:element name="createdUtc" type="xsd:dateTime" minOccurs="0"/>
+        </xsd:sequence>
+      </xsd:complexType>
+
+      <!-- ==================== List Types ==================== -->
+
+      <xsd:complexType name="AssetList">
+        <xsd:sequence>
+          <xsd:element name="asset" type="tns:Asset" minOccurs="0" maxOccurs="unbounded"/>
+        </xsd:sequence>
+      </xsd:complexType>
+
+      <xsd:complexType name="CategoryList">
+        <xsd:sequence>
+          <xsd:element name="category" type="tns:Category" minOccurs="0" maxOccurs="unbounded"/>
+        </xsd:sequence>
+      </xsd:complexType>
+
+      <xsd:complexType name="LocationList">
+        <xsd:sequence>
+          <xsd:element name="location" type="tns:Location" minOccurs="0" maxOccurs="unbounded"/>
+        </xsd:sequence>
+      </xsd:complexType>
+
+      <xsd:complexType name="WorkOrderList">
+        <xsd:sequence>
+          <xsd:element name="workOrder" type="tns:WorkOrder" minOccurs="0" maxOccurs="unbounded"/>
+        </xsd:sequence>
+      </xsd:complexType>
+
+      <xsd:complexType name="AuditList">
+        <xsd:sequence>
+          <xsd:element name="audit" type="tns:Audit" minOccurs="0" maxOccurs="unbounded"/>
+        </xsd:sequence>
+      </xsd:complexType>
+
+      <!-- ==================== Error Type ==================== -->
+
+      <xsd:complexType name="Error">
+        <xsd:sequence>
+          <xsd:element name="code" type="xsd:string"/>
+          <xsd:element name="message" type="xsd:string"/>
+          <xsd:element name="details" type="xsd:string" minOccurs="0"/>
+        </xsd:sequence>
+      </xsd:complexType>
+
+      <!-- ==================== Request / Response Elements ==================== -->
+
+      <!-- GetAsset -->
+      <xsd:element name="GetAssetRequest">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="assetId" type="xsd:string"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+      <xsd:element name="GetAssetResponse">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="asset" type="tns:Asset" minOccurs="0"/>
+            <xsd:element name="error" type="tns:Error" minOccurs="0"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+      <!-- SearchAssets -->
+      <xsd:element name="SearchAssetsRequest">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="status" type="tns:AssetStatus" minOccurs="0"/>
+            <xsd:element name="categoryId" type="xsd:string" minOccurs="0"/>
+            <xsd:element name="locationId" type="xsd:string" minOccurs="0"/>
+            <xsd:element name="pageNumber" type="xsd:int" minOccurs="0"/>
+            <xsd:element name="pageSize" type="xsd:int" minOccurs="0"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+      <xsd:element name="SearchAssetsResponse">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="assets" type="tns:AssetList" minOccurs="0"/>
+            <xsd:element name="totalCount" type="xsd:int"/>
+            <xsd:element name="error" type="tns:Error" minOccurs="0"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+      <!-- CreateAsset -->
+      <xsd:element name="CreateAssetRequest">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="assetTag" type="xsd:string"/>
+            <xsd:element name="name" type="xsd:string"/>
+            <xsd:element name="description" type="xsd:string" minOccurs="0"/>
+            <xsd:element name="categoryId" type="xsd:string"/>
+            <xsd:element name="locationId" type="xsd:string" minOccurs="0"/>
+            <xsd:element name="condition" type="tns:AssetCondition"/>
+            <xsd:element name="serialNumber" type="xsd:string" minOccurs="0"/>
+            <xsd:element name="manufacturer" type="xsd:string" minOccurs="0"/>
+            <xsd:element name="model" type="xsd:string" minOccurs="0"/>
+            <xsd:element name="purchaseDate" type="xsd:date" minOccurs="0"/>
+            <xsd:element name="purchaseCost" type="xsd:decimal" minOccurs="0"/>
+            <xsd:element name="depreciationMethod" type="tns:DepreciationMethod" minOccurs="0"/>
+            <xsd:element name="warrantyExpirationDate" type="xsd:date" minOccurs="0"/>
+            <xsd:element name="assignedTo" type="xsd:string" minOccurs="0"/>
+            <xsd:element name="notes" type="xsd:string" minOccurs="0"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+      <xsd:element name="CreateAssetResponse">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="asset" type="tns:Asset" minOccurs="0"/>
+            <xsd:element name="error" type="tns:Error" minOccurs="0"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+      <!-- UpdateAsset -->
+      <xsd:element name="UpdateAssetRequest">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="assetId" type="xsd:string"/>
+            <xsd:element name="name" type="xsd:string" minOccurs="0"/>
+            <xsd:element name="description" type="xsd:string" minOccurs="0"/>
+            <xsd:element name="categoryId" type="xsd:string" minOccurs="0"/>
+            <xsd:element name="locationId" type="xsd:string" minOccurs="0"/>
+            <xsd:element name="status" type="tns:AssetStatus" minOccurs="0"/>
+            <xsd:element name="condition" type="tns:AssetCondition" minOccurs="0"/>
+            <xsd:element name="assignedTo" type="xsd:string" minOccurs="0"/>
+            <xsd:element name="notes" type="xsd:string" minOccurs="0"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+      <xsd:element name="UpdateAssetResponse">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="asset" type="tns:Asset" minOccurs="0"/>
+            <xsd:element name="error" type="tns:Error" minOccurs="0"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+      <!-- DecommissionAsset -->
+      <xsd:element name="DecommissionAssetRequest">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="assetId" type="xsd:string"/>
+            <xsd:element name="reason" type="xsd:string"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+      <xsd:element name="DecommissionAssetResponse">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="asset" type="tns:Asset" minOccurs="0"/>
+            <xsd:element name="error" type="tns:Error" minOccurs="0"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+      <!-- GetCategory -->
+      <xsd:element name="GetCategoryRequest">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="categoryId" type="xsd:string"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+      <xsd:element name="GetCategoryResponse">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="category" type="tns:Category" minOccurs="0"/>
+            <xsd:element name="error" type="tns:Error" minOccurs="0"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+      <!-- ListCategories -->
+      <xsd:element name="ListCategoriesRequest">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="activeOnly" type="xsd:boolean" minOccurs="0"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+      <xsd:element name="ListCategoriesResponse">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="categories" type="tns:CategoryList" minOccurs="0"/>
+            <xsd:element name="error" type="tns:Error" minOccurs="0"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+      <!-- CreateCategory -->
+      <xsd:element name="CreateCategoryRequest">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="name" type="xsd:string"/>
+            <xsd:element name="description" type="xsd:string" minOccurs="0"/>
+            <xsd:element name="parentCategoryId" type="xsd:string" minOccurs="0"/>
+            <xsd:element name="depreciationMethod" type="tns:DepreciationMethod" minOccurs="0"/>
+            <xsd:element name="usefulLifeMonths" type="xsd:int" minOccurs="0"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+      <xsd:element name="CreateCategoryResponse">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="category" type="tns:Category" minOccurs="0"/>
+            <xsd:element name="error" type="tns:Error" minOccurs="0"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+      <!-- GetLocation -->
+      <xsd:element name="GetLocationRequest">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="locationId" type="xsd:string"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+      <xsd:element name="GetLocationResponse">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="location" type="tns:Location" minOccurs="0"/>
+            <xsd:element name="error" type="tns:Error" minOccurs="0"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+      <!-- ListLocations -->
+      <xsd:element name="ListLocationsRequest">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="locationType" type="tns:LocationType" minOccurs="0"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+      <xsd:element name="ListLocationsResponse">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="locations" type="tns:LocationList" minOccurs="0"/>
+            <xsd:element name="error" type="tns:Error" minOccurs="0"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+      <!-- CreateWorkOrder -->
+      <xsd:element name="CreateWorkOrderRequest">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="assetId" type="xsd:string"/>
+            <xsd:element name="workOrderType" type="tns:WorkOrderType"/>
+            <xsd:element name="priority" type="tns:WorkOrderPriority"/>
+            <xsd:element name="title" type="xsd:string"/>
+            <xsd:element name="description" type="xsd:string" minOccurs="0"/>
+            <xsd:element name="assignedTo" type="xsd:string" minOccurs="0"/>
+            <xsd:element name="scheduledDate" type="xsd:date" minOccurs="0"/>
+            <xsd:element name="estimatedCost" type="xsd:decimal" minOccurs="0"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+      <xsd:element name="CreateWorkOrderResponse">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="workOrder" type="tns:WorkOrder" minOccurs="0"/>
+            <xsd:element name="error" type="tns:Error" minOccurs="0"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+      <!-- CompleteWorkOrder -->
+      <xsd:element name="CompleteWorkOrderRequest">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="workOrderId" type="xsd:string"/>
+            <xsd:element name="completionNotes" type="xsd:string" minOccurs="0"/>
+            <xsd:element name="actualCost" type="xsd:decimal" minOccurs="0"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+      <xsd:element name="CompleteWorkOrderResponse">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="workOrder" type="tns:WorkOrder" minOccurs="0"/>
+            <xsd:element name="error" type="tns:Error" minOccurs="0"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+      <!-- CreateAudit -->
+      <xsd:element name="CreateAuditRequest">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="assetId" type="xsd:string"/>
+            <xsd:element name="locationId" type="xsd:string" minOccurs="0"/>
+            <xsd:element name="auditDate" type="xsd:date"/>
+            <xsd:element name="auditorName" type="xsd:string"/>
+            <xsd:element name="conditionAtAudit" type="tns:AssetCondition"/>
+            <xsd:element name="verified" type="xsd:boolean"/>
+            <xsd:element name="discrepancies" type="xsd:string" minOccurs="0"/>
+            <xsd:element name="remarks" type="xsd:string" minOccurs="0"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+      <xsd:element name="CreateAuditResponse">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="audit" type="tns:Audit" minOccurs="0"/>
+            <xsd:element name="error" type="tns:Error" minOccurs="0"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+    </xsd:schema>
+  </wsdl:types>
+
+  <!-- ==================== Messages ==================== -->
+
+  <wsdl:message name="GetAssetInput">
+    <wsdl:part name="parameters" element="tns:GetAssetRequest"/>
+  </wsdl:message>
+  <wsdl:message name="GetAssetOutput">
+    <wsdl:part name="parameters" element="tns:GetAssetResponse"/>
+  </wsdl:message>
+
+  <wsdl:message name="SearchAssetsInput">
+    <wsdl:part name="parameters" element="tns:SearchAssetsRequest"/>
+  </wsdl:message>
+  <wsdl:message name="SearchAssetsOutput">
+    <wsdl:part name="parameters" element="tns:SearchAssetsResponse"/>
+  </wsdl:message>
+
+  <wsdl:message name="CreateAssetInput">
+    <wsdl:part name="parameters" element="tns:CreateAssetRequest"/>
+  </wsdl:message>
+  <wsdl:message name="CreateAssetOutput">
+    <wsdl:part name="parameters" element="tns:CreateAssetResponse"/>
+  </wsdl:message>
+
+  <wsdl:message name="UpdateAssetInput">
+    <wsdl:part name="parameters" element="tns:UpdateAssetRequest"/>
+  </wsdl:message>
+  <wsdl:message name="UpdateAssetOutput">
+    <wsdl:part name="parameters" element="tns:UpdateAssetResponse"/>
+  </wsdl:message>
+
+  <wsdl:message name="DecommissionAssetInput">
+    <wsdl:part name="parameters" element="tns:DecommissionAssetRequest"/>
+  </wsdl:message>
+  <wsdl:message name="DecommissionAssetOutput">
+    <wsdl:part name="parameters" element="tns:DecommissionAssetResponse"/>
+  </wsdl:message>
+
+  <wsdl:message name="GetCategoryInput">
+    <wsdl:part name="parameters" element="tns:GetCategoryRequest"/>
+  </wsdl:message>
+  <wsdl:message name="GetCategoryOutput">
+    <wsdl:part name="parameters" element="tns:GetCategoryResponse"/>
+  </wsdl:message>
+
+  <wsdl:message name="ListCategoriesInput">
+    <wsdl:part name="parameters" element="tns:ListCategoriesRequest"/>
+  </wsdl:message>
+  <wsdl:message name="ListCategoriesOutput">
+    <wsdl:part name="parameters" element="tns:ListCategoriesResponse"/>
+  </wsdl:message>
+
+  <wsdl:message name="CreateCategoryInput">
+    <wsdl:part name="parameters" element="tns:CreateCategoryRequest"/>
+  </wsdl:message>
+  <wsdl:message name="CreateCategoryOutput">
+    <wsdl:part name="parameters" element="tns:CreateCategoryResponse"/>
+  </wsdl:message>
+
+  <wsdl:message name="GetLocationInput">
+    <wsdl:part name="parameters" element="tns:GetLocationRequest"/>
+  </wsdl:message>
+  <wsdl:message name="GetLocationOutput">
+    <wsdl:part name="parameters" element="tns:GetLocationResponse"/>
+  </wsdl:message>
+
+  <wsdl:message name="ListLocationsInput">
+    <wsdl:part name="parameters" element="tns:ListLocationsRequest"/>
+  </wsdl:message>
+  <wsdl:message name="ListLocationsOutput">
+    <wsdl:part name="parameters" element="tns:ListLocationsResponse"/>
+  </wsdl:message>
+
+  <wsdl:message name="CreateWorkOrderInput">
+    <wsdl:part name="parameters" element="tns:CreateWorkOrderRequest"/>
+  </wsdl:message>
+  <wsdl:message name="CreateWorkOrderOutput">
+    <wsdl:part name="parameters" element="tns:CreateWorkOrderResponse"/>
+  </wsdl:message>
+
+  <wsdl:message name="CompleteWorkOrderInput">
+    <wsdl:part name="parameters" element="tns:CompleteWorkOrderRequest"/>
+  </wsdl:message>
+  <wsdl:message name="CompleteWorkOrderOutput">
+    <wsdl:part name="parameters" element="tns:CompleteWorkOrderResponse"/>
+  </wsdl:message>
+
+  <wsdl:message name="CreateAuditInput">
+    <wsdl:part name="parameters" element="tns:CreateAuditRequest"/>
+  </wsdl:message>
+  <wsdl:message name="CreateAuditOutput">
+    <wsdl:part name="parameters" element="tns:CreateAuditResponse"/>
+  </wsdl:message>
+
+  <!-- ==================== Port Type ==================== -->
+
+  <wsdl:portType name="AssetManagementServicePortType">
+
+    <wsdl:operation name="GetAsset">
+      <wsdl:input message="tns:GetAssetInput"/>
+      <wsdl:output message="tns:GetAssetOutput"/>
+    </wsdl:operation>
+
+    <wsdl:operation name="SearchAssets">
+      <wsdl:input message="tns:SearchAssetsInput"/>
+      <wsdl:output message="tns:SearchAssetsOutput"/>
+    </wsdl:operation>
+
+    <wsdl:operation name="CreateAsset">
+      <wsdl:input message="tns:CreateAssetInput"/>
+      <wsdl:output message="tns:CreateAssetOutput"/>
+    </wsdl:operation>
+
+    <wsdl:operation name="UpdateAsset">
+      <wsdl:input message="tns:UpdateAssetInput"/>
+      <wsdl:output message="tns:UpdateAssetOutput"/>
+    </wsdl:operation>
+
+    <wsdl:operation name="DecommissionAsset">
+      <wsdl:input message="tns:DecommissionAssetInput"/>
+      <wsdl:output message="tns:DecommissionAssetOutput"/>
+    </wsdl:operation>
+
+    <wsdl:operation name="GetCategory">
+      <wsdl:input message="tns:GetCategoryInput"/>
+      <wsdl:output message="tns:GetCategoryOutput"/>
+    </wsdl:operation>
+
+    <wsdl:operation name="ListCategories">
+      <wsdl:input message="tns:ListCategoriesInput"/>
+      <wsdl:output message="tns:ListCategoriesOutput"/>
+    </wsdl:operation>
+
+    <wsdl:operation name="CreateCategory">
+      <wsdl:input message="tns:CreateCategoryInput"/>
+      <wsdl:output message="tns:CreateCategoryOutput"/>
+    </wsdl:operation>
+
+    <wsdl:operation name="GetLocation">
+      <wsdl:input message="tns:GetLocationInput"/>
+      <wsdl:output message="tns:GetLocationOutput"/>
+    </wsdl:operation>
+
+    <wsdl:operation name="ListLocations">
+      <wsdl:input message="tns:ListLocationsInput"/>
+      <wsdl:output message="tns:ListLocationsOutput"/>
+    </wsdl:operation>
+
+    <wsdl:operation name="CreateWorkOrder">
+      <wsdl:input message="tns:CreateWorkOrderInput"/>
+      <wsdl:output message="tns:CreateWorkOrderOutput"/>
+    </wsdl:operation>
+
+    <wsdl:operation name="CompleteWorkOrder">
+      <wsdl:input message="tns:CompleteWorkOrderInput"/>
+      <wsdl:output message="tns:CompleteWorkOrderOutput"/>
+    </wsdl:operation>
+
+    <wsdl:operation name="CreateAudit">
+      <wsdl:input message="tns:CreateAuditInput"/>
+      <wsdl:output message="tns:CreateAuditOutput"/>
+    </wsdl:operation>
+
+  </wsdl:portType>
+
+  <!-- ==================== Binding ==================== -->
+
+  <wsdl:binding name="AssetManagementServiceSoapBinding" type="tns:AssetManagementServicePortType">
+    <soap:binding style="document" transport="http://schemas.xmlsoap.org/soap/http"/>
+
+    <wsdl:operation name="GetAsset">
+      <soap:operation soapAction="http://schemas.example.com/assets/2026/01/GetAsset" style="document"/>
+      <wsdl:input><soap:body use="literal"/></wsdl:input>
+      <wsdl:output><soap:body use="literal"/></wsdl:output>
+    </wsdl:operation>
+
+    <wsdl:operation name="SearchAssets">
+      <soap:operation soapAction="http://schemas.example.com/assets/2026/01/SearchAssets" style="document"/>
+      <wsdl:input><soap:body use="literal"/></wsdl:input>
+      <wsdl:output><soap:body use="literal"/></wsdl:output>
+    </wsdl:operation>
+
+    <wsdl:operation name="CreateAsset">
+      <soap:operation soapAction="http://schemas.example.com/assets/2026/01/CreateAsset" style="document"/>
+      <wsdl:input><soap:body use="literal"/></wsdl:input>
+      <wsdl:output><soap:body use="literal"/></wsdl:output>
+    </wsdl:operation>
+
+    <wsdl:operation name="UpdateAsset">
+      <soap:operation soapAction="http://schemas.example.com/assets/2026/01/UpdateAsset" style="document"/>
+      <wsdl:input><soap:body use="literal"/></wsdl:input>
+      <wsdl:output><soap:body use="literal"/></wsdl:output>
+    </wsdl:operation>
+
+    <wsdl:operation name="DecommissionAsset">
+      <soap:operation soapAction="http://schemas.example.com/assets/2026/01/DecommissionAsset" style="document"/>
+      <wsdl:input><soap:body use="literal"/></wsdl:input>
+      <wsdl:output><soap:body use="literal"/></wsdl:output>
+    </wsdl:operation>
+
+    <wsdl:operation name="GetCategory">
+      <soap:operation soapAction="http://schemas.example.com/assets/2026/01/GetCategory" style="document"/>
+      <wsdl:input><soap:body use="literal"/></wsdl:input>
+      <wsdl:output><soap:body use="literal"/></wsdl:output>
+    </wsdl:operation>
+
+    <wsdl:operation name="ListCategories">
+      <soap:operation soapAction="http://schemas.example.com/assets/2026/01/ListCategories" style="document"/>
+      <wsdl:input><soap:body use="literal"/></wsdl:input>
+      <wsdl:output><soap:body use="literal"/></wsdl:output>
+    </wsdl:operation>
+
+    <wsdl:operation name="CreateCategory">
+      <soap:operation soapAction="http://schemas.example.com/assets/2026/01/CreateCategory" style="document"/>
+      <wsdl:input><soap:body use="literal"/></wsdl:input>
+      <wsdl:output><soap:body use="literal"/></wsdl:output>
+    </wsdl:operation>
+
+    <wsdl:operation name="GetLocation">
+      <soap:operation soapAction="http://schemas.example.com/assets/2026/01/GetLocation" style="document"/>
+      <wsdl:input><soap:body use="literal"/></wsdl:input>
+      <wsdl:output><soap:body use="literal"/></wsdl:output>
+    </wsdl:operation>
+
+    <wsdl:operation name="ListLocations">
+      <soap:operation soapAction="http://schemas.example.com/assets/2026/01/ListLocations" style="document"/>
+      <wsdl:input><soap:body use="literal"/></wsdl:input>
+      <wsdl:output><soap:body use="literal"/></wsdl:output>
+    </wsdl:operation>
+
+    <wsdl:operation name="CreateWorkOrder">
+      <soap:operation soapAction="http://schemas.example.com/assets/2026/01/CreateWorkOrder" style="document"/>
+      <wsdl:input><soap:body use="literal"/></wsdl:input>
+      <wsdl:output><soap:body use="literal"/></wsdl:output>
+    </wsdl:operation>
+
+    <wsdl:operation name="CompleteWorkOrder">
+      <soap:operation soapAction="http://schemas.example.com/assets/2026/01/CompleteWorkOrder" style="document"/>
+      <wsdl:input><soap:body use="literal"/></wsdl:input>
+      <wsdl:output><soap:body use="literal"/></wsdl:output>
+    </wsdl:operation>
+
+    <wsdl:operation name="CreateAudit">
+      <soap:operation soapAction="http://schemas.example.com/assets/2026/01/CreateAudit" style="document"/>
+      <wsdl:input><soap:body use="literal"/></wsdl:input>
+      <wsdl:output><soap:body use="literal"/></wsdl:output>
+    </wsdl:operation>
+
+  </wsdl:binding>
+
+  <!-- ==================== Service ==================== -->
+
+  <wsdl:service name="AssetManagementService">
+    <wsdl:port name="AssetManagementServiceSoapPort" binding="tns:AssetManagementServiceSoapBinding">
+      <soap:address location="https://api.contoso.com/assets/soap"/>
+    </wsdl:port>
+  </wsdl:service>
+
+</wsdl:definitions>
