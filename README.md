@@ -43,7 +43,7 @@ All spec files follow:
 <api-name>-<YYYY-MM-DD>.<ext>
 ```
 
-For example: `banking-2026-04-18.json`, `hr-2026-04-18.wsdl`, `procurement-2026-04-18.wadl`, `logistics-2026-04-18.raml`, `inventory-2026-04-19.graphql`
+For example: `banking-2026-04-18.json`, `hr-2026-04-18.wsdl`, `procurement-2026-04-18.wadl`, `fleet-management-2026-04-20.raml`, `asset-management-2026-04-20.graphql`
 
 ## 🤖 Generating Specs with Copilot
 
@@ -105,6 +105,26 @@ Current state of all spec files in the repository:
 | Procurement | Vendors, contracts, requisitions, purchase orders, approvals, invoices | WADL | [`rest/wadl/procurement-2026-04-18.wadl`](rest/wadl/procurement-2026-04-18.wadl) |
 | Procurement | Vendors, contracts, requisitions, purchase orders, approvals, invoices | RAML 1.0 | [`rest/raml/procurement-2026-04-18.raml`](rest/raml/procurement-2026-04-18.raml) |
 | Procurement | Vendors, contracts, requisitions, purchase orders, approvals, invoices | GraphQL SDL | [`graphql/procurement-2026-04-19.graphql`](graphql/procurement-2026-04-19.graphql) |
+| CRM | Accounts, contacts, opportunities, activities, products, quotes | OpenAPI 3.0 (YAML) | [`rest/openapi/crm-2026-04-19.yaml`](rest/openapi/crm-2026-04-19.yaml) |
+| CRM | Accounts, contacts, opportunities, activities, products, quotes | WADL | [`rest/wadl/crm-2026-04-19.wadl`](rest/wadl/crm-2026-04-19.wadl) |
+| CRM | Accounts, contacts, opportunities, activities, products, quotes | SOAP / WSDL 1.1 | [`soap/crm-2026-04-19.wsdl`](soap/crm-2026-04-19.wsdl) |
+| CRM | Accounts, contacts, opportunities, activities, products, quotes | RAML 1.0 | [`rest/raml/crm-2026-04-19.raml`](rest/raml/crm-2026-04-19.raml) |
+| CRM | Accounts, contacts, opportunities, activities, products, quotes | GraphQL SDL | [`graphql/crm-2026-04-19.graphql`](graphql/crm-2026-04-19.graphql) |
+| Fleet Management | Vehicles, drivers, trips, maintenance records, fuel logs | OpenAPI 3.0 (YAML) | [`rest/openapi/fleet-management-2026-04-20.yaml`](rest/openapi/fleet-management-2026-04-20.yaml) |
+| Fleet Management | Vehicles, drivers, trips, maintenance records, fuel logs | WADL | [`rest/wadl/fleet-management-2026-04-20.wadl`](rest/wadl/fleet-management-2026-04-20.wadl) |
+| Fleet Management | Vehicles, drivers, trips, maintenance records, fuel logs | SOAP / WSDL 1.1 | [`soap/fleet-management-2026-04-20.wsdl`](soap/fleet-management-2026-04-20.wsdl) |
+| Fleet Management | Vehicles, drivers, trips, maintenance records, fuel logs | RAML 1.0 | [`rest/raml/fleet-management-2026-04-20.raml`](rest/raml/fleet-management-2026-04-20.raml) |
+| Fleet Management | Vehicles, drivers, trips, maintenance records, fuel logs | GraphQL SDL | [`graphql/fleet-management-2026-04-20.graphql`](graphql/fleet-management-2026-04-20.graphql) |
+| Healthcare | Patients, providers, appointments, prescriptions, medical records | OpenAPI 3.0 (YAML) | [`rest/openapi/healthcare-2026-04-20.yaml`](rest/openapi/healthcare-2026-04-20.yaml) |
+| Healthcare | Patients, providers, appointments, prescriptions, medical records | WADL | [`rest/wadl/healthcare-2026-04-20.wadl`](rest/wadl/healthcare-2026-04-20.wadl) |
+| Healthcare | Patients, providers, appointments, prescriptions, medical records | SOAP / WSDL 1.1 | [`soap/healthcare-2026-04-20.wsdl`](soap/healthcare-2026-04-20.wsdl) |
+| Healthcare | Patients, providers, appointments, prescriptions, medical records | RAML 1.0 | [`rest/raml/healthcare-2026-04-20.raml`](rest/raml/healthcare-2026-04-20.raml) |
+| Healthcare | Patients, providers, appointments, prescriptions, medical records | GraphQL SDL | [`graphql/healthcare-2026-04-20.graphql`](graphql/healthcare-2026-04-20.graphql) |
+| Asset Management | Assets, categories, locations, work orders, audits | OpenAPI 3.0 (YAML) | [`rest/openapi/asset-management-2026-04-20.yaml`](rest/openapi/asset-management-2026-04-20.yaml) |
+| Asset Management | Assets, categories, locations, work orders, audits | WADL | [`rest/wadl/asset-management-2026-04-20.wadl`](rest/wadl/asset-management-2026-04-20.wadl) |
+| Asset Management | Assets, categories, locations, work orders, audits | SOAP / WSDL 1.1 | [`soap/asset-management-2026-04-20.wsdl`](soap/asset-management-2026-04-20.wsdl) |
+| Asset Management | Assets, categories, locations, work orders, audits | RAML 1.0 | [`rest/raml/asset-management-2026-04-20.raml`](rest/raml/asset-management-2026-04-20.raml) |
+| Asset Management | Assets, categories, locations, work orders, audits | GraphQL SDL | [`graphql/asset-management-2026-04-20.graphql`](graphql/asset-management-2026-04-20.graphql) |
 
 ## 📄 License
 
