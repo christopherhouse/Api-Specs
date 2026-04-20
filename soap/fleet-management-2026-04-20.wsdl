@@ -1,0 +1,780 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wsdl:definitions
+    name="FleetManagementService"
+    targetNamespace="http://schemas.example.com/fleet/2026/01"
+    xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/"
+    xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/"
+    xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+    xmlns:tns="http://schemas.example.com/fleet/2026/01">
+
+  <wsdl:types>
+    <xsd:schema
+        targetNamespace="http://schemas.example.com/fleet/2026/01"
+        elementFormDefault="qualified"
+        attributeFormDefault="unqualified">
+
+      <!-- Simple types / enumerations -->
+
+      <xsd:simpleType name="VehicleStatus">
+        <xsd:restriction base="xsd:string">
+          <xsd:enumeration value="Available"/>
+          <xsd:enumeration value="InUse"/>
+          <xsd:enumeration value="InMaintenance"/>
+          <xsd:enumeration value="OutOfService"/>
+          <xsd:enumeration value="Retired"/>
+        </xsd:restriction>
+      </xsd:simpleType>
+
+      <xsd:simpleType name="DriverStatus">
+        <xsd:restriction base="xsd:string">
+          <xsd:enumeration value="Active"/>
+          <xsd:enumeration value="Inactive"/>
+          <xsd:enumeration value="OnLeave"/>
+          <xsd:enumeration value="Suspended"/>
+          <xsd:enumeration value="Terminated"/>
+        </xsd:restriction>
+      </xsd:simpleType>
+
+      <xsd:simpleType name="TripStatus">
+        <xsd:restriction base="xsd:string">
+          <xsd:enumeration value="Scheduled"/>
+          <xsd:enumeration value="InProgress"/>
+          <xsd:enumeration value="Completed"/>
+          <xsd:enumeration value="Cancelled"/>
+        </xsd:restriction>
+      </xsd:simpleType>
+
+      <xsd:simpleType name="MaintenanceType">
+        <xsd:restriction base="xsd:string">
+          <xsd:enumeration value="OilChange"/>
+          <xsd:enumeration value="TireRotation"/>
+          <xsd:enumeration value="BrakeInspection"/>
+          <xsd:enumeration value="EngineRepair"/>
+          <xsd:enumeration value="Transmission"/>
+          <xsd:enumeration value="ScheduledService"/>
+          <xsd:enumeration value="BodyRepair"/>
+          <xsd:enumeration value="Other"/>
+        </xsd:restriction>
+      </xsd:simpleType>
+
+      <xsd:simpleType name="MaintenanceStatus">
+        <xsd:restriction base="xsd:string">
+          <xsd:enumeration value="Scheduled"/>
+          <xsd:enumeration value="InProgress"/>
+          <xsd:enumeration value="Completed"/>
+          <xsd:enumeration value="Cancelled"/>
+        </xsd:restriction>
+      </xsd:simpleType>
+
+      <xsd:simpleType name="FuelType">
+        <xsd:restriction base="xsd:string">
+          <xsd:enumeration value="Gasoline"/>
+          <xsd:enumeration value="Diesel"/>
+          <xsd:enumeration value="Electric"/>
+          <xsd:enumeration value="Hybrid"/>
+          <xsd:enumeration value="NaturalGas"/>
+          <xsd:enumeration value="Hydrogen"/>
+        </xsd:restriction>
+      </xsd:simpleType>
+
+      <!-- Core complex types -->
+
+      <xsd:complexType name="Vehicle">
+        <xsd:sequence>
+          <xsd:element name="vehicleId" type="xsd:string"/>
+          <xsd:element name="vin" type="xsd:string" minOccurs="0"/>
+          <xsd:element name="licensePlate" type="xsd:string"/>
+          <xsd:element name="make" type="xsd:string"/>
+          <xsd:element name="model" type="xsd:string"/>
+          <xsd:element name="year" type="xsd:int"/>
+          <xsd:element name="fuelType" type="tns:FuelType"/>
+          <xsd:element name="status" type="tns:VehicleStatus"/>
+          <xsd:element name="currentOdometer" type="xsd:decimal" minOccurs="0"/>
+          <xsd:element name="assignedDriverId" type="xsd:string" minOccurs="0"/>
+          <xsd:element name="depotLocation" type="xsd:string" minOccurs="0"/>
+          <xsd:element name="acquisitionDate" type="xsd:date" minOccurs="0"/>
+          <xsd:element name="lastServiceDate" type="xsd:date" minOccurs="0"/>
+          <xsd:element name="lastUpdatedUtc" type="xsd:dateTime" minOccurs="0"/>
+        </xsd:sequence>
+      </xsd:complexType>
+
+      <xsd:complexType name="Driver">
+        <xsd:sequence>
+          <xsd:element name="driverId" type="xsd:string"/>
+          <xsd:element name="employeeNumber" type="xsd:string" minOccurs="0"/>
+          <xsd:element name="firstName" type="xsd:string"/>
+          <xsd:element name="lastName" type="xsd:string"/>
+          <xsd:element name="email" type="xsd:string" minOccurs="0"/>
+          <xsd:element name="phone" type="xsd:string" minOccurs="0"/>
+          <xsd:element name="licenseNumber" type="xsd:string"/>
+          <xsd:element name="licenseExpiry" type="xsd:date"/>
+          <xsd:element name="status" type="tns:DriverStatus"/>
+          <xsd:element name="assignedVehicleId" type="xsd:string" minOccurs="0"/>
+          <xsd:element name="hireDate" type="xsd:date" minOccurs="0"/>
+          <xsd:element name="lastUpdatedUtc" type="xsd:dateTime" minOccurs="0"/>
+        </xsd:sequence>
+      </xsd:complexType>
+
+      <xsd:complexType name="Trip">
+        <xsd:sequence>
+          <xsd:element name="tripId" type="xsd:string"/>
+          <xsd:element name="vehicleId" type="xsd:string"/>
+          <xsd:element name="driverId" type="xsd:string"/>
+          <xsd:element name="status" type="tns:TripStatus"/>
+          <xsd:element name="origin" type="xsd:string"/>
+          <xsd:element name="destination" type="xsd:string"/>
+          <xsd:element name="scheduledStartTime" type="xsd:dateTime"/>
+          <xsd:element name="scheduledEndTime" type="xsd:dateTime" minOccurs="0"/>
+          <xsd:element name="actualStartTime" type="xsd:dateTime" minOccurs="0"/>
+          <xsd:element name="actualEndTime" type="xsd:dateTime" minOccurs="0"/>
+          <xsd:element name="startOdometer" type="xsd:decimal" minOccurs="0"/>
+          <xsd:element name="endOdometer" type="xsd:decimal" minOccurs="0"/>
+          <xsd:element name="distanceKm" type="xsd:decimal" minOccurs="0"/>
+          <xsd:element name="purpose" type="xsd:string" minOccurs="0"/>
+          <xsd:element name="notes" type="xsd:string" minOccurs="0"/>
+          <xsd:element name="lastUpdatedUtc" type="xsd:dateTime" minOccurs="0"/>
+        </xsd:sequence>
+      </xsd:complexType>
+
+      <xsd:complexType name="MaintenanceRecord">
+        <xsd:sequence>
+          <xsd:element name="maintenanceId" type="xsd:string"/>
+          <xsd:element name="vehicleId" type="xsd:string"/>
+          <xsd:element name="maintenanceType" type="tns:MaintenanceType"/>
+          <xsd:element name="status" type="tns:MaintenanceStatus"/>
+          <xsd:element name="description" type="xsd:string" minOccurs="0"/>
+          <xsd:element name="scheduledDate" type="xsd:date"/>
+          <xsd:element name="completedDate" type="xsd:date" minOccurs="0"/>
+          <xsd:element name="odometerAtService" type="xsd:decimal" minOccurs="0"/>
+          <xsd:element name="cost" type="xsd:decimal" minOccurs="0"/>
+          <xsd:element name="vendorName" type="xsd:string" minOccurs="0"/>
+          <xsd:element name="notes" type="xsd:string" minOccurs="0"/>
+          <xsd:element name="lastUpdatedUtc" type="xsd:dateTime" minOccurs="0"/>
+        </xsd:sequence>
+      </xsd:complexType>
+
+      <xsd:complexType name="FuelLog">
+        <xsd:sequence>
+          <xsd:element name="fuelLogId" type="xsd:string"/>
+          <xsd:element name="vehicleId" type="xsd:string"/>
+          <xsd:element name="driverId" type="xsd:string"/>
+          <xsd:element name="fuelType" type="tns:FuelType"/>
+          <xsd:element name="quantityLiters" type="xsd:decimal"/>
+          <xsd:element name="costPerLiter" type="xsd:decimal" minOccurs="0"/>
+          <xsd:element name="totalCost" type="xsd:decimal"/>
+          <xsd:element name="odometerReading" type="xsd:decimal"/>
+          <xsd:element name="fuelStation" type="xsd:string" minOccurs="0"/>
+          <xsd:element name="filledAt" type="xsd:dateTime"/>
+          <xsd:element name="lastUpdatedUtc" type="xsd:dateTime" minOccurs="0"/>
+        </xsd:sequence>
+      </xsd:complexType>
+
+      <!-- List wrapper types -->
+
+      <xsd:complexType name="VehicleList">
+        <xsd:sequence>
+          <xsd:element name="vehicle" type="tns:Vehicle" minOccurs="0" maxOccurs="unbounded"/>
+        </xsd:sequence>
+      </xsd:complexType>
+
+      <xsd:complexType name="DriverList">
+        <xsd:sequence>
+          <xsd:element name="driver" type="tns:Driver" minOccurs="0" maxOccurs="unbounded"/>
+        </xsd:sequence>
+      </xsd:complexType>
+
+      <xsd:complexType name="TripList">
+        <xsd:sequence>
+          <xsd:element name="trip" type="tns:Trip" minOccurs="0" maxOccurs="unbounded"/>
+        </xsd:sequence>
+      </xsd:complexType>
+
+      <xsd:complexType name="MaintenanceRecordList">
+        <xsd:sequence>
+          <xsd:element name="maintenanceRecord" type="tns:MaintenanceRecord" minOccurs="0" maxOccurs="unbounded"/>
+        </xsd:sequence>
+      </xsd:complexType>
+
+      <xsd:complexType name="FuelLogList">
+        <xsd:sequence>
+          <xsd:element name="fuelLog" type="tns:FuelLog" minOccurs="0" maxOccurs="unbounded"/>
+        </xsd:sequence>
+      </xsd:complexType>
+
+      <xsd:complexType name="Error">
+        <xsd:sequence>
+          <xsd:element name="code" type="xsd:string"/>
+          <xsd:element name="message" type="xsd:string"/>
+          <xsd:element name="details" type="xsd:string" minOccurs="0"/>
+        </xsd:sequence>
+      </xsd:complexType>
+
+      <!-- Requests / Responses -->
+
+      <!-- GetVehicle -->
+      <xsd:element name="GetVehicleRequest">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="vehicleId" type="xsd:string"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+      <xsd:element name="GetVehicleResponse">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="vehicle" type="tns:Vehicle" minOccurs="0"/>
+            <xsd:element name="error" type="tns:Error" minOccurs="0"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+      <!-- SearchVehicles -->
+      <xsd:element name="SearchVehiclesRequest">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="status" type="tns:VehicleStatus" minOccurs="0"/>
+            <xsd:element name="fuelType" type="tns:FuelType" minOccurs="0"/>
+            <xsd:element name="pageNumber" type="xsd:int" minOccurs="0"/>
+            <xsd:element name="pageSize" type="xsd:int" minOccurs="0"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+      <xsd:element name="SearchVehiclesResponse">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="vehicles" type="tns:VehicleList" minOccurs="0"/>
+            <xsd:element name="totalCount" type="xsd:int"/>
+            <xsd:element name="error" type="tns:Error" minOccurs="0"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+      <!-- CreateVehicle -->
+      <xsd:element name="CreateVehicleRequest">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="vin" type="xsd:string" minOccurs="0"/>
+            <xsd:element name="licensePlate" type="xsd:string"/>
+            <xsd:element name="make" type="xsd:string"/>
+            <xsd:element name="model" type="xsd:string"/>
+            <xsd:element name="year" type="xsd:int"/>
+            <xsd:element name="fuelType" type="tns:FuelType"/>
+            <xsd:element name="depotLocation" type="xsd:string" minOccurs="0"/>
+            <xsd:element name="acquisitionDate" type="xsd:date" minOccurs="0"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+      <xsd:element name="CreateVehicleResponse">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="vehicle" type="tns:Vehicle" minOccurs="0"/>
+            <xsd:element name="error" type="tns:Error" minOccurs="0"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+      <!-- UpdateVehicle -->
+      <xsd:element name="UpdateVehicleRequest">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="vehicleId" type="xsd:string"/>
+            <xsd:element name="licensePlate" type="xsd:string" minOccurs="0"/>
+            <xsd:element name="status" type="tns:VehicleStatus" minOccurs="0"/>
+            <xsd:element name="currentOdometer" type="xsd:decimal" minOccurs="0"/>
+            <xsd:element name="assignedDriverId" type="xsd:string" minOccurs="0"/>
+            <xsd:element name="depotLocation" type="xsd:string" minOccurs="0"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+      <xsd:element name="UpdateVehicleResponse">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="vehicle" type="tns:Vehicle" minOccurs="0"/>
+            <xsd:element name="error" type="tns:Error" minOccurs="0"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+      <!-- GetDriver -->
+      <xsd:element name="GetDriverRequest">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="driverId" type="xsd:string"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+      <xsd:element name="GetDriverResponse">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="driver" type="tns:Driver" minOccurs="0"/>
+            <xsd:element name="error" type="tns:Error" minOccurs="0"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+      <!-- SearchDrivers -->
+      <xsd:element name="SearchDriversRequest">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="status" type="tns:DriverStatus" minOccurs="0"/>
+            <xsd:element name="pageNumber" type="xsd:int" minOccurs="0"/>
+            <xsd:element name="pageSize" type="xsd:int" minOccurs="0"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+      <xsd:element name="SearchDriversResponse">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="drivers" type="tns:DriverList" minOccurs="0"/>
+            <xsd:element name="totalCount" type="xsd:int"/>
+            <xsd:element name="error" type="tns:Error" minOccurs="0"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+      <!-- CreateDriver -->
+      <xsd:element name="CreateDriverRequest">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="employeeNumber" type="xsd:string" minOccurs="0"/>
+            <xsd:element name="firstName" type="xsd:string"/>
+            <xsd:element name="lastName" type="xsd:string"/>
+            <xsd:element name="email" type="xsd:string" minOccurs="0"/>
+            <xsd:element name="phone" type="xsd:string" minOccurs="0"/>
+            <xsd:element name="licenseNumber" type="xsd:string"/>
+            <xsd:element name="licenseExpiry" type="xsd:date"/>
+            <xsd:element name="hireDate" type="xsd:date" minOccurs="0"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+      <xsd:element name="CreateDriverResponse">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="driver" type="tns:Driver" minOccurs="0"/>
+            <xsd:element name="error" type="tns:Error" minOccurs="0"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+      <!-- CreateTrip -->
+      <xsd:element name="CreateTripRequest">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="vehicleId" type="xsd:string"/>
+            <xsd:element name="driverId" type="xsd:string"/>
+            <xsd:element name="origin" type="xsd:string"/>
+            <xsd:element name="destination" type="xsd:string"/>
+            <xsd:element name="scheduledStartTime" type="xsd:dateTime"/>
+            <xsd:element name="scheduledEndTime" type="xsd:dateTime" minOccurs="0"/>
+            <xsd:element name="startOdometer" type="xsd:decimal" minOccurs="0"/>
+            <xsd:element name="purpose" type="xsd:string" minOccurs="0"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+      <xsd:element name="CreateTripResponse">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="trip" type="tns:Trip" minOccurs="0"/>
+            <xsd:element name="error" type="tns:Error" minOccurs="0"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+      <!-- CompleteTrip -->
+      <xsd:element name="CompleteTripRequest">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="tripId" type="xsd:string"/>
+            <xsd:element name="endOdometer" type="xsd:decimal"/>
+            <xsd:element name="endTime" type="xsd:dateTime"/>
+            <xsd:element name="notes" type="xsd:string" minOccurs="0"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+      <xsd:element name="CompleteTripResponse">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="trip" type="tns:Trip" minOccurs="0"/>
+            <xsd:element name="error" type="tns:Error" minOccurs="0"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+      <!-- GetMaintenanceRecords -->
+      <xsd:element name="GetMaintenanceRecordsRequest">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="vehicleId" type="xsd:string"/>
+            <xsd:element name="pageNumber" type="xsd:int" minOccurs="0"/>
+            <xsd:element name="pageSize" type="xsd:int" minOccurs="0"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+      <xsd:element name="GetMaintenanceRecordsResponse">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="maintenanceRecords" type="tns:MaintenanceRecordList" minOccurs="0"/>
+            <xsd:element name="totalCount" type="xsd:int"/>
+            <xsd:element name="error" type="tns:Error" minOccurs="0"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+      <!-- CreateMaintenanceRecord -->
+      <xsd:element name="CreateMaintenanceRecordRequest">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="vehicleId" type="xsd:string"/>
+            <xsd:element name="maintenanceType" type="tns:MaintenanceType"/>
+            <xsd:element name="description" type="xsd:string" minOccurs="0"/>
+            <xsd:element name="scheduledDate" type="xsd:date"/>
+            <xsd:element name="odometerAtService" type="xsd:decimal" minOccurs="0"/>
+            <xsd:element name="cost" type="xsd:decimal" minOccurs="0"/>
+            <xsd:element name="vendorName" type="xsd:string" minOccurs="0"/>
+            <xsd:element name="notes" type="xsd:string" minOccurs="0"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+      <xsd:element name="CreateMaintenanceRecordResponse">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="maintenanceRecord" type="tns:MaintenanceRecord" minOccurs="0"/>
+            <xsd:element name="error" type="tns:Error" minOccurs="0"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+      <!-- CreateFuelLog -->
+      <xsd:element name="CreateFuelLogRequest">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="vehicleId" type="xsd:string"/>
+            <xsd:element name="driverId" type="xsd:string"/>
+            <xsd:element name="fuelType" type="tns:FuelType"/>
+            <xsd:element name="quantityLiters" type="xsd:decimal"/>
+            <xsd:element name="costPerLiter" type="xsd:decimal" minOccurs="0"/>
+            <xsd:element name="totalCost" type="xsd:decimal"/>
+            <xsd:element name="odometerReading" type="xsd:decimal"/>
+            <xsd:element name="fuelStation" type="xsd:string" minOccurs="0"/>
+            <xsd:element name="filledAt" type="xsd:dateTime"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+      <xsd:element name="CreateFuelLogResponse">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="fuelLog" type="tns:FuelLog" minOccurs="0"/>
+            <xsd:element name="error" type="tns:Error" minOccurs="0"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+    </xsd:schema>
+  </wsdl:types>
+
+  <!-- Messages -->
+
+  <wsdl:message name="GetVehicleInput">
+    <wsdl:part name="parameters" element="tns:GetVehicleRequest"/>
+  </wsdl:message>
+
+  <wsdl:message name="GetVehicleOutput">
+    <wsdl:part name="parameters" element="tns:GetVehicleResponse"/>
+  </wsdl:message>
+
+  <wsdl:message name="SearchVehiclesInput">
+    <wsdl:part name="parameters" element="tns:SearchVehiclesRequest"/>
+  </wsdl:message>
+
+  <wsdl:message name="SearchVehiclesOutput">
+    <wsdl:part name="parameters" element="tns:SearchVehiclesResponse"/>
+  </wsdl:message>
+
+  <wsdl:message name="CreateVehicleInput">
+    <wsdl:part name="parameters" element="tns:CreateVehicleRequest"/>
+  </wsdl:message>
+
+  <wsdl:message name="CreateVehicleOutput">
+    <wsdl:part name="parameters" element="tns:CreateVehicleResponse"/>
+  </wsdl:message>
+
+  <wsdl:message name="UpdateVehicleInput">
+    <wsdl:part name="parameters" element="tns:UpdateVehicleRequest"/>
+  </wsdl:message>
+
+  <wsdl:message name="UpdateVehicleOutput">
+    <wsdl:part name="parameters" element="tns:UpdateVehicleResponse"/>
+  </wsdl:message>
+
+  <wsdl:message name="GetDriverInput">
+    <wsdl:part name="parameters" element="tns:GetDriverRequest"/>
+  </wsdl:message>
+
+  <wsdl:message name="GetDriverOutput">
+    <wsdl:part name="parameters" element="tns:GetDriverResponse"/>
+  </wsdl:message>
+
+  <wsdl:message name="SearchDriversInput">
+    <wsdl:part name="parameters" element="tns:SearchDriversRequest"/>
+  </wsdl:message>
+
+  <wsdl:message name="SearchDriversOutput">
+    <wsdl:part name="parameters" element="tns:SearchDriversResponse"/>
+  </wsdl:message>
+
+  <wsdl:message name="CreateDriverInput">
+    <wsdl:part name="parameters" element="tns:CreateDriverRequest"/>
+  </wsdl:message>
+
+  <wsdl:message name="CreateDriverOutput">
+    <wsdl:part name="parameters" element="tns:CreateDriverResponse"/>
+  </wsdl:message>
+
+  <wsdl:message name="CreateTripInput">
+    <wsdl:part name="parameters" element="tns:CreateTripRequest"/>
+  </wsdl:message>
+
+  <wsdl:message name="CreateTripOutput">
+    <wsdl:part name="parameters" element="tns:CreateTripResponse"/>
+  </wsdl:message>
+
+  <wsdl:message name="CompleteTripInput">
+    <wsdl:part name="parameters" element="tns:CompleteTripRequest"/>
+  </wsdl:message>
+
+  <wsdl:message name="CompleteTripOutput">
+    <wsdl:part name="parameters" element="tns:CompleteTripResponse"/>
+  </wsdl:message>
+
+  <wsdl:message name="GetMaintenanceRecordsInput">
+    <wsdl:part name="parameters" element="tns:GetMaintenanceRecordsRequest"/>
+  </wsdl:message>
+
+  <wsdl:message name="GetMaintenanceRecordsOutput">
+    <wsdl:part name="parameters" element="tns:GetMaintenanceRecordsResponse"/>
+  </wsdl:message>
+
+  <wsdl:message name="CreateMaintenanceRecordInput">
+    <wsdl:part name="parameters" element="tns:CreateMaintenanceRecordRequest"/>
+  </wsdl:message>
+
+  <wsdl:message name="CreateMaintenanceRecordOutput">
+    <wsdl:part name="parameters" element="tns:CreateMaintenanceRecordResponse"/>
+  </wsdl:message>
+
+  <wsdl:message name="CreateFuelLogInput">
+    <wsdl:part name="parameters" element="tns:CreateFuelLogRequest"/>
+  </wsdl:message>
+
+  <wsdl:message name="CreateFuelLogOutput">
+    <wsdl:part name="parameters" element="tns:CreateFuelLogResponse"/>
+  </wsdl:message>
+
+  <!-- Port type -->
+  <wsdl:portType name="FleetManagementServicePortType">
+    <wsdl:operation name="GetVehicle">
+      <wsdl:input message="tns:GetVehicleInput"/>
+      <wsdl:output message="tns:GetVehicleOutput"/>
+    </wsdl:operation>
+
+    <wsdl:operation name="SearchVehicles">
+      <wsdl:input message="tns:SearchVehiclesInput"/>
+      <wsdl:output message="tns:SearchVehiclesOutput"/>
+    </wsdl:operation>
+
+    <wsdl:operation name="CreateVehicle">
+      <wsdl:input message="tns:CreateVehicleInput"/>
+      <wsdl:output message="tns:CreateVehicleOutput"/>
+    </wsdl:operation>
+
+    <wsdl:operation name="UpdateVehicle">
+      <wsdl:input message="tns:UpdateVehicleInput"/>
+      <wsdl:output message="tns:UpdateVehicleOutput"/>
+    </wsdl:operation>
+
+    <wsdl:operation name="GetDriver">
+      <wsdl:input message="tns:GetDriverInput"/>
+      <wsdl:output message="tns:GetDriverOutput"/>
+    </wsdl:operation>
+
+    <wsdl:operation name="SearchDrivers">
+      <wsdl:input message="tns:SearchDriversInput"/>
+      <wsdl:output message="tns:SearchDriversOutput"/>
+    </wsdl:operation>
+
+    <wsdl:operation name="CreateDriver">
+      <wsdl:input message="tns:CreateDriverInput"/>
+      <wsdl:output message="tns:CreateDriverOutput"/>
+    </wsdl:operation>
+
+    <wsdl:operation name="CreateTrip">
+      <wsdl:input message="tns:CreateTripInput"/>
+      <wsdl:output message="tns:CreateTripOutput"/>
+    </wsdl:operation>
+
+    <wsdl:operation name="CompleteTrip">
+      <wsdl:input message="tns:CompleteTripInput"/>
+      <wsdl:output message="tns:CompleteTripOutput"/>
+    </wsdl:operation>
+
+    <wsdl:operation name="GetMaintenanceRecords">
+      <wsdl:input message="tns:GetMaintenanceRecordsInput"/>
+      <wsdl:output message="tns:GetMaintenanceRecordsOutput"/>
+    </wsdl:operation>
+
+    <wsdl:operation name="CreateMaintenanceRecord">
+      <wsdl:input message="tns:CreateMaintenanceRecordInput"/>
+      <wsdl:output message="tns:CreateMaintenanceRecordOutput"/>
+    </wsdl:operation>
+
+    <wsdl:operation name="CreateFuelLog">
+      <wsdl:input message="tns:CreateFuelLogInput"/>
+      <wsdl:output message="tns:CreateFuelLogOutput"/>
+    </wsdl:operation>
+  </wsdl:portType>
+
+  <!-- Binding -->
+  <wsdl:binding name="FleetManagementServiceSoapBinding" type="tns:FleetManagementServicePortType">
+    <soap:binding style="document" transport="http://schemas.xmlsoap.org/soap/http"/>
+
+    <wsdl:operation name="GetVehicle">
+      <soap:operation soapAction="http://schemas.example.com/fleet/2026/01/GetVehicle" style="document"/>
+      <wsdl:input>
+        <soap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal"/>
+      </wsdl:output>
+    </wsdl:operation>
+
+    <wsdl:operation name="SearchVehicles">
+      <soap:operation soapAction="http://schemas.example.com/fleet/2026/01/SearchVehicles" style="document"/>
+      <wsdl:input>
+        <soap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal"/>
+      </wsdl:output>
+    </wsdl:operation>
+
+    <wsdl:operation name="CreateVehicle">
+      <soap:operation soapAction="http://schemas.example.com/fleet/2026/01/CreateVehicle" style="document"/>
+      <wsdl:input>
+        <soap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal"/>
+      </wsdl:output>
+    </wsdl:operation>
+
+    <wsdl:operation name="UpdateVehicle">
+      <soap:operation soapAction="http://schemas.example.com/fleet/2026/01/UpdateVehicle" style="document"/>
+      <wsdl:input>
+        <soap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal"/>
+      </wsdl:output>
+    </wsdl:operation>
+
+    <wsdl:operation name="GetDriver">
+      <soap:operation soapAction="http://schemas.example.com/fleet/2026/01/GetDriver" style="document"/>
+      <wsdl:input>
+        <soap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal"/>
+      </wsdl:output>
+    </wsdl:operation>
+
+    <wsdl:operation name="SearchDrivers">
+      <soap:operation soapAction="http://schemas.example.com/fleet/2026/01/SearchDrivers" style="document"/>
+      <wsdl:input>
+        <soap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal"/>
+      </wsdl:output>
+    </wsdl:operation>
+
+    <wsdl:operation name="CreateDriver">
+      <soap:operation soapAction="http://schemas.example.com/fleet/2026/01/CreateDriver" style="document"/>
+      <wsdl:input>
+        <soap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal"/>
+      </wsdl:output>
+    </wsdl:operation>
+
+    <wsdl:operation name="CreateTrip">
+      <soap:operation soapAction="http://schemas.example.com/fleet/2026/01/CreateTrip" style="document"/>
+      <wsdl:input>
+        <soap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal"/>
+      </wsdl:output>
+    </wsdl:operation>
+
+    <wsdl:operation name="CompleteTrip">
+      <soap:operation soapAction="http://schemas.example.com/fleet/2026/01/CompleteTrip" style="document"/>
+      <wsdl:input>
+        <soap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal"/>
+      </wsdl:output>
+    </wsdl:operation>
+
+    <wsdl:operation name="GetMaintenanceRecords">
+      <soap:operation soapAction="http://schemas.example.com/fleet/2026/01/GetMaintenanceRecords" style="document"/>
+      <wsdl:input>
+        <soap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal"/>
+      </wsdl:output>
+    </wsdl:operation>
+
+    <wsdl:operation name="CreateMaintenanceRecord">
+      <soap:operation soapAction="http://schemas.example.com/fleet/2026/01/CreateMaintenanceRecord" style="document"/>
+      <wsdl:input>
+        <soap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal"/>
+      </wsdl:output>
+    </wsdl:operation>
+
+    <wsdl:operation name="CreateFuelLog">
+      <soap:operation soapAction="http://schemas.example.com/fleet/2026/01/CreateFuelLog" style="document"/>
+      <wsdl:input>
+        <soap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal"/>
+      </wsdl:output>
+    </wsdl:operation>
+  </wsdl:binding>
+
+  <!-- Service -->
+  <wsdl:service name="FleetManagementService">
+    <wsdl:port name="FleetManagementServiceSoapPort" binding="tns:FleetManagementServiceSoapBinding">
+      <soap:address location="https://api.contoso.com/fleet/soap"/>
+    </wsdl:port>
+  </wsdl:service>
+
+</wsdl:definitions>
