@@ -1,0 +1,817 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wsdl:definitions
+    name="HealthcareService"
+    targetNamespace="http://schemas.example.com/healthcare/2026/01"
+    xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/"
+    xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/"
+    xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+    xmlns:tns="http://schemas.example.com/healthcare/2026/01">
+
+  <wsdl:types>
+    <xsd:schema
+        targetNamespace="http://schemas.example.com/healthcare/2026/01"
+        elementFormDefault="qualified"
+        attributeFormDefault="unqualified">
+
+      <!-- Simple type enumerations -->
+      <xsd:simpleType name="Gender">
+        <xsd:restriction base="xsd:string">
+          <xsd:enumeration value="Male"/>
+          <xsd:enumeration value="Female"/>
+          <xsd:enumeration value="NonBinary"/>
+          <xsd:enumeration value="Other"/>
+          <xsd:enumeration value="Unknown"/>
+        </xsd:restriction>
+      </xsd:simpleType>
+
+      <xsd:simpleType name="PatientStatus">
+        <xsd:restriction base="xsd:string">
+          <xsd:enumeration value="Active"/>
+          <xsd:enumeration value="Inactive"/>
+          <xsd:enumeration value="Deceased"/>
+          <xsd:enumeration value="Discharged"/>
+        </xsd:restriction>
+      </xsd:simpleType>
+
+      <xsd:simpleType name="ProviderStatus">
+        <xsd:restriction base="xsd:string">
+          <xsd:enumeration value="Active"/>
+          <xsd:enumeration value="Inactive"/>
+          <xsd:enumeration value="OnLeave"/>
+          <xsd:enumeration value="Retired"/>
+        </xsd:restriction>
+      </xsd:simpleType>
+
+      <xsd:simpleType name="AppointmentType">
+        <xsd:restriction base="xsd:string">
+          <xsd:enumeration value="Consultation"/>
+          <xsd:enumeration value="FollowUp"/>
+          <xsd:enumeration value="Emergency"/>
+          <xsd:enumeration value="Routine"/>
+          <xsd:enumeration value="Specialist"/>
+          <xsd:enumeration value="Telehealth"/>
+        </xsd:restriction>
+      </xsd:simpleType>
+
+      <xsd:simpleType name="AppointmentStatus">
+        <xsd:restriction base="xsd:string">
+          <xsd:enumeration value="Scheduled"/>
+          <xsd:enumeration value="CheckedIn"/>
+          <xsd:enumeration value="InProgress"/>
+          <xsd:enumeration value="Completed"/>
+          <xsd:enumeration value="Cancelled"/>
+          <xsd:enumeration value="NoShow"/>
+        </xsd:restriction>
+      </xsd:simpleType>
+
+      <xsd:simpleType name="PrescriptionStatus">
+        <xsd:restriction base="xsd:string">
+          <xsd:enumeration value="Active"/>
+          <xsd:enumeration value="Completed"/>
+          <xsd:enumeration value="Cancelled"/>
+          <xsd:enumeration value="OnHold"/>
+          <xsd:enumeration value="Expired"/>
+        </xsd:restriction>
+      </xsd:simpleType>
+
+      <xsd:simpleType name="MedicationRoute">
+        <xsd:restriction base="xsd:string">
+          <xsd:enumeration value="Oral"/>
+          <xsd:enumeration value="Intravenous"/>
+          <xsd:enumeration value="Intramuscular"/>
+          <xsd:enumeration value="Subcutaneous"/>
+          <xsd:enumeration value="Topical"/>
+          <xsd:enumeration value="Inhalation"/>
+          <xsd:enumeration value="Rectal"/>
+        </xsd:restriction>
+      </xsd:simpleType>
+
+      <xsd:simpleType name="RecordType">
+        <xsd:restriction base="xsd:string">
+          <xsd:enumeration value="LabResult"/>
+          <xsd:enumeration value="Imaging"/>
+          <xsd:enumeration value="ClinicalNote"/>
+          <xsd:enumeration value="Diagnosis"/>
+          <xsd:enumeration value="Procedure"/>
+          <xsd:enumeration value="Immunization"/>
+          <xsd:enumeration value="Allergy"/>
+        </xsd:restriction>
+      </xsd:simpleType>
+
+      <xsd:simpleType name="Confidentiality">
+        <xsd:restriction base="xsd:string">
+          <xsd:enumeration value="Normal"/>
+          <xsd:enumeration value="Restricted"/>
+          <xsd:enumeration value="VeryRestricted"/>
+        </xsd:restriction>
+      </xsd:simpleType>
+
+      <!-- Core complex types -->
+      <xsd:complexType name="Address">
+        <xsd:sequence>
+          <xsd:element name="line1" type="xsd:string"/>
+          <xsd:element name="line2" type="xsd:string" minOccurs="0"/>
+          <xsd:element name="city" type="xsd:string"/>
+          <xsd:element name="state" type="xsd:string"/>
+          <xsd:element name="postalCode" type="xsd:string"/>
+          <xsd:element name="country" type="xsd:string" minOccurs="0"/>
+        </xsd:sequence>
+      </xsd:complexType>
+
+      <xsd:complexType name="Patient">
+        <xsd:sequence>
+          <xsd:element name="patientId" type="xsd:string"/>
+          <xsd:element name="medicalRecordNumber" type="xsd:string" minOccurs="0"/>
+          <xsd:element name="firstName" type="xsd:string"/>
+          <xsd:element name="lastName" type="xsd:string"/>
+          <xsd:element name="dateOfBirth" type="xsd:date"/>
+          <xsd:element name="gender" type="tns:Gender"/>
+          <xsd:element name="email" type="xsd:string" minOccurs="0"/>
+          <xsd:element name="phone" type="xsd:string" minOccurs="0"/>
+          <xsd:element name="address" type="tns:Address" minOccurs="0"/>
+          <xsd:element name="emergencyContactName" type="xsd:string" minOccurs="0"/>
+          <xsd:element name="emergencyContactPhone" type="xsd:string" minOccurs="0"/>
+          <xsd:element name="insuranceProvider" type="xsd:string" minOccurs="0"/>
+          <xsd:element name="insurancePolicyNumber" type="xsd:string" minOccurs="0"/>
+          <xsd:element name="primaryProviderId" type="xsd:string" minOccurs="0"/>
+          <xsd:element name="status" type="tns:PatientStatus"/>
+          <xsd:element name="registeredDate" type="xsd:date" minOccurs="0"/>
+          <xsd:element name="lastUpdatedUtc" type="xsd:dateTime" minOccurs="0"/>
+        </xsd:sequence>
+      </xsd:complexType>
+
+      <xsd:complexType name="Provider">
+        <xsd:sequence>
+          <xsd:element name="providerId" type="xsd:string"/>
+          <xsd:element name="npiNumber" type="xsd:string" minOccurs="0"/>
+          <xsd:element name="firstName" type="xsd:string"/>
+          <xsd:element name="lastName" type="xsd:string"/>
+          <xsd:element name="specialty" type="xsd:string"/>
+          <xsd:element name="email" type="xsd:string" minOccurs="0"/>
+          <xsd:element name="phone" type="xsd:string" minOccurs="0"/>
+          <xsd:element name="department" type="xsd:string" minOccurs="0"/>
+          <xsd:element name="licenseNumber" type="xsd:string" minOccurs="0"/>
+          <xsd:element name="licenseState" type="xsd:string" minOccurs="0"/>
+          <xsd:element name="status" type="tns:ProviderStatus"/>
+          <xsd:element name="lastUpdatedUtc" type="xsd:dateTime" minOccurs="0"/>
+        </xsd:sequence>
+      </xsd:complexType>
+
+      <xsd:complexType name="Appointment">
+        <xsd:sequence>
+          <xsd:element name="appointmentId" type="xsd:string"/>
+          <xsd:element name="patientId" type="xsd:string"/>
+          <xsd:element name="providerId" type="xsd:string"/>
+          <xsd:element name="appointmentType" type="tns:AppointmentType"/>
+          <xsd:element name="status" type="tns:AppointmentStatus"/>
+          <xsd:element name="scheduledStartUtc" type="xsd:dateTime"/>
+          <xsd:element name="scheduledEndUtc" type="xsd:dateTime"/>
+          <xsd:element name="location" type="xsd:string" minOccurs="0"/>
+          <xsd:element name="reasonForVisit" type="xsd:string" minOccurs="0"/>
+          <xsd:element name="notes" type="xsd:string" minOccurs="0"/>
+          <xsd:element name="cancellationReason" type="xsd:string" minOccurs="0"/>
+          <xsd:element name="lastUpdatedUtc" type="xsd:dateTime" minOccurs="0"/>
+        </xsd:sequence>
+      </xsd:complexType>
+
+      <xsd:complexType name="Prescription">
+        <xsd:sequence>
+          <xsd:element name="prescriptionId" type="xsd:string"/>
+          <xsd:element name="patientId" type="xsd:string"/>
+          <xsd:element name="providerId" type="xsd:string"/>
+          <xsd:element name="medicationName" type="xsd:string"/>
+          <xsd:element name="dosage" type="xsd:string"/>
+          <xsd:element name="route" type="tns:MedicationRoute"/>
+          <xsd:element name="frequency" type="xsd:string"/>
+          <xsd:element name="startDate" type="xsd:date"/>
+          <xsd:element name="endDate" type="xsd:date" minOccurs="0"/>
+          <xsd:element name="refillsRemaining" type="xsd:int" minOccurs="0"/>
+          <xsd:element name="pharmacy" type="xsd:string" minOccurs="0"/>
+          <xsd:element name="status" type="tns:PrescriptionStatus"/>
+          <xsd:element name="notes" type="xsd:string" minOccurs="0"/>
+          <xsd:element name="lastUpdatedUtc" type="xsd:dateTime" minOccurs="0"/>
+        </xsd:sequence>
+      </xsd:complexType>
+
+      <xsd:complexType name="MedicalRecord">
+        <xsd:sequence>
+          <xsd:element name="recordId" type="xsd:string"/>
+          <xsd:element name="patientId" type="xsd:string"/>
+          <xsd:element name="providerId" type="xsd:string"/>
+          <xsd:element name="recordType" type="tns:RecordType"/>
+          <xsd:element name="title" type="xsd:string"/>
+          <xsd:element name="description" type="xsd:string" minOccurs="0"/>
+          <xsd:element name="content" type="xsd:string" minOccurs="0"/>
+          <xsd:element name="confidentiality" type="tns:Confidentiality"/>
+          <xsd:element name="recordDate" type="xsd:dateTime"/>
+          <xsd:element name="lastUpdatedUtc" type="xsd:dateTime" minOccurs="0"/>
+        </xsd:sequence>
+      </xsd:complexType>
+
+      <!-- List types -->
+      <xsd:complexType name="PatientList">
+        <xsd:sequence>
+          <xsd:element name="patient" type="tns:Patient" minOccurs="0" maxOccurs="unbounded"/>
+        </xsd:sequence>
+      </xsd:complexType>
+
+      <xsd:complexType name="ProviderList">
+        <xsd:sequence>
+          <xsd:element name="provider" type="tns:Provider" minOccurs="0" maxOccurs="unbounded"/>
+        </xsd:sequence>
+      </xsd:complexType>
+
+      <xsd:complexType name="AppointmentList">
+        <xsd:sequence>
+          <xsd:element name="appointment" type="tns:Appointment" minOccurs="0" maxOccurs="unbounded"/>
+        </xsd:sequence>
+      </xsd:complexType>
+
+      <xsd:complexType name="PrescriptionList">
+        <xsd:sequence>
+          <xsd:element name="prescription" type="tns:Prescription" minOccurs="0" maxOccurs="unbounded"/>
+        </xsd:sequence>
+      </xsd:complexType>
+
+      <xsd:complexType name="MedicalRecordList">
+        <xsd:sequence>
+          <xsd:element name="medicalRecord" type="tns:MedicalRecord" minOccurs="0" maxOccurs="unbounded"/>
+        </xsd:sequence>
+      </xsd:complexType>
+
+      <xsd:complexType name="Error">
+        <xsd:sequence>
+          <xsd:element name="code" type="xsd:string"/>
+          <xsd:element name="message" type="xsd:string"/>
+          <xsd:element name="details" type="xsd:string" minOccurs="0"/>
+        </xsd:sequence>
+      </xsd:complexType>
+
+      <!-- Requests / Responses -->
+      <xsd:element name="GetPatientRequest">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="patientId" type="xsd:string"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+      <xsd:element name="GetPatientResponse">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="patient" type="tns:Patient" minOccurs="0"/>
+            <xsd:element name="error" type="tns:Error" minOccurs="0"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+      <xsd:element name="SearchPatientsRequest">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="status" type="tns:PatientStatus" minOccurs="0"/>
+            <xsd:element name="pageNumber" type="xsd:int" minOccurs="0"/>
+            <xsd:element name="pageSize" type="xsd:int" minOccurs="0"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+      <xsd:element name="SearchPatientsResponse">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="patients" type="tns:PatientList" minOccurs="0"/>
+            <xsd:element name="totalCount" type="xsd:int"/>
+            <xsd:element name="error" type="tns:Error" minOccurs="0"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+      <xsd:element name="CreatePatientRequest">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="medicalRecordNumber" type="xsd:string" minOccurs="0"/>
+            <xsd:element name="firstName" type="xsd:string"/>
+            <xsd:element name="lastName" type="xsd:string"/>
+            <xsd:element name="dateOfBirth" type="xsd:date"/>
+            <xsd:element name="gender" type="tns:Gender"/>
+            <xsd:element name="email" type="xsd:string" minOccurs="0"/>
+            <xsd:element name="phone" type="xsd:string" minOccurs="0"/>
+            <xsd:element name="address" type="tns:Address" minOccurs="0"/>
+            <xsd:element name="emergencyContactName" type="xsd:string" minOccurs="0"/>
+            <xsd:element name="emergencyContactPhone" type="xsd:string" minOccurs="0"/>
+            <xsd:element name="insuranceProvider" type="xsd:string" minOccurs="0"/>
+            <xsd:element name="insurancePolicyNumber" type="xsd:string" minOccurs="0"/>
+            <xsd:element name="primaryProviderId" type="xsd:string" minOccurs="0"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+      <xsd:element name="CreatePatientResponse">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="patient" type="tns:Patient" minOccurs="0"/>
+            <xsd:element name="error" type="tns:Error" minOccurs="0"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+      <xsd:element name="UpdatePatientRequest">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="patientId" type="xsd:string"/>
+            <xsd:element name="firstName" type="xsd:string" minOccurs="0"/>
+            <xsd:element name="lastName" type="xsd:string" minOccurs="0"/>
+            <xsd:element name="email" type="xsd:string" minOccurs="0"/>
+            <xsd:element name="phone" type="xsd:string" minOccurs="0"/>
+            <xsd:element name="address" type="tns:Address" minOccurs="0"/>
+            <xsd:element name="emergencyContactName" type="xsd:string" minOccurs="0"/>
+            <xsd:element name="emergencyContactPhone" type="xsd:string" minOccurs="0"/>
+            <xsd:element name="insuranceProvider" type="xsd:string" minOccurs="0"/>
+            <xsd:element name="insurancePolicyNumber" type="xsd:string" minOccurs="0"/>
+            <xsd:element name="primaryProviderId" type="xsd:string" minOccurs="0"/>
+            <xsd:element name="status" type="tns:PatientStatus" minOccurs="0"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+      <xsd:element name="UpdatePatientResponse">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="patient" type="tns:Patient" minOccurs="0"/>
+            <xsd:element name="error" type="tns:Error" minOccurs="0"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+      <xsd:element name="GetProviderRequest">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="providerId" type="xsd:string"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+      <xsd:element name="GetProviderResponse">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="provider" type="tns:Provider" minOccurs="0"/>
+            <xsd:element name="error" type="tns:Error" minOccurs="0"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+      <xsd:element name="SearchProvidersRequest">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="specialty" type="xsd:string" minOccurs="0"/>
+            <xsd:element name="status" type="tns:ProviderStatus" minOccurs="0"/>
+            <xsd:element name="pageNumber" type="xsd:int" minOccurs="0"/>
+            <xsd:element name="pageSize" type="xsd:int" minOccurs="0"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+      <xsd:element name="SearchProvidersResponse">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="providers" type="tns:ProviderList" minOccurs="0"/>
+            <xsd:element name="totalCount" type="xsd:int"/>
+            <xsd:element name="error" type="tns:Error" minOccurs="0"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+      <xsd:element name="CreateProviderRequest">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="npiNumber" type="xsd:string" minOccurs="0"/>
+            <xsd:element name="firstName" type="xsd:string"/>
+            <xsd:element name="lastName" type="xsd:string"/>
+            <xsd:element name="specialty" type="xsd:string"/>
+            <xsd:element name="email" type="xsd:string" minOccurs="0"/>
+            <xsd:element name="phone" type="xsd:string" minOccurs="0"/>
+            <xsd:element name="department" type="xsd:string" minOccurs="0"/>
+            <xsd:element name="licenseNumber" type="xsd:string" minOccurs="0"/>
+            <xsd:element name="licenseState" type="xsd:string" minOccurs="0"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+      <xsd:element name="CreateProviderResponse">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="provider" type="tns:Provider" minOccurs="0"/>
+            <xsd:element name="error" type="tns:Error" minOccurs="0"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+      <xsd:element name="ScheduleAppointmentRequest">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="patientId" type="xsd:string"/>
+            <xsd:element name="providerId" type="xsd:string"/>
+            <xsd:element name="appointmentType" type="tns:AppointmentType"/>
+            <xsd:element name="scheduledStartUtc" type="xsd:dateTime"/>
+            <xsd:element name="scheduledEndUtc" type="xsd:dateTime"/>
+            <xsd:element name="location" type="xsd:string" minOccurs="0"/>
+            <xsd:element name="reasonForVisit" type="xsd:string" minOccurs="0"/>
+            <xsd:element name="notes" type="xsd:string" minOccurs="0"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+      <xsd:element name="ScheduleAppointmentResponse">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="appointment" type="tns:Appointment" minOccurs="0"/>
+            <xsd:element name="error" type="tns:Error" minOccurs="0"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+      <xsd:element name="UpdateAppointmentRequest">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="appointmentId" type="xsd:string"/>
+            <xsd:element name="appointmentType" type="tns:AppointmentType" minOccurs="0"/>
+            <xsd:element name="status" type="tns:AppointmentStatus" minOccurs="0"/>
+            <xsd:element name="scheduledStartUtc" type="xsd:dateTime" minOccurs="0"/>
+            <xsd:element name="scheduledEndUtc" type="xsd:dateTime" minOccurs="0"/>
+            <xsd:element name="location" type="xsd:string" minOccurs="0"/>
+            <xsd:element name="reasonForVisit" type="xsd:string" minOccurs="0"/>
+            <xsd:element name="notes" type="xsd:string" minOccurs="0"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+      <xsd:element name="UpdateAppointmentResponse">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="appointment" type="tns:Appointment" minOccurs="0"/>
+            <xsd:element name="error" type="tns:Error" minOccurs="0"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+      <xsd:element name="CancelAppointmentRequest">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="appointmentId" type="xsd:string"/>
+            <xsd:element name="reason" type="xsd:string" minOccurs="0"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+      <xsd:element name="CancelAppointmentResponse">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="appointment" type="tns:Appointment" minOccurs="0"/>
+            <xsd:element name="error" type="tns:Error" minOccurs="0"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+      <xsd:element name="CreatePrescriptionRequest">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="patientId" type="xsd:string"/>
+            <xsd:element name="providerId" type="xsd:string"/>
+            <xsd:element name="medicationName" type="xsd:string"/>
+            <xsd:element name="dosage" type="xsd:string"/>
+            <xsd:element name="route" type="tns:MedicationRoute"/>
+            <xsd:element name="frequency" type="xsd:string"/>
+            <xsd:element name="startDate" type="xsd:date"/>
+            <xsd:element name="endDate" type="xsd:date" minOccurs="0"/>
+            <xsd:element name="refillsRemaining" type="xsd:int" minOccurs="0"/>
+            <xsd:element name="pharmacy" type="xsd:string" minOccurs="0"/>
+            <xsd:element name="notes" type="xsd:string" minOccurs="0"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+      <xsd:element name="CreatePrescriptionResponse">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="prescription" type="tns:Prescription" minOccurs="0"/>
+            <xsd:element name="error" type="tns:Error" minOccurs="0"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+      <xsd:element name="GetMedicalRecordsRequest">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="patientId" type="xsd:string"/>
+            <xsd:element name="recordType" type="tns:RecordType" minOccurs="0"/>
+            <xsd:element name="pageNumber" type="xsd:int" minOccurs="0"/>
+            <xsd:element name="pageSize" type="xsd:int" minOccurs="0"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+      <xsd:element name="GetMedicalRecordsResponse">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="medicalRecords" type="tns:MedicalRecordList" minOccurs="0"/>
+            <xsd:element name="totalCount" type="xsd:int"/>
+            <xsd:element name="error" type="tns:Error" minOccurs="0"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+    </xsd:schema>
+  </wsdl:types>
+
+  <!-- Messages -->
+  <wsdl:message name="GetPatientInput">
+    <wsdl:part name="parameters" element="tns:GetPatientRequest"/>
+  </wsdl:message>
+
+  <wsdl:message name="GetPatientOutput">
+    <wsdl:part name="parameters" element="tns:GetPatientResponse"/>
+  </wsdl:message>
+
+  <wsdl:message name="SearchPatientsInput">
+    <wsdl:part name="parameters" element="tns:SearchPatientsRequest"/>
+  </wsdl:message>
+
+  <wsdl:message name="SearchPatientsOutput">
+    <wsdl:part name="parameters" element="tns:SearchPatientsResponse"/>
+  </wsdl:message>
+
+  <wsdl:message name="CreatePatientInput">
+    <wsdl:part name="parameters" element="tns:CreatePatientRequest"/>
+  </wsdl:message>
+
+  <wsdl:message name="CreatePatientOutput">
+    <wsdl:part name="parameters" element="tns:CreatePatientResponse"/>
+  </wsdl:message>
+
+  <wsdl:message name="UpdatePatientInput">
+    <wsdl:part name="parameters" element="tns:UpdatePatientRequest"/>
+  </wsdl:message>
+
+  <wsdl:message name="UpdatePatientOutput">
+    <wsdl:part name="parameters" element="tns:UpdatePatientResponse"/>
+  </wsdl:message>
+
+  <wsdl:message name="GetProviderInput">
+    <wsdl:part name="parameters" element="tns:GetProviderRequest"/>
+  </wsdl:message>
+
+  <wsdl:message name="GetProviderOutput">
+    <wsdl:part name="parameters" element="tns:GetProviderResponse"/>
+  </wsdl:message>
+
+  <wsdl:message name="SearchProvidersInput">
+    <wsdl:part name="parameters" element="tns:SearchProvidersRequest"/>
+  </wsdl:message>
+
+  <wsdl:message name="SearchProvidersOutput">
+    <wsdl:part name="parameters" element="tns:SearchProvidersResponse"/>
+  </wsdl:message>
+
+  <wsdl:message name="CreateProviderInput">
+    <wsdl:part name="parameters" element="tns:CreateProviderRequest"/>
+  </wsdl:message>
+
+  <wsdl:message name="CreateProviderOutput">
+    <wsdl:part name="parameters" element="tns:CreateProviderResponse"/>
+  </wsdl:message>
+
+  <wsdl:message name="ScheduleAppointmentInput">
+    <wsdl:part name="parameters" element="tns:ScheduleAppointmentRequest"/>
+  </wsdl:message>
+
+  <wsdl:message name="ScheduleAppointmentOutput">
+    <wsdl:part name="parameters" element="tns:ScheduleAppointmentResponse"/>
+  </wsdl:message>
+
+  <wsdl:message name="UpdateAppointmentInput">
+    <wsdl:part name="parameters" element="tns:UpdateAppointmentRequest"/>
+  </wsdl:message>
+
+  <wsdl:message name="UpdateAppointmentOutput">
+    <wsdl:part name="parameters" element="tns:UpdateAppointmentResponse"/>
+  </wsdl:message>
+
+  <wsdl:message name="CancelAppointmentInput">
+    <wsdl:part name="parameters" element="tns:CancelAppointmentRequest"/>
+  </wsdl:message>
+
+  <wsdl:message name="CancelAppointmentOutput">
+    <wsdl:part name="parameters" element="tns:CancelAppointmentResponse"/>
+  </wsdl:message>
+
+  <wsdl:message name="CreatePrescriptionInput">
+    <wsdl:part name="parameters" element="tns:CreatePrescriptionRequest"/>
+  </wsdl:message>
+
+  <wsdl:message name="CreatePrescriptionOutput">
+    <wsdl:part name="parameters" element="tns:CreatePrescriptionResponse"/>
+  </wsdl:message>
+
+  <wsdl:message name="GetMedicalRecordsInput">
+    <wsdl:part name="parameters" element="tns:GetMedicalRecordsRequest"/>
+  </wsdl:message>
+
+  <wsdl:message name="GetMedicalRecordsOutput">
+    <wsdl:part name="parameters" element="tns:GetMedicalRecordsResponse"/>
+  </wsdl:message>
+
+  <!-- Port type -->
+  <wsdl:portType name="HealthcareServicePortType">
+    <wsdl:operation name="GetPatient">
+      <wsdl:input message="tns:GetPatientInput"/>
+      <wsdl:output message="tns:GetPatientOutput"/>
+    </wsdl:operation>
+
+    <wsdl:operation name="SearchPatients">
+      <wsdl:input message="tns:SearchPatientsInput"/>
+      <wsdl:output message="tns:SearchPatientsOutput"/>
+    </wsdl:operation>
+
+    <wsdl:operation name="CreatePatient">
+      <wsdl:input message="tns:CreatePatientInput"/>
+      <wsdl:output message="tns:CreatePatientOutput"/>
+    </wsdl:operation>
+
+    <wsdl:operation name="UpdatePatient">
+      <wsdl:input message="tns:UpdatePatientInput"/>
+      <wsdl:output message="tns:UpdatePatientOutput"/>
+    </wsdl:operation>
+
+    <wsdl:operation name="GetProvider">
+      <wsdl:input message="tns:GetProviderInput"/>
+      <wsdl:output message="tns:GetProviderOutput"/>
+    </wsdl:operation>
+
+    <wsdl:operation name="SearchProviders">
+      <wsdl:input message="tns:SearchProvidersInput"/>
+      <wsdl:output message="tns:SearchProvidersOutput"/>
+    </wsdl:operation>
+
+    <wsdl:operation name="CreateProvider">
+      <wsdl:input message="tns:CreateProviderInput"/>
+      <wsdl:output message="tns:CreateProviderOutput"/>
+    </wsdl:operation>
+
+    <wsdl:operation name="ScheduleAppointment">
+      <wsdl:input message="tns:ScheduleAppointmentInput"/>
+      <wsdl:output message="tns:ScheduleAppointmentOutput"/>
+    </wsdl:operation>
+
+    <wsdl:operation name="UpdateAppointment">
+      <wsdl:input message="tns:UpdateAppointmentInput"/>
+      <wsdl:output message="tns:UpdateAppointmentOutput"/>
+    </wsdl:operation>
+
+    <wsdl:operation name="CancelAppointment">
+      <wsdl:input message="tns:CancelAppointmentInput"/>
+      <wsdl:output message="tns:CancelAppointmentOutput"/>
+    </wsdl:operation>
+
+    <wsdl:operation name="CreatePrescription">
+      <wsdl:input message="tns:CreatePrescriptionInput"/>
+      <wsdl:output message="tns:CreatePrescriptionOutput"/>
+    </wsdl:operation>
+
+    <wsdl:operation name="GetMedicalRecords">
+      <wsdl:input message="tns:GetMedicalRecordsInput"/>
+      <wsdl:output message="tns:GetMedicalRecordsOutput"/>
+    </wsdl:operation>
+  </wsdl:portType>
+
+  <!-- Binding -->
+  <wsdl:binding name="HealthcareServiceSoapBinding" type="tns:HealthcareServicePortType">
+    <soap:binding style="document" transport="http://schemas.xmlsoap.org/soap/http"/>
+
+    <wsdl:operation name="GetPatient">
+      <soap:operation soapAction="http://schemas.example.com/healthcare/2026/01/GetPatient" style="document"/>
+      <wsdl:input>
+        <soap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal"/>
+      </wsdl:output>
+    </wsdl:operation>
+
+    <wsdl:operation name="SearchPatients">
+      <soap:operation soapAction="http://schemas.example.com/healthcare/2026/01/SearchPatients" style="document"/>
+      <wsdl:input>
+        <soap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal"/>
+      </wsdl:output>
+    </wsdl:operation>
+
+    <wsdl:operation name="CreatePatient">
+      <soap:operation soapAction="http://schemas.example.com/healthcare/2026/01/CreatePatient" style="document"/>
+      <wsdl:input>
+        <soap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal"/>
+      </wsdl:output>
+    </wsdl:operation>
+
+    <wsdl:operation name="UpdatePatient">
+      <soap:operation soapAction="http://schemas.example.com/healthcare/2026/01/UpdatePatient" style="document"/>
+      <wsdl:input>
+        <soap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal"/>
+      </wsdl:output>
+    </wsdl:operation>
+
+    <wsdl:operation name="GetProvider">
+      <soap:operation soapAction="http://schemas.example.com/healthcare/2026/01/GetProvider" style="document"/>
+      <wsdl:input>
+        <soap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal"/>
+      </wsdl:output>
+    </wsdl:operation>
+
+    <wsdl:operation name="SearchProviders">
+      <soap:operation soapAction="http://schemas.example.com/healthcare/2026/01/SearchProviders" style="document"/>
+      <wsdl:input>
+        <soap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal"/>
+      </wsdl:output>
+    </wsdl:operation>
+
+    <wsdl:operation name="CreateProvider">
+      <soap:operation soapAction="http://schemas.example.com/healthcare/2026/01/CreateProvider" style="document"/>
+      <wsdl:input>
+        <soap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal"/>
+      </wsdl:output>
+    </wsdl:operation>
+
+    <wsdl:operation name="ScheduleAppointment">
+      <soap:operation soapAction="http://schemas.example.com/healthcare/2026/01/ScheduleAppointment" style="document"/>
+      <wsdl:input>
+        <soap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal"/>
+      </wsdl:output>
+    </wsdl:operation>
+
+    <wsdl:operation name="UpdateAppointment">
+      <soap:operation soapAction="http://schemas.example.com/healthcare/2026/01/UpdateAppointment" style="document"/>
+      <wsdl:input>
+        <soap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal"/>
+      </wsdl:output>
+    </wsdl:operation>
+
+    <wsdl:operation name="CancelAppointment">
+      <soap:operation soapAction="http://schemas.example.com/healthcare/2026/01/CancelAppointment" style="document"/>
+      <wsdl:input>
+        <soap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal"/>
+      </wsdl:output>
+    </wsdl:operation>
+
+    <wsdl:operation name="CreatePrescription">
+      <soap:operation soapAction="http://schemas.example.com/healthcare/2026/01/CreatePrescription" style="document"/>
+      <wsdl:input>
+        <soap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal"/>
+      </wsdl:output>
+    </wsdl:operation>
+
+    <wsdl:operation name="GetMedicalRecords">
+      <soap:operation soapAction="http://schemas.example.com/healthcare/2026/01/GetMedicalRecords" style="document"/>
+      <wsdl:input>
+        <soap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal"/>
+      </wsdl:output>
+    </wsdl:operation>
+  </wsdl:binding>
+
+  <!-- Service -->
+  <wsdl:service name="HealthcareService">
+    <wsdl:port name="HealthcareServiceSoapPort" binding="tns:HealthcareServiceSoapBinding">
+      <soap:address location="https://api.contoso.com/healthcare/soap"/>
+    </wsdl:port>
+  </wsdl:service>
+
+</wsdl:definitions>
