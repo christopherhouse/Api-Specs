@@ -476,11 +476,12 @@
     <!-- ===== Fuel Logs ===== -->
     <resource path="fuel-logs">
       <method name="GET" id="listFuelLogs">
-        <doc>List all fuel log entries with optional filtering</doc>
+        <doc>List all fuel log entries with optional filtering by vehicle or fuel type</doc>
         <request>
           <param name="page" style="query" type="xs:int" default="1"/>
           <param name="pageSize" style="query" type="xs:int" default="25"/>
-          <param name="status" style="query" type="xs:string"/>
+          <param name="vehicleId" style="query" type="xs:string"/>
+          <param name="fuelType" style="query" type="xs:string"/>
         </request>
         <response status="200">
           <representation mediaType="application/json" element="tns:FuelLogList"/>
