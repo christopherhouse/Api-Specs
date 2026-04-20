@@ -1,0 +1,1075 @@
+#%RAML 1.0
+title: Fleet Management API
+version: v1
+baseUri: https://api.examplefleet.com/v1
+mediaType: application/json
+description: >
+  API for managing a commercial vehicle fleet including vehicles, drivers,
+  trips, maintenance records, and fuel logs. Supports full fleet lifecycle
+  operations from vehicle onboarding through retirement, driver assignment,
+  trip tracking, preventive maintenance scheduling, and fuel consumption
+  monitoring.
+
+securitySchemes:
+  bearerAuth:
+    type: Pass Through
+    describedBy:
+      headers:
+        Authorization:
+          description: Bearer JWT token
+          type: string
+          pattern: "^Bearer .+"
+
+traits:
+  secured:
+    headers:
+      Authorization:
+        description: Bearer JWT access token
+        type: string
+        required: true
+    responses:
+      401:
+        description: Unauthorized
+        body:
+          application/json:
+            type: ErrorResponse
+      500:
+        description: Internal server error
+        body:
+          application/json:
+            type: ErrorResponse
+
+  paged:
+    queryParameters:
+      page:
+        type: integer
+        minimum: 1
+        default: 1
+        required: false
+      pageSize:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 25
+        required: false
+
+resourceTypes:
+  collection:
+    get:
+      is: [secured, paged]
+      responses:
+        200:
+          description: Collection retrieved successfully
+    post:
+      is: [secured]
+      responses:
+        201:
+          description: Resource created
+        400:
+          description: Bad request
+          body:
+            application/json:
+              type: ErrorResponse
+
+  item:
+    get:
+      is: [secured]
+      responses:
+        200:
+          description: Resource retrieved successfully
+        404:
+          description: Resource not found
+          body:
+            application/json:
+              type: ErrorResponse
+    put:
+      is: [secured]
+      responses:
+        200:
+          description: Resource updated
+        400:
+          description: Bad request
+          body:
+            application/json:
+              type: ErrorResponse
+        404:
+          description: Resource not found
+          body:
+            application/json:
+              type: ErrorResponse
+    delete:
+      is: [secured]
+      responses:
+        204:
+          description: Resource deleted
+        404:
+          description: Resource not found
+
+types:
+  ErrorResponse:
+    type: object
+    properties:
+      code:
+        type: string
+        required: true
+      message:
+        type: string
+        required: true
+      details:
+        type: string
+        required: false
+      correlationId:
+        type: string
+        required: false
+
+  VehicleStatus:
+    type: string
+    enum: [Active, InMaintenance, Retired, Decommissioned]
+
+  DriverStatus:
+    type: string
+    enum: [Active, Suspended, Inactive]
+
+  TripStatus:
+    type: string
+    enum: [InProgress, Completed, Cancelled]
+
+  MaintenanceType:
+    type: string
+    enum: [Scheduled, Unscheduled, Emergency]
+
+  MaintenanceStatus:
+    type: string
+    enum: [Scheduled, InProgress, Completed]
+
+  FuelType:
+    type: string
+    enum: [Gasoline, Diesel, Electric, Hybrid, CNG]
+
+  Vehicle:
+    type: object
+    properties:
+      id:
+        type: string
+        required: true
+      vin:
+        type: string
+        required: true
+      licensePlate:
+        type: string
+        required: true
+      make:
+        type: string
+        required: true
+      model:
+        type: string
+        required: true
+      year:
+        type: integer
+        required: true
+      fuelType:
+        type: FuelType
+        required: true
+      status:
+        type: VehicleStatus
+        required: true
+      mileage:
+        type: number
+        required: false
+      assignedDriverId:
+        type: string
+        required: false
+      registrationExpiry:
+        type: date-only
+        required: false
+      insurancePolicyNumber:
+        type: string
+        required: false
+      depotLocation:
+        type: string
+        required: false
+      createdAt:
+        type: datetime
+        required: false
+      updatedAt:
+        type: datetime
+        required: false
+
+  CreateVehicleRequest:
+    type: object
+    properties:
+      vin:
+        type: string
+        required: true
+      licensePlate:
+        type: string
+        required: true
+      make:
+        type: string
+        required: true
+      model:
+        type: string
+        required: true
+      year:
+        type: integer
+        required: true
+      fuelType:
+        type: FuelType
+        required: true
+      mileage:
+        type: number
+        required: false
+      registrationExpiry:
+        type: date-only
+        required: false
+      insurancePolicyNumber:
+        type: string
+        required: false
+      depotLocation:
+        type: string
+        required: false
+
+  UpdateVehicleRequest:
+    type: object
+    properties:
+      licensePlate:
+        type: string
+        required: false
+      status:
+        type: VehicleStatus
+        required: false
+      mileage:
+        type: number
+        required: false
+      assignedDriverId:
+        type: string
+        required: false
+      registrationExpiry:
+        type: date-only
+        required: false
+      insurancePolicyNumber:
+        type: string
+        required: false
+      depotLocation:
+        type: string
+        required: false
+
+  VehicleListResponse:
+    type: object
+    properties:
+      items:
+        type: Vehicle[]
+        required: true
+      totalCount:
+        type: integer
+        required: true
+      page:
+        type: integer
+        required: true
+      pageSize:
+        type: integer
+        required: true
+
+  Driver:
+    type: object
+    properties:
+      id:
+        type: string
+        required: true
+      employeeNumber:
+        type: string
+        required: true
+      firstName:
+        type: string
+        required: true
+      lastName:
+        type: string
+        required: true
+      email:
+        type: string
+        required: false
+      phone:
+        type: string
+        required: false
+      licenseNumber:
+        type: string
+        required: true
+      licenseExpiry:
+        type: date-only
+        required: true
+      licenseClass:
+        type: string
+        required: false
+      status:
+        type: DriverStatus
+        required: true
+      assignedVehicleId:
+        type: string
+        required: false
+      hireDate:
+        type: date-only
+        required: false
+      createdAt:
+        type: datetime
+        required: false
+      updatedAt:
+        type: datetime
+        required: false
+
+  CreateDriverRequest:
+    type: object
+    properties:
+      employeeNumber:
+        type: string
+        required: true
+      firstName:
+        type: string
+        required: true
+      lastName:
+        type: string
+        required: true
+      email:
+        type: string
+        required: false
+      phone:
+        type: string
+        required: false
+      licenseNumber:
+        type: string
+        required: true
+      licenseExpiry:
+        type: date-only
+        required: true
+      licenseClass:
+        type: string
+        required: false
+      hireDate:
+        type: date-only
+        required: false
+
+  UpdateDriverRequest:
+    type: object
+    properties:
+      firstName:
+        type: string
+        required: false
+      lastName:
+        type: string
+        required: false
+      email:
+        type: string
+        required: false
+      phone:
+        type: string
+        required: false
+      licenseNumber:
+        type: string
+        required: false
+      licenseExpiry:
+        type: date-only
+        required: false
+      licenseClass:
+        type: string
+        required: false
+      status:
+        type: DriverStatus
+        required: false
+      assignedVehicleId:
+        type: string
+        required: false
+
+  DriverListResponse:
+    type: object
+    properties:
+      items:
+        type: Driver[]
+        required: true
+      totalCount:
+        type: integer
+        required: true
+      page:
+        type: integer
+        required: true
+      pageSize:
+        type: integer
+        required: true
+
+  Trip:
+    type: object
+    properties:
+      id:
+        type: string
+        required: true
+      vehicleId:
+        type: string
+        required: true
+      driverId:
+        type: string
+        required: true
+      status:
+        type: TripStatus
+        required: true
+      origin:
+        type: string
+        required: true
+      destination:
+        type: string
+        required: true
+      scheduledDeparture:
+        type: datetime
+        required: false
+      actualDeparture:
+        type: datetime
+        required: false
+      scheduledArrival:
+        type: datetime
+        required: false
+      actualArrival:
+        type: datetime
+        required: false
+      distanceKm:
+        type: number
+        required: false
+      purpose:
+        type: string
+        required: false
+      notes:
+        type: string
+        required: false
+      createdAt:
+        type: datetime
+        required: false
+
+  CreateTripRequest:
+    type: object
+    properties:
+      vehicleId:
+        type: string
+        required: true
+      driverId:
+        type: string
+        required: true
+      origin:
+        type: string
+        required: true
+      destination:
+        type: string
+        required: true
+      scheduledDeparture:
+        type: datetime
+        required: false
+      scheduledArrival:
+        type: datetime
+        required: false
+      purpose:
+        type: string
+        required: false
+      notes:
+        type: string
+        required: false
+
+  CompleteTripRequest:
+    type: object
+    properties:
+      actualArrival:
+        type: datetime
+        required: true
+      distanceKm:
+        type: number
+        required: true
+      notes:
+        type: string
+        required: false
+
+  TripListResponse:
+    type: object
+    properties:
+      items:
+        type: Trip[]
+        required: true
+      totalCount:
+        type: integer
+        required: true
+      page:
+        type: integer
+        required: true
+      pageSize:
+        type: integer
+        required: true
+
+  MaintenanceRecord:
+    type: object
+    properties:
+      id:
+        type: string
+        required: true
+      vehicleId:
+        type: string
+        required: true
+      maintenanceType:
+        type: MaintenanceType
+        required: true
+      status:
+        type: MaintenanceStatus
+        required: true
+      description:
+        type: string
+        required: true
+      scheduledDate:
+        type: date-only
+        required: false
+      completedDate:
+        type: date-only
+        required: false
+      mileageAtService:
+        type: number
+        required: false
+      cost:
+        type: number
+        required: false
+      currencyCode:
+        type: string
+        required: false
+      serviceProvider:
+        type: string
+        required: false
+      notes:
+        type: string
+        required: false
+      createdAt:
+        type: datetime
+        required: false
+      updatedAt:
+        type: datetime
+        required: false
+
+  CreateMaintenanceRecordRequest:
+    type: object
+    properties:
+      vehicleId:
+        type: string
+        required: true
+      maintenanceType:
+        type: MaintenanceType
+        required: true
+      description:
+        type: string
+        required: true
+      scheduledDate:
+        type: date-only
+        required: false
+      mileageAtService:
+        type: number
+        required: false
+      cost:
+        type: number
+        required: false
+      currencyCode:
+        type: string
+        required: false
+      serviceProvider:
+        type: string
+        required: false
+      notes:
+        type: string
+        required: false
+
+  UpdateMaintenanceRecordRequest:
+    type: object
+    properties:
+      status:
+        type: MaintenanceStatus
+        required: false
+      description:
+        type: string
+        required: false
+      completedDate:
+        type: date-only
+        required: false
+      mileageAtService:
+        type: number
+        required: false
+      cost:
+        type: number
+        required: false
+      currencyCode:
+        type: string
+        required: false
+      serviceProvider:
+        type: string
+        required: false
+      notes:
+        type: string
+        required: false
+
+  MaintenanceRecordListResponse:
+    type: object
+    properties:
+      items:
+        type: MaintenanceRecord[]
+        required: true
+      totalCount:
+        type: integer
+        required: true
+      page:
+        type: integer
+        required: true
+      pageSize:
+        type: integer
+        required: true
+
+  FuelLog:
+    type: object
+    properties:
+      id:
+        type: string
+        required: true
+      vehicleId:
+        type: string
+        required: true
+      driverId:
+        type: string
+        required: true
+      fuelType:
+        type: FuelType
+        required: true
+      quantityLiters:
+        type: number
+        required: true
+      cost:
+        type: number
+        required: true
+      currencyCode:
+        type: string
+        required: false
+      odometerReading:
+        type: number
+        required: false
+      station:
+        type: string
+        required: false
+      loggedAt:
+        type: datetime
+        required: true
+      createdAt:
+        type: datetime
+        required: false
+
+  CreateFuelLogRequest:
+    type: object
+    properties:
+      vehicleId:
+        type: string
+        required: true
+      driverId:
+        type: string
+        required: true
+      fuelType:
+        type: FuelType
+        required: true
+      quantityLiters:
+        type: number
+        required: true
+      cost:
+        type: number
+        required: true
+      currencyCode:
+        type: string
+        required: false
+      odometerReading:
+        type: number
+        required: false
+      station:
+        type: string
+        required: false
+      loggedAt:
+        type: datetime
+        required: true
+
+  FuelLogListResponse:
+    type: object
+    properties:
+      items:
+        type: FuelLog[]
+        required: true
+      totalCount:
+        type: integer
+        required: true
+      page:
+        type: integer
+        required: true
+      pageSize:
+        type: integer
+        required: true
+
+/vehicles:
+  description: Manage fleet vehicles.
+  get:
+    is: [secured, paged]
+    description: List vehicles with optional status and fuel type filters.
+    queryParameters:
+      status:
+        type: VehicleStatus
+        required: false
+      fuelType:
+        type: FuelType
+        required: false
+    responses:
+      200:
+        description: Vehicles retrieved successfully
+        body:
+          application/json:
+            type: VehicleListResponse
+  post:
+    is: [secured]
+    description: Register a new vehicle in the fleet.
+    body:
+      application/json:
+        type: CreateVehicleRequest
+    responses:
+      201:
+        description: Vehicle created
+        body:
+          application/json:
+            type: Vehicle
+      400:
+        description: Bad request
+        body:
+          application/json:
+            type: ErrorResponse
+
+  /{vehicleId}:
+    description: Operations on a specific vehicle.
+    uriParameters:
+      vehicleId:
+        type: string
+        description: UUID of the vehicle
+    get:
+      is: [secured]
+      description: Get vehicle by ID.
+      responses:
+        200:
+          description: Vehicle retrieved successfully
+          body:
+            application/json:
+              type: Vehicle
+        404:
+          description: Vehicle not found
+          body:
+            application/json:
+              type: ErrorResponse
+    put:
+      is: [secured]
+      description: Update vehicle details.
+      body:
+        application/json:
+          type: UpdateVehicleRequest
+      responses:
+        200:
+          description: Vehicle updated
+          body:
+            application/json:
+              type: Vehicle
+        400:
+          description: Bad request
+          body:
+            application/json:
+              type: ErrorResponse
+        404:
+          description: Vehicle not found
+          body:
+            application/json:
+              type: ErrorResponse
+    delete:
+      is: [secured]
+      description: Remove a vehicle from the fleet.
+      responses:
+        204:
+          description: Vehicle deleted
+        404:
+          description: Vehicle not found
+          body:
+            application/json:
+              type: ErrorResponse
+
+/drivers:
+  description: Manage fleet drivers.
+  get:
+    is: [secured, paged]
+    description: List drivers with optional status filter.
+    queryParameters:
+      status:
+        type: DriverStatus
+        required: false
+    responses:
+      200:
+        description: Drivers retrieved successfully
+        body:
+          application/json:
+            type: DriverListResponse
+  post:
+    is: [secured]
+    description: Register a new driver.
+    body:
+      application/json:
+        type: CreateDriverRequest
+    responses:
+      201:
+        description: Driver created
+        body:
+          application/json:
+            type: Driver
+      400:
+        description: Bad request
+        body:
+          application/json:
+            type: ErrorResponse
+
+  /{driverId}:
+    description: Operations on a specific driver.
+    uriParameters:
+      driverId:
+        type: string
+        description: UUID of the driver
+    get:
+      is: [secured]
+      description: Get driver by ID.
+      responses:
+        200:
+          description: Driver retrieved successfully
+          body:
+            application/json:
+              type: Driver
+        404:
+          description: Driver not found
+          body:
+            application/json:
+              type: ErrorResponse
+    put:
+      is: [secured]
+      description: Update driver details.
+      body:
+        application/json:
+          type: UpdateDriverRequest
+      responses:
+        200:
+          description: Driver updated
+          body:
+            application/json:
+              type: Driver
+        400:
+          description: Bad request
+          body:
+            application/json:
+              type: ErrorResponse
+        404:
+          description: Driver not found
+          body:
+            application/json:
+              type: ErrorResponse
+
+/trips:
+  description: Manage fleet trips.
+  get:
+    is: [secured, paged]
+    description: List trips with optional status, vehicle, and driver filters.
+    queryParameters:
+      status:
+        type: TripStatus
+        required: false
+      vehicleId:
+        type: string
+        required: false
+      driverId:
+        type: string
+        required: false
+    responses:
+      200:
+        description: Trips retrieved successfully
+        body:
+          application/json:
+            type: TripListResponse
+  post:
+    is: [secured]
+    description: Create a new trip.
+    body:
+      application/json:
+        type: CreateTripRequest
+    responses:
+      201:
+        description: Trip created
+        body:
+          application/json:
+            type: Trip
+      400:
+        description: Bad request
+        body:
+          application/json:
+            type: ErrorResponse
+
+  /{tripId}:
+    description: Operations on a specific trip.
+    uriParameters:
+      tripId:
+        type: string
+        description: UUID of the trip
+    get:
+      is: [secured]
+      description: Get trip by ID.
+      responses:
+        200:
+          description: Trip retrieved successfully
+          body:
+            application/json:
+              type: Trip
+        404:
+          description: Trip not found
+          body:
+            application/json:
+              type: ErrorResponse
+
+    /complete:
+      description: Mark a trip as completed.
+      post:
+        is: [secured]
+        description: Complete a trip with arrival details and distance.
+        body:
+          application/json:
+            type: CompleteTripRequest
+        responses:
+          200:
+            description: Trip completed successfully
+            body:
+              application/json:
+                type: Trip
+          400:
+            description: Bad request
+            body:
+              application/json:
+                type: ErrorResponse
+          404:
+            description: Trip not found
+            body:
+              application/json:
+                type: ErrorResponse
+
+/maintenance-records:
+  description: Manage vehicle maintenance records.
+  get:
+    is: [secured, paged]
+    description: List maintenance records with optional vehicle and status filters.
+    queryParameters:
+      vehicleId:
+        type: string
+        required: false
+      status:
+        type: MaintenanceStatus
+        required: false
+      maintenanceType:
+        type: MaintenanceType
+        required: false
+    responses:
+      200:
+        description: Maintenance records retrieved successfully
+        body:
+          application/json:
+            type: MaintenanceRecordListResponse
+  post:
+    is: [secured]
+    description: Create a new maintenance record.
+    body:
+      application/json:
+        type: CreateMaintenanceRecordRequest
+    responses:
+      201:
+        description: Maintenance record created
+        body:
+          application/json:
+            type: MaintenanceRecord
+      400:
+        description: Bad request
+        body:
+          application/json:
+            type: ErrorResponse
+
+  /{recordId}:
+    description: Operations on a specific maintenance record.
+    uriParameters:
+      recordId:
+        type: string
+        description: UUID of the maintenance record
+    get:
+      is: [secured]
+      description: Get maintenance record by ID.
+      responses:
+        200:
+          description: Maintenance record retrieved successfully
+          body:
+            application/json:
+              type: MaintenanceRecord
+        404:
+          description: Maintenance record not found
+          body:
+            application/json:
+              type: ErrorResponse
+    put:
+      is: [secured]
+      description: Update a maintenance record.
+      body:
+        application/json:
+          type: UpdateMaintenanceRecordRequest
+      responses:
+        200:
+          description: Maintenance record updated
+          body:
+            application/json:
+              type: MaintenanceRecord
+        400:
+          description: Bad request
+          body:
+            application/json:
+              type: ErrorResponse
+        404:
+          description: Maintenance record not found
+          body:
+            application/json:
+              type: ErrorResponse
+
+/fuel-logs:
+  description: Manage vehicle fuel logs.
+  get:
+    is: [secured, paged]
+    description: List fuel logs with optional vehicle and driver filters.
+    queryParameters:
+      vehicleId:
+        type: string
+        required: false
+      driverId:
+        type: string
+        required: false
+      fuelType:
+        type: FuelType
+        required: false
+    responses:
+      200:
+        description: Fuel logs retrieved successfully
+        body:
+          application/json:
+            type: FuelLogListResponse
+  post:
+    is: [secured]
+    description: Record a new fuel log entry.
+    body:
+      application/json:
+        type: CreateFuelLogRequest
+    responses:
+      201:
+        description: Fuel log created
+        body:
+          application/json:
+            type: FuelLog
+      400:
+        description: Bad request
+        body:
+          application/json:
+            type: ErrorResponse
