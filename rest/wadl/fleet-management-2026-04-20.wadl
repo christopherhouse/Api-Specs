@@ -1,0 +1,548 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<application
+    xmlns="http://wadl.dev.java.net/2009/02"
+    xmlns:xs="http://www.w3.org/2001/XMLSchema"
+    xmlns:tns="http://schemas.example.com/fleet/2026/01"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+
+  <doc title="Fleet Management API">
+    Enterprise fleet management API for managing vehicles, drivers, trips,
+    maintenance records, and fuel logs. Provides full lifecycle tracking of
+    fleet assets including vehicle assignments, driver certification, trip
+    logging, preventive and emergency maintenance scheduling, and fuel
+    consumption monitoring.
+  </doc>
+
+  <grammars>
+    <xs:schema targetNamespace="http://schemas.example.com/fleet/2026/01"
+               elementFormDefault="qualified"
+               attributeFormDefault="unqualified">
+
+      <!-- ===== Enumerations ===== -->
+
+      <xs:simpleType name="VehicleStatus">
+        <xs:restriction base="xs:string">
+          <xs:enumeration value="Active"/>
+          <xs:enumeration value="InMaintenance"/>
+          <xs:enumeration value="Retired"/>
+          <xs:enumeration value="Decommissioned"/>
+        </xs:restriction>
+      </xs:simpleType>
+
+      <xs:simpleType name="DriverStatus">
+        <xs:restriction base="xs:string">
+          <xs:enumeration value="Active"/>
+          <xs:enumeration value="Suspended"/>
+          <xs:enumeration value="Inactive"/>
+        </xs:restriction>
+      </xs:simpleType>
+
+      <xs:simpleType name="TripStatus">
+        <xs:restriction base="xs:string">
+          <xs:enumeration value="InProgress"/>
+          <xs:enumeration value="Completed"/>
+          <xs:enumeration value="Cancelled"/>
+        </xs:restriction>
+      </xs:simpleType>
+
+      <xs:simpleType name="MaintenanceType">
+        <xs:restriction base="xs:string">
+          <xs:enumeration value="Scheduled"/>
+          <xs:enumeration value="Unscheduled"/>
+          <xs:enumeration value="Emergency"/>
+        </xs:restriction>
+      </xs:simpleType>
+
+      <xs:simpleType name="MaintenanceStatus">
+        <xs:restriction base="xs:string">
+          <xs:enumeration value="Scheduled"/>
+          <xs:enumeration value="InProgress"/>
+          <xs:enumeration value="Completed"/>
+        </xs:restriction>
+      </xs:simpleType>
+
+      <xs:simpleType name="FuelType">
+        <xs:restriction base="xs:string">
+          <xs:enumeration value="Gasoline"/>
+          <xs:enumeration value="Diesel"/>
+          <xs:enumeration value="Electric"/>
+          <xs:enumeration value="Hybrid"/>
+          <xs:enumeration value="CNG"/>
+        </xs:restriction>
+      </xs:simpleType>
+
+      <!-- ===== Complex Types ===== -->
+
+      <xs:complexType name="Vehicle">
+        <xs:sequence>
+          <xs:element name="vehicleId" type="xs:string"/>
+          <xs:element name="vin" type="xs:string"/>
+          <xs:element name="make" type="xs:string"/>
+          <xs:element name="model" type="xs:string"/>
+          <xs:element name="year" type="xs:int"/>
+          <xs:element name="licensePlate" type="xs:string"/>
+          <xs:element name="status" type="tns:VehicleStatus"/>
+          <xs:element name="mileage" type="xs:decimal"/>
+          <xs:element name="fuelType" type="tns:FuelType"/>
+          <xs:element name="assignedDriverId" type="xs:string" minOccurs="0"/>
+          <xs:element name="purchaseDate" type="xs:date"/>
+          <xs:element name="lastServiceDate" type="xs:date" minOccurs="0"/>
+        </xs:sequence>
+      </xs:complexType>
+
+      <xs:complexType name="VehicleList">
+        <xs:sequence>
+          <xs:element name="vehicle" type="tns:Vehicle" minOccurs="0" maxOccurs="unbounded"/>
+        </xs:sequence>
+      </xs:complexType>
+
+      <xs:complexType name="Driver">
+        <xs:sequence>
+          <xs:element name="driverId" type="xs:string"/>
+          <xs:element name="employeeNumber" type="xs:string"/>
+          <xs:element name="firstName" type="xs:string"/>
+          <xs:element name="lastName" type="xs:string"/>
+          <xs:element name="email" type="xs:string"/>
+          <xs:element name="phone" type="xs:string"/>
+          <xs:element name="licenseNumber" type="xs:string"/>
+          <xs:element name="licenseExpiry" type="xs:date"/>
+          <xs:element name="status" type="tns:DriverStatus"/>
+          <xs:element name="assignedVehicleId" type="xs:string" minOccurs="0"/>
+        </xs:sequence>
+      </xs:complexType>
+
+      <xs:complexType name="DriverList">
+        <xs:sequence>
+          <xs:element name="driver" type="tns:Driver" minOccurs="0" maxOccurs="unbounded"/>
+        </xs:sequence>
+      </xs:complexType>
+
+      <xs:complexType name="Trip">
+        <xs:sequence>
+          <xs:element name="tripId" type="xs:string"/>
+          <xs:element name="vehicleId" type="xs:string"/>
+          <xs:element name="driverId" type="xs:string"/>
+          <xs:element name="startTime" type="xs:dateTime"/>
+          <xs:element name="endTime" type="xs:dateTime" minOccurs="0"/>
+          <xs:element name="startOdometer" type="xs:decimal"/>
+          <xs:element name="endOdometer" type="xs:decimal" minOccurs="0"/>
+          <xs:element name="origin" type="xs:string"/>
+          <xs:element name="destination" type="xs:string"/>
+          <xs:element name="status" type="tns:TripStatus"/>
+          <xs:element name="purpose" type="xs:string"/>
+        </xs:sequence>
+      </xs:complexType>
+
+      <xs:complexType name="TripList">
+        <xs:sequence>
+          <xs:element name="trip" type="tns:Trip" minOccurs="0" maxOccurs="unbounded"/>
+        </xs:sequence>
+      </xs:complexType>
+
+      <xs:complexType name="MaintenanceRecord">
+        <xs:sequence>
+          <xs:element name="recordId" type="xs:string"/>
+          <xs:element name="vehicleId" type="xs:string"/>
+          <xs:element name="type" type="tns:MaintenanceType"/>
+          <xs:element name="description" type="xs:string"/>
+          <xs:element name="vendor" type="xs:string"/>
+          <xs:element name="cost" type="xs:decimal"/>
+          <xs:element name="scheduledDate" type="xs:date"/>
+          <xs:element name="completedDate" type="xs:date" minOccurs="0"/>
+          <xs:element name="status" type="tns:MaintenanceStatus"/>
+        </xs:sequence>
+      </xs:complexType>
+
+      <xs:complexType name="MaintenanceRecordList">
+        <xs:sequence>
+          <xs:element name="maintenanceRecord" type="tns:MaintenanceRecord" minOccurs="0" maxOccurs="unbounded"/>
+        </xs:sequence>
+      </xs:complexType>
+
+      <xs:complexType name="FuelLog">
+        <xs:sequence>
+          <xs:element name="logId" type="xs:string"/>
+          <xs:element name="vehicleId" type="xs:string"/>
+          <xs:element name="driverId" type="xs:string"/>
+          <xs:element name="date" type="xs:date"/>
+          <xs:element name="gallons" type="xs:decimal"/>
+          <xs:element name="costPerGallon" type="xs:decimal"/>
+          <xs:element name="totalCost" type="xs:decimal"/>
+          <xs:element name="odometer" type="xs:decimal"/>
+          <xs:element name="fuelType" type="tns:FuelType"/>
+          <xs:element name="station" type="xs:string"/>
+        </xs:sequence>
+      </xs:complexType>
+
+      <xs:complexType name="FuelLogList">
+        <xs:sequence>
+          <xs:element name="fuelLog" type="tns:FuelLog" minOccurs="0" maxOccurs="unbounded"/>
+        </xs:sequence>
+      </xs:complexType>
+
+      <xs:complexType name="Error">
+        <xs:sequence>
+          <xs:element name="code" type="xs:string"/>
+          <xs:element name="message" type="xs:string"/>
+          <xs:element name="details" type="xs:string" minOccurs="0"/>
+        </xs:sequence>
+      </xs:complexType>
+
+    </xs:schema>
+  </grammars>
+
+  <resources base="https://api.contoso.com/fleet/v1">
+
+    <!-- ===== Vehicles ===== -->
+    <resource path="vehicles">
+      <method name="GET" id="listVehicles">
+        <doc>List all vehicles in the fleet with optional filtering by status</doc>
+        <request>
+          <param name="page" style="query" type="xs:int" default="1"/>
+          <param name="pageSize" style="query" type="xs:int" default="25"/>
+          <param name="status" style="query" type="xs:string"/>
+        </request>
+        <response status="200">
+          <representation mediaType="application/json" element="tns:VehicleList"/>
+        </response>
+        <response status="500">
+          <representation mediaType="application/json" element="tns:Error"/>
+        </response>
+      </method>
+
+      <method name="POST" id="createVehicle">
+        <doc>Register a new vehicle in the fleet</doc>
+        <request>
+          <representation mediaType="application/json" element="tns:Vehicle"/>
+        </request>
+        <response status="201">
+          <representation mediaType="application/json" element="tns:Vehicle"/>
+        </response>
+        <response status="400">
+          <representation mediaType="application/json" element="tns:Error"/>
+        </response>
+        <response status="500">
+          <representation mediaType="application/json" element="tns:Error"/>
+        </response>
+      </method>
+
+      <resource path="{vehicleId}">
+        <param name="vehicleId" style="template" type="xs:string" required="true"/>
+
+        <method name="GET" id="getVehicle">
+          <doc>Get details of a specific vehicle by its identifier</doc>
+          <response status="200">
+            <representation mediaType="application/json" element="tns:Vehicle"/>
+          </response>
+          <response status="404">
+            <representation mediaType="application/json" element="tns:Error"/>
+          </response>
+          <response status="500">
+            <representation mediaType="application/json" element="tns:Error"/>
+          </response>
+        </method>
+
+        <method name="PUT" id="updateVehicle">
+          <doc>Update an existing vehicle record</doc>
+          <request>
+            <representation mediaType="application/json" element="tns:Vehicle"/>
+          </request>
+          <response status="200">
+            <representation mediaType="application/json" element="tns:Vehicle"/>
+          </response>
+          <response status="400">
+            <representation mediaType="application/json" element="tns:Error"/>
+          </response>
+          <response status="404">
+            <representation mediaType="application/json" element="tns:Error"/>
+          </response>
+          <response status="500">
+            <representation mediaType="application/json" element="tns:Error"/>
+          </response>
+        </method>
+      </resource>
+    </resource>
+
+    <!-- ===== Drivers ===== -->
+    <resource path="drivers">
+      <method name="GET" id="listDrivers">
+        <doc>List all drivers with optional filtering by status</doc>
+        <request>
+          <param name="page" style="query" type="xs:int" default="1"/>
+          <param name="pageSize" style="query" type="xs:int" default="25"/>
+          <param name="status" style="query" type="xs:string"/>
+        </request>
+        <response status="200">
+          <representation mediaType="application/json" element="tns:DriverList"/>
+        </response>
+        <response status="500">
+          <representation mediaType="application/json" element="tns:Error"/>
+        </response>
+      </method>
+
+      <method name="POST" id="createDriver">
+        <doc>Register a new driver</doc>
+        <request>
+          <representation mediaType="application/json" element="tns:Driver"/>
+        </request>
+        <response status="201">
+          <representation mediaType="application/json" element="tns:Driver"/>
+        </response>
+        <response status="400">
+          <representation mediaType="application/json" element="tns:Error"/>
+        </response>
+        <response status="500">
+          <representation mediaType="application/json" element="tns:Error"/>
+        </response>
+      </method>
+
+      <resource path="{driverId}">
+        <param name="driverId" style="template" type="xs:string" required="true"/>
+
+        <method name="GET" id="getDriver">
+          <doc>Get details of a specific driver by their identifier</doc>
+          <response status="200">
+            <representation mediaType="application/json" element="tns:Driver"/>
+          </response>
+          <response status="404">
+            <representation mediaType="application/json" element="tns:Error"/>
+          </response>
+          <response status="500">
+            <representation mediaType="application/json" element="tns:Error"/>
+          </response>
+        </method>
+
+        <method name="PUT" id="updateDriver">
+          <doc>Update an existing driver record</doc>
+          <request>
+            <representation mediaType="application/json" element="tns:Driver"/>
+          </request>
+          <response status="200">
+            <representation mediaType="application/json" element="tns:Driver"/>
+          </response>
+          <response status="400">
+            <representation mediaType="application/json" element="tns:Error"/>
+          </response>
+          <response status="404">
+            <representation mediaType="application/json" element="tns:Error"/>
+          </response>
+          <response status="500">
+            <representation mediaType="application/json" element="tns:Error"/>
+          </response>
+        </method>
+      </resource>
+    </resource>
+
+    <!-- ===== Trips ===== -->
+    <resource path="trips">
+      <method name="GET" id="listTrips">
+        <doc>List all trips with optional filtering by status</doc>
+        <request>
+          <param name="page" style="query" type="xs:int" default="1"/>
+          <param name="pageSize" style="query" type="xs:int" default="25"/>
+          <param name="status" style="query" type="xs:string"/>
+        </request>
+        <response status="200">
+          <representation mediaType="application/json" element="tns:TripList"/>
+        </response>
+        <response status="500">
+          <representation mediaType="application/json" element="tns:Error"/>
+        </response>
+      </method>
+
+      <method name="POST" id="createTrip">
+        <doc>Log a new trip</doc>
+        <request>
+          <representation mediaType="application/json" element="tns:Trip"/>
+        </request>
+        <response status="201">
+          <representation mediaType="application/json" element="tns:Trip"/>
+        </response>
+        <response status="400">
+          <representation mediaType="application/json" element="tns:Error"/>
+        </response>
+        <response status="500">
+          <representation mediaType="application/json" element="tns:Error"/>
+        </response>
+      </method>
+
+      <resource path="{tripId}">
+        <param name="tripId" style="template" type="xs:string" required="true"/>
+
+        <method name="GET" id="getTrip">
+          <doc>Get details of a specific trip</doc>
+          <response status="200">
+            <representation mediaType="application/json" element="tns:Trip"/>
+          </response>
+          <response status="404">
+            <representation mediaType="application/json" element="tns:Error"/>
+          </response>
+          <response status="500">
+            <representation mediaType="application/json" element="tns:Error"/>
+          </response>
+        </method>
+
+        <method name="PUT" id="updateTrip">
+          <doc>Update an existing trip record</doc>
+          <request>
+            <representation mediaType="application/json" element="tns:Trip"/>
+          </request>
+          <response status="200">
+            <representation mediaType="application/json" element="tns:Trip"/>
+          </response>
+          <response status="400">
+            <representation mediaType="application/json" element="tns:Error"/>
+          </response>
+          <response status="404">
+            <representation mediaType="application/json" element="tns:Error"/>
+          </response>
+          <response status="500">
+            <representation mediaType="application/json" element="tns:Error"/>
+          </response>
+        </method>
+      </resource>
+    </resource>
+
+    <!-- ===== Maintenance Records ===== -->
+    <resource path="maintenance-records">
+      <method name="GET" id="listMaintenanceRecords">
+        <doc>List all maintenance records with optional filtering by status</doc>
+        <request>
+          <param name="page" style="query" type="xs:int" default="1"/>
+          <param name="pageSize" style="query" type="xs:int" default="25"/>
+          <param name="status" style="query" type="xs:string"/>
+        </request>
+        <response status="200">
+          <representation mediaType="application/json" element="tns:MaintenanceRecordList"/>
+        </response>
+        <response status="500">
+          <representation mediaType="application/json" element="tns:Error"/>
+        </response>
+      </method>
+
+      <method name="POST" id="createMaintenanceRecord">
+        <doc>Create a new maintenance record for a vehicle</doc>
+        <request>
+          <representation mediaType="application/json" element="tns:MaintenanceRecord"/>
+        </request>
+        <response status="201">
+          <representation mediaType="application/json" element="tns:MaintenanceRecord"/>
+        </response>
+        <response status="400">
+          <representation mediaType="application/json" element="tns:Error"/>
+        </response>
+        <response status="500">
+          <representation mediaType="application/json" element="tns:Error"/>
+        </response>
+      </method>
+
+      <resource path="{recordId}">
+        <param name="recordId" style="template" type="xs:string" required="true"/>
+
+        <method name="GET" id="getMaintenanceRecord">
+          <doc>Get details of a specific maintenance record</doc>
+          <response status="200">
+            <representation mediaType="application/json" element="tns:MaintenanceRecord"/>
+          </response>
+          <response status="404">
+            <representation mediaType="application/json" element="tns:Error"/>
+          </response>
+          <response status="500">
+            <representation mediaType="application/json" element="tns:Error"/>
+          </response>
+        </method>
+
+        <method name="PUT" id="updateMaintenanceRecord">
+          <doc>Update an existing maintenance record</doc>
+          <request>
+            <representation mediaType="application/json" element="tns:MaintenanceRecord"/>
+          </request>
+          <response status="200">
+            <representation mediaType="application/json" element="tns:MaintenanceRecord"/>
+          </response>
+          <response status="400">
+            <representation mediaType="application/json" element="tns:Error"/>
+          </response>
+          <response status="404">
+            <representation mediaType="application/json" element="tns:Error"/>
+          </response>
+          <response status="500">
+            <representation mediaType="application/json" element="tns:Error"/>
+          </response>
+        </method>
+      </resource>
+    </resource>
+
+    <!-- ===== Fuel Logs ===== -->
+    <resource path="fuel-logs">
+      <method name="GET" id="listFuelLogs">
+        <doc>List all fuel log entries with optional filtering by vehicle or fuel type</doc>
+        <request>
+          <param name="page" style="query" type="xs:int" default="1"/>
+          <param name="pageSize" style="query" type="xs:int" default="25"/>
+          <param name="vehicleId" style="query" type="xs:string"/>
+          <param name="fuelType" style="query" type="xs:string"/>
+        </request>
+        <response status="200">
+          <representation mediaType="application/json" element="tns:FuelLogList"/>
+        </response>
+        <response status="500">
+          <representation mediaType="application/json" element="tns:Error"/>
+        </response>
+      </method>
+
+      <method name="POST" id="createFuelLog">
+        <doc>Record a new fuel log entry</doc>
+        <request>
+          <representation mediaType="application/json" element="tns:FuelLog"/>
+        </request>
+        <response status="201">
+          <representation mediaType="application/json" element="tns:FuelLog"/>
+        </response>
+        <response status="400">
+          <representation mediaType="application/json" element="tns:Error"/>
+        </response>
+        <response status="500">
+          <representation mediaType="application/json" element="tns:Error"/>
+        </response>
+      </method>
+
+      <resource path="{logId}">
+        <param name="logId" style="template" type="xs:string" required="true"/>
+
+        <method name="GET" id="getFuelLog">
+          <doc>Get details of a specific fuel log entry</doc>
+          <response status="200">
+            <representation mediaType="application/json" element="tns:FuelLog"/>
+          </response>
+          <response status="404">
+            <representation mediaType="application/json" element="tns:Error"/>
+          </response>
+          <response status="500">
+            <representation mediaType="application/json" element="tns:Error"/>
+          </response>
+        </method>
+
+        <method name="PUT" id="updateFuelLog">
+          <doc>Update an existing fuel log entry</doc>
+          <request>
+            <representation mediaType="application/json" element="tns:FuelLog"/>
+          </request>
+          <response status="200">
+            <representation mediaType="application/json" element="tns:FuelLog"/>
+          </response>
+          <response status="400">
+            <representation mediaType="application/json" element="tns:Error"/>
+          </response>
+          <response status="404">
+            <representation mediaType="application/json" element="tns:Error"/>
+          </response>
+          <response status="500">
+            <representation mediaType="application/json" element="tns:Error"/>
+          </response>
+        </method>
+      </resource>
+    </resource>
+
+  </resources>
+</application>

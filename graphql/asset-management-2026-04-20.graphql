@@ -1,0 +1,867 @@
+"""
+Asset Management API — GraphQL SDL
+
+Covers enterprise asset lifecycle management including assets, categories,
+locations, work orders, and audits.
+"""
+
+schema {
+  query: Query
+  mutation: Mutation
+  subscription: Subscription
+}
+
+# ── Scalars ──────────────────────────────────────────────────────────────────────
+
+"""ISO-8601 date-time string"""
+scalar DateTime
+
+"""ISO-8601 calendar date"""
+scalar Date
+
+"""Monetary or numeric amount as decimal string"""
+scalar Decimal
+
+"""RFC-4122 UUID"""
+scalar UUID
+
+# ── Enums ────────────────────────────────────────────────────────────────────────
+
+"""Operational lifecycle status of an enterprise asset"""
+enum AssetStatus {
+  """Asset is in service and available for use"""
+  ACTIVE
+  """Asset is currently undergoing repair or maintenance"""
+  IN_REPAIR
+  """Asset has been reserved for future assignment"""
+  RESERVED
+  """Asset has been taken out of service permanently"""
+  DECOMMISSIONED
+  """Asset has been disposed of and removed from inventory"""
+  DISPOSED
+}
+
+"""Physical condition rating of an asset"""
+enum AssetCondition {
+  """Asset is brand new or unused"""
+  NEW
+  """Asset is fully functional with minor cosmetic wear"""
+  GOOD
+  """Asset is functional but shows noticeable wear"""
+  FAIR
+  """Asset has significant wear and limited remaining life"""
+  POOR
+  """Asset is not operational and cannot perform its function"""
+  NON_FUNCTIONAL
+}
+
+"""Accounting method used to calculate asset depreciation"""
+enum DepreciationMethod {
+  """Equal depreciation expense each period over useful life"""
+  STRAIGHT_LINE
+  """Accelerated depreciation using a fixed percentage of book value"""
+  DECLINING_BALANCE
+  """Accelerated depreciation based on the sum of the years digits"""
+  SUM_OF_YEARS
+}
+
+"""Classification of a physical location within the enterprise"""
+enum LocationType {
+  """A standalone building or structure"""
+  BUILDING
+  """A specific floor within a building"""
+  FLOOR
+  """A room or enclosed area within a floor"""
+  ROOM
+  """A warehouse or storage facility"""
+  WAREHOUSE
+  """An outdoor yard or staging area"""
+  YARD
+  """A remote or off-site location"""
+  REMOTE
+}
+
+"""Classification of a maintenance or service work order"""
+enum WorkOrderType {
+  """Scheduled preventive maintenance activity"""
+  PREVENTIVE
+  """Corrective action to resolve a known issue"""
+  CORRECTIVE
+  """Urgent repair required due to critical failure"""
+  EMERGENCY
+  """Routine inspection or assessment of asset condition"""
+  INSPECTION
+}
+
+"""Priority level assigned to a work order"""
+enum WorkOrderPriority {
+  """Immediate attention required — impacts safety or production"""
+  CRITICAL
+  """Urgent attention required within 24 hours"""
+  HIGH
+  """Standard priority — address within normal scheduling"""
+  MEDIUM
+  """Low urgency — schedule when resources are available"""
+  LOW
+}
+
+"""Progress status of a work order through its lifecycle"""
+enum WorkOrderStatus {
+  """Work order has been created and is awaiting assignment"""
+  OPEN
+  """Work order has been assigned to a technician or team"""
+  ASSIGNED
+  """Work is actively being performed"""
+  IN_PROGRESS
+  """Work has been paused pending parts, approval, or information"""
+  ON_HOLD
+  """Work has been finished successfully"""
+  COMPLETED
+  """Work order has been cancelled and will not be executed"""
+  CANCELLED
+}
+
+# ── Interfaces ───────────────────────────────────────────────────────────────────
+
+"""Common audit fields present on every domain entity"""
+interface Auditable {
+  """Timestamp when the record was created"""
+  createdAt: DateTime!
+  """Timestamp when the record was last updated"""
+  updatedAt: DateTime!
+}
+
+# ── Domain Types ─────────────────────────────────────────────────────────────────
+
+"""A physical mailing or site address"""
+type Address implements Auditable {
+  """Street address line"""
+  street: String!
+  """City name"""
+  city: String!
+  """State or province"""
+  state: String!
+  """Postal or ZIP code"""
+  zipCode: String!
+  """Country name or ISO code"""
+  country: String!
+  """Timestamp when the record was created"""
+  createdAt: DateTime!
+  """Timestamp when the record was last updated"""
+  updatedAt: DateTime!
+}
+
+"""An enterprise asset tracked for lifecycle and financial management"""
+type Asset implements Auditable {
+  """Unique identifier for the asset"""
+  assetId: UUID!
+  """Human-readable asset tag affixed to the physical item"""
+  assetTag: String!
+  """Manufacturer-assigned serial number"""
+  serialNumber: String!
+  """Display name of the asset"""
+  name: String!
+  """Detailed description of the asset"""
+  description: String
+  """Category to which this asset belongs"""
+  category: Category!
+  """Physical location where the asset is installed or stored"""
+  location: Location!
+  """Current lifecycle status of the asset"""
+  status: AssetStatus!
+  """Current physical condition of the asset"""
+  condition: AssetCondition!
+  """Date the asset was acquired or purchased"""
+  acquisitionDate: Date!
+  """Original purchase cost of the asset"""
+  acquisitionCost: Decimal!
+  """Current book value of the asset after depreciation"""
+  currentValue: Decimal!
+  """Depreciation method applied to this asset"""
+  depreciationMethod: DepreciationMethod!
+  """Expected useful life of the asset in months"""
+  usefulLifeMonths: Int!
+  """Date the manufacturer warranty expires"""
+  warrantyExpiry: Date
+  """Name or identifier of the person the asset is assigned to"""
+  assignedTo: String
+  """Name of the asset manufacturer"""
+  manufacturer: String!
+  """Model name or number of the asset"""
+  model: String!
+  """Free-text notes or comments about the asset"""
+  notes: String
+  """Work orders associated with this asset"""
+  workOrders: [WorkOrder!]!
+  """Audit records for this asset"""
+  audits: [Audit!]!
+  """Timestamp when the record was created"""
+  createdAt: DateTime!
+  """Timestamp when the record was last updated"""
+  updatedAt: DateTime!
+}
+
+"""A classification category used to group and organize assets"""
+type Category implements Auditable {
+  """Unique identifier for the category"""
+  categoryId: UUID!
+  """Display name of the category"""
+  name: String!
+  """Description of the category and the assets it contains"""
+  description: String
+  """Parent category for hierarchical classification"""
+  parentCategory: Category
+  """Default depreciation method for assets in this category"""
+  depreciationMethod: DepreciationMethod!
+  """Default useful life in months for assets in this category"""
+  defaultUsefulLifeMonths: Int!
+  """Whether this category is currently active"""
+  active: Boolean!
+  """Assets belonging to this category"""
+  assets: [Asset!]!
+  """Timestamp when the record was created"""
+  createdAt: DateTime!
+  """Timestamp when the record was last updated"""
+  updatedAt: DateTime!
+}
+
+"""A physical location where assets may be installed or stored"""
+type Location implements Auditable {
+  """Unique identifier for the location"""
+  locationId: UUID!
+  """Display name of the location"""
+  name: String!
+  """Physical address of the location"""
+  address: Address
+  """Building name or identifier"""
+  building: String
+  """Floor number or identifier"""
+  floor: String
+  """Room name or number"""
+  room: String
+  """Parent location in the location hierarchy"""
+  parentLocation: Location
+  """Classification of this location"""
+  locationType: LocationType!
+  """Whether this location is currently active"""
+  active: Boolean!
+  """Assets installed or stored at this location"""
+  assets: [Asset!]!
+  """Timestamp when the record was created"""
+  createdAt: DateTime!
+  """Timestamp when the record was last updated"""
+  updatedAt: DateTime!
+}
+
+"""A maintenance or service work order associated with an asset"""
+type WorkOrder implements Auditable {
+  """Unique identifier for the work order"""
+  workOrderId: UUID!
+  """Asset to which this work order applies"""
+  asset: Asset!
+  """Classification of the work order"""
+  workOrderType: WorkOrderType!
+  """Priority level of the work order"""
+  priority: WorkOrderPriority!
+  """Current status of the work order"""
+  status: WorkOrderStatus!
+  """Short title summarizing the work order"""
+  title: String!
+  """Detailed description of the work to be performed"""
+  description: String
+  """Name or identifier of the person assigned to the work"""
+  assignedTo: String
+  """Estimated cost to complete the work"""
+  estimatedCost: Decimal
+  """Actual cost incurred to complete the work"""
+  actualCost: Decimal
+  """Date the work is scheduled to begin"""
+  scheduledDate: Date
+  """Date the work was completed"""
+  completedDate: Date
+  """Notes recorded upon completion of the work"""
+  completionNotes: String
+  """Timestamp when the record was created"""
+  createdAt: DateTime!
+  """Timestamp when the record was last updated"""
+  updatedAt: DateTime!
+}
+
+"""An audit record capturing a point-in-time assessment of an asset"""
+type Audit implements Auditable {
+  """Unique identifier for the audit"""
+  auditId: UUID!
+  """Asset that was audited"""
+  asset: Asset!
+  """Name of the person who conducted the audit"""
+  auditorName: String!
+  """Date the audit was performed"""
+  auditDate: Date!
+  """Condition of the asset before the audit"""
+  previousCondition: AssetCondition
+  """Condition of the asset as recorded during the audit"""
+  currentCondition: AssetCondition!
+  """Location of the asset before the audit"""
+  previousLocation: Location
+  """Location of the asset as recorded during the audit"""
+  currentLocation: Location!
+  """Free-text notes from the auditor"""
+  notes: String
+  """Whether a discrepancy was found during the audit"""
+  discrepancyFound: Boolean!
+  """Details of any discrepancy discovered"""
+  discrepancyDetails: String
+  """Timestamp when the record was created"""
+  createdAt: DateTime!
+  """Timestamp when the record was last updated"""
+  updatedAt: DateTime!
+}
+
+# ── Pagination ───────────────────────────────────────────────────────────────────
+
+"""Relay-style pagination metadata"""
+type PageInfo {
+  """Whether more results exist after the last edge"""
+  hasNextPage: Boolean!
+  """Whether more results exist before the first edge"""
+  hasPreviousPage: Boolean!
+  """Cursor of the first edge in the current page"""
+  startCursor: String
+  """Cursor of the last edge in the current page"""
+  endCursor: String
+}
+
+"""Paginated list of assets"""
+type AssetConnection {
+  """List of asset edges"""
+  edges: [AssetEdge!]!
+  """Pagination metadata"""
+  pageInfo: PageInfo!
+  """Total number of matching assets"""
+  totalCount: Int!
+}
+
+"""An edge in an asset connection"""
+type AssetEdge {
+  """The asset record"""
+  node: Asset!
+  """Opaque cursor for pagination"""
+  cursor: String!
+}
+
+"""Paginated list of categories"""
+type CategoryConnection {
+  """List of category edges"""
+  edges: [CategoryEdge!]!
+  """Pagination metadata"""
+  pageInfo: PageInfo!
+  """Total number of matching categories"""
+  totalCount: Int!
+}
+
+"""An edge in a category connection"""
+type CategoryEdge {
+  """The category record"""
+  node: Category!
+  """Opaque cursor for pagination"""
+  cursor: String!
+}
+
+"""Paginated list of locations"""
+type LocationConnection {
+  """List of location edges"""
+  edges: [LocationEdge!]!
+  """Pagination metadata"""
+  pageInfo: PageInfo!
+  """Total number of matching locations"""
+  totalCount: Int!
+}
+
+"""An edge in a location connection"""
+type LocationEdge {
+  """The location record"""
+  node: Location!
+  """Opaque cursor for pagination"""
+  cursor: String!
+}
+
+"""Paginated list of work orders"""
+type WorkOrderConnection {
+  """List of work order edges"""
+  edges: [WorkOrderEdge!]!
+  """Pagination metadata"""
+  pageInfo: PageInfo!
+  """Total number of matching work orders"""
+  totalCount: Int!
+}
+
+"""An edge in a work order connection"""
+type WorkOrderEdge {
+  """The work order record"""
+  node: WorkOrder!
+  """Opaque cursor for pagination"""
+  cursor: String!
+}
+
+"""Paginated list of audits"""
+type AuditConnection {
+  """List of audit edges"""
+  edges: [AuditEdge!]!
+  """Pagination metadata"""
+  pageInfo: PageInfo!
+  """Total number of matching audits"""
+  totalCount: Int!
+}
+
+"""An edge in an audit connection"""
+type AuditEdge {
+  """The audit record"""
+  node: Audit!
+  """Opaque cursor for pagination"""
+  cursor: String!
+}
+
+# ── Input Types ──────────────────────────────────────────────────────────────────
+
+"""Input for creating a new asset"""
+input CreateAssetInput {
+  """Human-readable asset tag"""
+  assetTag: String!
+  """Manufacturer-assigned serial number"""
+  serialNumber: String!
+  """Display name of the asset"""
+  name: String!
+  """Detailed description of the asset"""
+  description: String
+  """Category identifier for the asset"""
+  categoryId: UUID!
+  """Location identifier where the asset is installed"""
+  locationId: UUID!
+  """Initial lifecycle status"""
+  status: AssetStatus!
+  """Physical condition at acquisition"""
+  condition: AssetCondition!
+  """Date the asset was acquired"""
+  acquisitionDate: Date!
+  """Purchase cost of the asset"""
+  acquisitionCost: Decimal!
+  """Depreciation method to apply"""
+  depreciationMethod: DepreciationMethod!
+  """Expected useful life in months"""
+  usefulLifeMonths: Int!
+  """Date the manufacturer warranty expires"""
+  warrantyExpiry: Date
+  """Name or identifier of the person the asset is assigned to"""
+  assignedTo: String
+  """Name of the asset manufacturer"""
+  manufacturer: String!
+  """Model name or number"""
+  model: String!
+  """Free-text notes about the asset"""
+  notes: String
+}
+
+"""Input for updating an existing asset"""
+input UpdateAssetInput {
+  """Identifier of the asset to update"""
+  assetId: UUID!
+  """Updated display name"""
+  name: String
+  """Updated description"""
+  description: String
+  """Updated category identifier"""
+  categoryId: UUID
+  """Updated location identifier"""
+  locationId: UUID
+  """Updated lifecycle status"""
+  status: AssetStatus
+  """Updated physical condition"""
+  condition: AssetCondition
+  """Updated current book value"""
+  currentValue: Decimal
+  """Updated warranty expiry date"""
+  warrantyExpiry: Date
+  """Updated assigned person"""
+  assignedTo: String
+  """Updated notes"""
+  notes: String
+}
+
+"""Input for decommissioning an asset"""
+input DecommissionAssetInput {
+  """Identifier of the asset to decommission"""
+  assetId: UUID!
+  """Reason for decommissioning"""
+  reason: String!
+  """Date the decommission takes effect"""
+  effectiveDate: Date!
+}
+
+"""Input for creating a new category"""
+input CreateCategoryInput {
+  """Display name of the category"""
+  name: String!
+  """Description of the category"""
+  description: String
+  """Parent category identifier for nesting"""
+  parentCategoryId: UUID
+  """Default depreciation method for assets in this category"""
+  depreciationMethod: DepreciationMethod!
+  """Default useful life in months for assets in this category"""
+  defaultUsefulLifeMonths: Int!
+}
+
+"""Input for updating an existing category"""
+input UpdateCategoryInput {
+  """Identifier of the category to update"""
+  categoryId: UUID!
+  """Updated display name"""
+  name: String
+  """Updated description"""
+  description: String
+  """Updated parent category identifier"""
+  parentCategoryId: UUID
+  """Updated default depreciation method"""
+  depreciationMethod: DepreciationMethod
+  """Updated default useful life in months"""
+  defaultUsefulLifeMonths: Int
+  """Whether the category is active"""
+  active: Boolean
+}
+
+"""Input for creating a new location"""
+input CreateLocationInput {
+  """Display name of the location"""
+  name: String!
+  """Street address"""
+  street: String
+  """City name"""
+  city: String
+  """State or province"""
+  state: String
+  """Postal or ZIP code"""
+  zipCode: String
+  """Country name or ISO code"""
+  country: String
+  """Building name or identifier"""
+  building: String
+  """Floor number or identifier"""
+  floor: String
+  """Room name or number"""
+  room: String
+  """Parent location identifier"""
+  parentLocationId: UUID
+  """Classification of this location"""
+  locationType: LocationType!
+}
+
+"""Input for updating an existing location"""
+input UpdateLocationInput {
+  """Identifier of the location to update"""
+  locationId: UUID!
+  """Updated display name"""
+  name: String
+  """Updated street address"""
+  street: String
+  """Updated city"""
+  city: String
+  """Updated state or province"""
+  state: String
+  """Updated postal code"""
+  zipCode: String
+  """Updated country"""
+  country: String
+  """Updated building identifier"""
+  building: String
+  """Updated floor identifier"""
+  floor: String
+  """Updated room identifier"""
+  room: String
+  """Updated parent location identifier"""
+  parentLocationId: UUID
+  """Updated location classification"""
+  locationType: LocationType
+  """Whether the location is active"""
+  active: Boolean
+}
+
+"""Input for creating a new work order"""
+input CreateWorkOrderInput {
+  """Identifier of the asset requiring work"""
+  assetId: UUID!
+  """Classification of the work order"""
+  workOrderType: WorkOrderType!
+  """Priority level"""
+  priority: WorkOrderPriority!
+  """Short title summarizing the work"""
+  title: String!
+  """Detailed description of the work"""
+  description: String
+  """Person assigned to perform the work"""
+  assignedTo: String
+  """Estimated cost to complete"""
+  estimatedCost: Decimal
+  """Scheduled start date"""
+  scheduledDate: Date
+}
+
+"""Input for updating an existing work order"""
+input UpdateWorkOrderInput {
+  """Identifier of the work order to update"""
+  workOrderId: UUID!
+  """Updated priority level"""
+  priority: WorkOrderPriority
+  """Updated status"""
+  status: WorkOrderStatus
+  """Updated title"""
+  title: String
+  """Updated description"""
+  description: String
+  """Updated assigned person"""
+  assignedTo: String
+  """Updated estimated cost"""
+  estimatedCost: Decimal
+  """Updated scheduled date"""
+  scheduledDate: Date
+}
+
+"""Input for marking a work order as completed"""
+input CompleteWorkOrderInput {
+  """Identifier of the work order to complete"""
+  workOrderId: UUID!
+  """Actual cost incurred"""
+  actualCost: Decimal!
+  """Notes recorded upon completion"""
+  completionNotes: String
+  """Date the work was completed"""
+  completedDate: Date!
+}
+
+"""Input for creating a new audit record"""
+input CreateAuditInput {
+  """Identifier of the asset being audited"""
+  assetId: UUID!
+  """Name of the person conducting the audit"""
+  auditorName: String!
+  """Date the audit is performed"""
+  auditDate: Date!
+  """Condition of the asset as observed during the audit"""
+  currentCondition: AssetCondition!
+  """Location identifier where the asset was found"""
+  currentLocationId: UUID!
+  """Notes from the auditor"""
+  notes: String
+  """Whether a discrepancy was discovered"""
+  discrepancyFound: Boolean!
+  """Details of any discrepancy"""
+  discrepancyDetails: String
+}
+
+# ── Queries ──────────────────────────────────────────────────────────────────────
+
+"""Root query type for the Asset Management API"""
+type Query {
+  """Retrieve a single asset by its identifier"""
+  asset(
+    """Unique identifier of the asset"""
+    assetId: UUID!
+  ): Asset
+
+  """Retrieve a paginated list of assets with optional filters"""
+  assets(
+    """Maximum number of results to return"""
+    first: Int
+    """Cursor after which to return results"""
+    after: String
+    """Filter by asset lifecycle status"""
+    status: AssetStatus
+    """Filter by asset physical condition"""
+    condition: AssetCondition
+    """Filter by category identifier"""
+    categoryId: UUID
+    """Filter by location identifier"""
+    locationId: UUID
+  ): AssetConnection!
+
+  """Retrieve a single category by its identifier"""
+  category(
+    """Unique identifier of the category"""
+    categoryId: UUID!
+  ): Category
+
+  """Retrieve a paginated list of categories with optional filters"""
+  categories(
+    """Maximum number of results to return"""
+    first: Int
+    """Cursor after which to return results"""
+    after: String
+    """Filter by active status"""
+    active: Boolean
+  ): CategoryConnection!
+
+  """Retrieve a single location by its identifier"""
+  location(
+    """Unique identifier of the location"""
+    locationId: UUID!
+  ): Location
+
+  """Retrieve a paginated list of locations with optional filters"""
+  locations(
+    """Maximum number of results to return"""
+    first: Int
+    """Cursor after which to return results"""
+    after: String
+    """Filter by location classification"""
+    locationType: LocationType
+    """Filter by active status"""
+    active: Boolean
+  ): LocationConnection!
+
+  """Retrieve a single work order by its identifier"""
+  workOrder(
+    """Unique identifier of the work order"""
+    workOrderId: UUID!
+  ): WorkOrder
+
+  """Retrieve a paginated list of work orders with optional filters"""
+  workOrders(
+    """Maximum number of results to return"""
+    first: Int
+    """Cursor after which to return results"""
+    after: String
+    """Filter by asset identifier"""
+    assetId: UUID
+    """Filter by work order status"""
+    status: WorkOrderStatus
+    """Filter by priority level"""
+    priority: WorkOrderPriority
+    """Filter by work order classification"""
+    workOrderType: WorkOrderType
+  ): WorkOrderConnection!
+
+  """Retrieve a single audit by its identifier"""
+  audit(
+    """Unique identifier of the audit"""
+    auditId: UUID!
+  ): Audit
+
+  """Retrieve a paginated list of audits with optional filters"""
+  audits(
+    """Maximum number of results to return"""
+    first: Int
+    """Cursor after which to return results"""
+    after: String
+    """Filter by asset identifier"""
+    assetId: UUID
+    """Filter to only audits with discrepancies"""
+    discrepancyFound: Boolean
+  ): AuditConnection!
+}
+
+# ── Mutations ────────────────────────────────────────────────────────────────────
+
+"""Root mutation type for the Asset Management API"""
+type Mutation {
+  """Register a new asset in the system"""
+  createAsset(
+    """Input data for the new asset"""
+    input: CreateAssetInput!
+  ): Asset!
+
+  """Update an existing asset"""
+  updateAsset(
+    """Input data for the asset update"""
+    input: UpdateAssetInput!
+  ): Asset!
+
+  """Decommission an asset, removing it from active service"""
+  decommissionAsset(
+    """Input data for the decommission action"""
+    input: DecommissionAssetInput!
+  ): Asset!
+
+  """Dispose of an asset, permanently removing it from inventory"""
+  disposeAsset(
+    """Identifier of the asset to dispose"""
+    assetId: UUID!
+    """Reason for disposal"""
+    reason: String!
+  ): Asset!
+
+  """Create a new asset category"""
+  createCategory(
+    """Input data for the new category"""
+    input: CreateCategoryInput!
+  ): Category!
+
+  """Update an existing asset category"""
+  updateCategory(
+    """Input data for the category update"""
+    input: UpdateCategoryInput!
+  ): Category!
+
+  """Create a new location"""
+  createLocation(
+    """Input data for the new location"""
+    input: CreateLocationInput!
+  ): Location!
+
+  """Update an existing location"""
+  updateLocation(
+    """Input data for the location update"""
+    input: UpdateLocationInput!
+  ): Location!
+
+  """Create a new work order for an asset"""
+  createWorkOrder(
+    """Input data for the new work order"""
+    input: CreateWorkOrderInput!
+  ): WorkOrder!
+
+  """Update an existing work order"""
+  updateWorkOrder(
+    """Input data for the work order update"""
+    input: UpdateWorkOrderInput!
+  ): WorkOrder!
+
+  """Mark a work order as completed"""
+  completeWorkOrder(
+    """Input data for the work order completion"""
+    input: CompleteWorkOrderInput!
+  ): WorkOrder!
+
+  """Create a new audit record for an asset"""
+  createAudit(
+    """Input data for the new audit"""
+    input: CreateAuditInput!
+  ): Audit!
+}
+
+# ── Subscriptions ────────────────────────────────────────────────────────────────
+
+"""Root subscription type for real-time Asset Management events"""
+type Subscription {
+  """Emitted when an asset's lifecycle status changes"""
+  assetStatusChanged(
+    """Optional asset identifier to filter events"""
+    assetId: UUID
+  ): Asset!
+
+  """Emitted when a new work order is created"""
+  workOrderCreated(
+    """Optional asset identifier to filter events"""
+    assetId: UUID
+  ): WorkOrder!
+
+  """Emitted when a work order is marked as completed"""
+  workOrderCompleted(
+    """Optional work order identifier to filter events"""
+    workOrderId: UUID
+  ): WorkOrder!
+
+  """Emitted when an audit is completed for an asset"""
+  auditCompleted(
+    """Optional asset identifier to filter events"""
+    assetId: UUID
+  ): Audit!
+}

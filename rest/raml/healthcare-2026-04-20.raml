@@ -1,0 +1,1224 @@
+#%RAML 1.0
+title: Healthcare Patient Management API
+version: v1
+baseUri: https://api.examplehealth.com/v1
+mediaType: application/json
+description: >
+  API for managing patients, healthcare providers, appointments, prescriptions,
+  and medical records. Supports full lifecycle management for patient care
+  coordination, provider scheduling, and clinical documentation in enterprise
+  healthcare systems.
+
+securitySchemes:
+  bearerAuth:
+    type: Pass Through
+    describedBy:
+      headers:
+        Authorization:
+          description: Bearer JWT token
+          type: string
+          pattern: "^Bearer .+"
+
+traits:
+  secured:
+    headers:
+      Authorization:
+        description: Bearer JWT access token
+        type: string
+        required: true
+    responses:
+      401:
+        description: Unauthorized
+        body:
+          application/json:
+            type: ErrorResponse
+      500:
+        description: Internal server error
+        body:
+          application/json:
+            type: ErrorResponse
+
+  paged:
+    queryParameters:
+      page:
+        type: integer
+        minimum: 1
+        default: 1
+        required: false
+      pageSize:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 25
+        required: false
+
+resourceTypes:
+  collection:
+    get:
+      is: [secured, paged]
+      responses:
+        200:
+          description: Collection retrieved successfully
+    post:
+      is: [secured]
+      responses:
+        201:
+          description: Resource created
+        400:
+          description: Bad request
+          body:
+            application/json:
+              type: ErrorResponse
+
+  item:
+    get:
+      is: [secured]
+      responses:
+        200:
+          description: Resource retrieved successfully
+        404:
+          description: Resource not found
+          body:
+            application/json:
+              type: ErrorResponse
+    put:
+      is: [secured]
+      responses:
+        200:
+          description: Resource updated
+        400:
+          description: Bad request
+          body:
+            application/json:
+              type: ErrorResponse
+        404:
+          description: Resource not found
+          body:
+            application/json:
+              type: ErrorResponse
+    delete:
+      is: [secured]
+      responses:
+        204:
+          description: Resource deleted
+        404:
+          description: Resource not found
+          body:
+            application/json:
+              type: ErrorResponse
+
+types:
+  ErrorResponse:
+    type: object
+    properties:
+      code:
+        type: string
+        required: true
+      message:
+        type: string
+        required: true
+      details:
+        type: string
+        required: false
+
+  Gender:
+    type: string
+    enum: [Male, Female, NonBinary, Other]
+
+  PatientStatus:
+    type: string
+    enum: [Active, Inactive, Deceased]
+
+  ProviderStatus:
+    type: string
+    enum: [Active, OnLeave, Inactive]
+
+  AppointmentType:
+    type: string
+    enum: [Consultation, FollowUp, Procedure, Screening, Urgent]
+
+  AppointmentStatus:
+    type: string
+    enum: [Scheduled, CheckedIn, InProgress, Completed, Cancelled, NoShow]
+
+  PrescriptionStatus:
+    type: string
+    enum: [Active, Completed, Cancelled, OnHold]
+
+  MedicationRoute:
+    type: string
+    enum: [Oral, Topical, Injection, Inhalation, Intravenous]
+
+  RecordType:
+    type: string
+    enum: [LabResult, Imaging, Diagnosis, Procedure, Note, Referral]
+
+  Confidentiality:
+    type: string
+    enum: [Normal, Restricted, VeryRestricted]
+
+  Address:
+    type: object
+    properties:
+      street:
+        type: string
+        required: true
+        description: Street address line
+      city:
+        type: string
+        required: true
+        description: City name
+      state:
+        type: string
+        required: true
+        description: State or province code
+      zipCode:
+        type: string
+        required: true
+        description: Postal or ZIP code
+
+  Patient:
+    type: object
+    properties:
+      id:
+        type: string
+        required: true
+        description: UUID identifier
+      medicalRecordNumber:
+        type: string
+        required: true
+        description: Unique medical record number
+      firstName:
+        type: string
+        required: true
+      lastName:
+        type: string
+        required: true
+      dateOfBirth:
+        type: date-only
+        required: true
+      gender:
+        type: Gender
+        required: true
+      email:
+        type: string
+        required: false
+      phone:
+        type: string
+        required: false
+      address:
+        type: Address
+        required: false
+      emergencyContactName:
+        type: string
+        required: false
+        description: Name of emergency contact
+      emergencyContactPhone:
+        type: string
+        required: false
+        description: Phone number of emergency contact
+      insuranceProvider:
+        type: string
+        required: false
+      insurancePolicyNumber:
+        type: string
+        required: false
+      primaryProviderId:
+        type: string
+        required: false
+        description: UUID of the primary care provider
+      status:
+        type: PatientStatus
+        required: true
+      createdAt:
+        type: datetime
+        required: false
+      updatedAt:
+        type: datetime
+        required: false
+
+  CreatePatientRequest:
+    type: object
+    properties:
+      firstName:
+        type: string
+        required: true
+      lastName:
+        type: string
+        required: true
+      dateOfBirth:
+        type: date-only
+        required: true
+      gender:
+        type: Gender
+        required: true
+      email:
+        type: string
+        required: false
+      phone:
+        type: string
+        required: false
+      address:
+        type: Address
+        required: false
+      emergencyContactName:
+        type: string
+        required: false
+      emergencyContactPhone:
+        type: string
+        required: false
+      insuranceProvider:
+        type: string
+        required: false
+      insurancePolicyNumber:
+        type: string
+        required: false
+      primaryProviderId:
+        type: string
+        required: false
+
+  UpdatePatientRequest:
+    type: object
+    properties:
+      firstName:
+        type: string
+        required: false
+      lastName:
+        type: string
+        required: false
+      email:
+        type: string
+        required: false
+      phone:
+        type: string
+        required: false
+      address:
+        type: Address
+        required: false
+      emergencyContactName:
+        type: string
+        required: false
+      emergencyContactPhone:
+        type: string
+        required: false
+      insuranceProvider:
+        type: string
+        required: false
+      insurancePolicyNumber:
+        type: string
+        required: false
+      primaryProviderId:
+        type: string
+        required: false
+      status:
+        type: PatientStatus
+        required: false
+
+  PatientListResponse:
+    type: object
+    properties:
+      items:
+        type: Patient[]
+        required: true
+      totalCount:
+        type: integer
+        required: true
+
+  Provider:
+    type: object
+    properties:
+      id:
+        type: string
+        required: true
+        description: UUID identifier
+      npiNumber:
+        type: string
+        required: true
+        description: National Provider Identifier
+      firstName:
+        type: string
+        required: true
+      lastName:
+        type: string
+        required: true
+      specialty:
+        type: string
+        required: true
+        description: Medical specialty (e.g. Cardiology, Pediatrics)
+      email:
+        type: string
+        required: false
+      phone:
+        type: string
+        required: false
+      licenseNumber:
+        type: string
+        required: true
+      licenseState:
+        type: string
+        required: true
+        description: State where the provider is licensed
+      departmentId:
+        type: string
+        required: false
+        description: UUID of the department
+      status:
+        type: ProviderStatus
+        required: true
+      createdAt:
+        type: datetime
+        required: false
+      updatedAt:
+        type: datetime
+        required: false
+
+  CreateProviderRequest:
+    type: object
+    properties:
+      firstName:
+        type: string
+        required: true
+      lastName:
+        type: string
+        required: true
+      specialty:
+        type: string
+        required: true
+      email:
+        type: string
+        required: false
+      phone:
+        type: string
+        required: false
+      npiNumber:
+        type: string
+        required: true
+      licenseNumber:
+        type: string
+        required: true
+      licenseState:
+        type: string
+        required: true
+      departmentId:
+        type: string
+        required: false
+
+  UpdateProviderRequest:
+    type: object
+    properties:
+      firstName:
+        type: string
+        required: false
+      lastName:
+        type: string
+        required: false
+      specialty:
+        type: string
+        required: false
+      email:
+        type: string
+        required: false
+      phone:
+        type: string
+        required: false
+      licenseNumber:
+        type: string
+        required: false
+      licenseState:
+        type: string
+        required: false
+      departmentId:
+        type: string
+        required: false
+      status:
+        type: ProviderStatus
+        required: false
+
+  ProviderListResponse:
+    type: object
+    properties:
+      items:
+        type: Provider[]
+        required: true
+      totalCount:
+        type: integer
+        required: true
+
+  Appointment:
+    type: object
+    properties:
+      id:
+        type: string
+        required: true
+        description: UUID identifier
+      patientId:
+        type: string
+        required: true
+        description: UUID of the patient
+      providerId:
+        type: string
+        required: true
+        description: UUID of the provider
+      appointmentType:
+        type: AppointmentType
+        required: true
+      status:
+        type: AppointmentStatus
+        required: true
+      scheduledDate:
+        type: date-only
+        required: true
+      scheduledTime:
+        type: time-only
+        required: true
+      durationMinutes:
+        type: integer
+        required: true
+        description: Duration of the appointment in minutes
+      location:
+        type: string
+        required: false
+        description: Facility or room where the appointment takes place
+      reasonForVisit:
+        type: string
+        required: false
+      notes:
+        type: string
+        required: false
+      cancellationReason:
+        type: string
+        required: false
+      createdAt:
+        type: datetime
+        required: false
+      updatedAt:
+        type: datetime
+        required: false
+
+  CreateAppointmentRequest:
+    type: object
+    properties:
+      patientId:
+        type: string
+        required: true
+      providerId:
+        type: string
+        required: true
+      appointmentType:
+        type: AppointmentType
+        required: true
+      scheduledDate:
+        type: date-only
+        required: true
+      scheduledTime:
+        type: time-only
+        required: true
+      durationMinutes:
+        type: integer
+        required: true
+      location:
+        type: string
+        required: false
+      reasonForVisit:
+        type: string
+        required: false
+      notes:
+        type: string
+        required: false
+
+  UpdateAppointmentRequest:
+    type: object
+    properties:
+      appointmentType:
+        type: AppointmentType
+        required: false
+      status:
+        type: AppointmentStatus
+        required: false
+      scheduledDate:
+        type: date-only
+        required: false
+      scheduledTime:
+        type: time-only
+        required: false
+      durationMinutes:
+        type: integer
+        required: false
+      location:
+        type: string
+        required: false
+      reasonForVisit:
+        type: string
+        required: false
+      notes:
+        type: string
+        required: false
+
+  AppointmentListResponse:
+    type: object
+    properties:
+      items:
+        type: Appointment[]
+        required: true
+      totalCount:
+        type: integer
+        required: true
+
+  CancelAppointmentRequest:
+    type: object
+    properties:
+      cancellationReason:
+        type: string
+        required: true
+        description: Reason for cancelling the appointment
+
+  Prescription:
+    type: object
+    properties:
+      id:
+        type: string
+        required: true
+        description: UUID identifier
+      patientId:
+        type: string
+        required: true
+        description: UUID of the patient
+      providerId:
+        type: string
+        required: true
+        description: UUID of the prescribing provider
+      medicationName:
+        type: string
+        required: true
+      dosage:
+        type: string
+        required: true
+        description: Dosage amount and unit (e.g. 500mg)
+      route:
+        type: MedicationRoute
+        required: true
+      frequency:
+        type: string
+        required: true
+        description: How often the medication is taken (e.g. twice daily)
+      startDate:
+        type: date-only
+        required: true
+      endDate:
+        type: date-only
+        required: false
+      refillsRemaining:
+        type: integer
+        required: true
+      pharmacyName:
+        type: string
+        required: false
+      pharmacyPhone:
+        type: string
+        required: false
+      instructions:
+        type: string
+        required: false
+        description: Additional instructions for the patient
+      status:
+        type: PrescriptionStatus
+        required: true
+      createdAt:
+        type: datetime
+        required: false
+      updatedAt:
+        type: datetime
+        required: false
+
+  CreatePrescriptionRequest:
+    type: object
+    properties:
+      patientId:
+        type: string
+        required: true
+      providerId:
+        type: string
+        required: true
+      medicationName:
+        type: string
+        required: true
+      dosage:
+        type: string
+        required: true
+      route:
+        type: MedicationRoute
+        required: true
+      frequency:
+        type: string
+        required: true
+      startDate:
+        type: date-only
+        required: true
+      endDate:
+        type: date-only
+        required: false
+      refillsRemaining:
+        type: integer
+        required: true
+      pharmacyName:
+        type: string
+        required: false
+      pharmacyPhone:
+        type: string
+        required: false
+      instructions:
+        type: string
+        required: false
+
+  UpdatePrescriptionRequest:
+    type: object
+    properties:
+      dosage:
+        type: string
+        required: false
+      route:
+        type: MedicationRoute
+        required: false
+      frequency:
+        type: string
+        required: false
+      endDate:
+        type: date-only
+        required: false
+      refillsRemaining:
+        type: integer
+        required: false
+      pharmacyName:
+        type: string
+        required: false
+      pharmacyPhone:
+        type: string
+        required: false
+      instructions:
+        type: string
+        required: false
+      status:
+        type: PrescriptionStatus
+        required: false
+
+  PrescriptionListResponse:
+    type: object
+    properties:
+      items:
+        type: Prescription[]
+        required: true
+      totalCount:
+        type: integer
+        required: true
+
+  MedicalRecord:
+    type: object
+    properties:
+      id:
+        type: string
+        required: true
+        description: UUID identifier
+      patientId:
+        type: string
+        required: true
+        description: UUID of the patient
+      providerId:
+        type: string
+        required: true
+        description: UUID of the provider who created the record
+      recordType:
+        type: RecordType
+        required: true
+      title:
+        type: string
+        required: true
+        description: Brief title summarising the record
+      description:
+        type: string
+        required: false
+        description: Detailed clinical notes or findings
+      recordDate:
+        type: date-only
+        required: true
+        description: Date of the clinical event
+      confidentiality:
+        type: Confidentiality
+        required: true
+      attachmentUrl:
+        type: string
+        required: false
+        description: URL to an associated document or image
+      appointmentId:
+        type: string
+        required: false
+        description: UUID of the related appointment
+      createdAt:
+        type: datetime
+        required: false
+      updatedAt:
+        type: datetime
+        required: false
+
+  CreateMedicalRecordRequest:
+    type: object
+    properties:
+      patientId:
+        type: string
+        required: true
+      providerId:
+        type: string
+        required: true
+      recordType:
+        type: RecordType
+        required: true
+      title:
+        type: string
+        required: true
+      description:
+        type: string
+        required: false
+      recordDate:
+        type: date-only
+        required: true
+      confidentiality:
+        type: Confidentiality
+        required: true
+      attachmentUrl:
+        type: string
+        required: false
+      appointmentId:
+        type: string
+        required: false
+
+  MedicalRecordListResponse:
+    type: object
+    properties:
+      items:
+        type: MedicalRecord[]
+        required: true
+      totalCount:
+        type: integer
+        required: true
+
+/patients:
+  description: Manage patient records in the healthcare system.
+  get:
+    is: [secured, paged]
+    description: List patients with optional status filter.
+    queryParameters:
+      status:
+        type: PatientStatus
+        required: false
+        description: Filter patients by status
+    responses:
+      200:
+        description: Patients retrieved successfully
+        body:
+          application/json:
+            type: PatientListResponse
+  post:
+    is: [secured]
+    description: Register a new patient.
+    body:
+      application/json:
+        type: CreatePatientRequest
+    responses:
+      201:
+        description: Patient created
+        body:
+          application/json:
+            type: Patient
+      400:
+        description: Bad request
+        body:
+          application/json:
+            type: ErrorResponse
+
+  /{patientId}:
+    description: Operations on a specific patient.
+    uriParameters:
+      patientId:
+        type: string
+        description: UUID of the patient
+    get:
+      is: [secured]
+      description: Get patient by ID.
+      responses:
+        200:
+          description: Patient retrieved successfully
+          body:
+            application/json:
+              type: Patient
+        404:
+          description: Patient not found
+          body:
+            application/json:
+              type: ErrorResponse
+    put:
+      is: [secured]
+      description: Update patient details.
+      body:
+        application/json:
+          type: UpdatePatientRequest
+      responses:
+        200:
+          description: Patient updated
+          body:
+            application/json:
+              type: Patient
+        400:
+          description: Bad request
+          body:
+            application/json:
+              type: ErrorResponse
+        404:
+          description: Patient not found
+          body:
+            application/json:
+              type: ErrorResponse
+    delete:
+      is: [secured]
+      description: Remove a patient record.
+      responses:
+        204:
+          description: Patient deleted
+        404:
+          description: Patient not found
+          body:
+            application/json:
+              type: ErrorResponse
+
+/providers:
+  description: Manage healthcare provider records.
+  get:
+    is: [secured, paged]
+    description: List providers with optional specialty and status filters.
+    queryParameters:
+      specialty:
+        type: string
+        required: false
+        description: Filter providers by medical specialty
+      status:
+        type: ProviderStatus
+        required: false
+        description: Filter providers by status
+    responses:
+      200:
+        description: Providers retrieved successfully
+        body:
+          application/json:
+            type: ProviderListResponse
+  post:
+    is: [secured]
+    description: Register a new healthcare provider.
+    body:
+      application/json:
+        type: CreateProviderRequest
+    responses:
+      201:
+        description: Provider created
+        body:
+          application/json:
+            type: Provider
+      400:
+        description: Bad request
+        body:
+          application/json:
+            type: ErrorResponse
+
+  /{providerId}:
+    description: Operations on a specific provider.
+    uriParameters:
+      providerId:
+        type: string
+        description: UUID of the provider
+    get:
+      is: [secured]
+      description: Get provider by ID.
+      responses:
+        200:
+          description: Provider retrieved successfully
+          body:
+            application/json:
+              type: Provider
+        404:
+          description: Provider not found
+          body:
+            application/json:
+              type: ErrorResponse
+    put:
+      is: [secured]
+      description: Update provider details.
+      body:
+        application/json:
+          type: UpdateProviderRequest
+      responses:
+        200:
+          description: Provider updated
+          body:
+            application/json:
+              type: Provider
+        400:
+          description: Bad request
+          body:
+            application/json:
+              type: ErrorResponse
+        404:
+          description: Provider not found
+          body:
+            application/json:
+              type: ErrorResponse
+
+/appointments:
+  description: Manage patient appointments.
+  get:
+    is: [secured, paged]
+    description: List appointments with optional filters.
+    queryParameters:
+      patientId:
+        type: string
+        required: false
+        description: Filter appointments by patient UUID
+      providerId:
+        type: string
+        required: false
+        description: Filter appointments by provider UUID
+      status:
+        type: AppointmentStatus
+        required: false
+        description: Filter appointments by status
+      date:
+        type: date-only
+        required: false
+        description: Filter appointments by scheduled date
+    responses:
+      200:
+        description: Appointments retrieved successfully
+        body:
+          application/json:
+            type: AppointmentListResponse
+  post:
+    is: [secured]
+    description: Schedule a new appointment.
+    body:
+      application/json:
+        type: CreateAppointmentRequest
+    responses:
+      201:
+        description: Appointment created
+        body:
+          application/json:
+            type: Appointment
+      400:
+        description: Bad request
+        body:
+          application/json:
+            type: ErrorResponse
+
+  /{appointmentId}:
+    description: Operations on a specific appointment.
+    uriParameters:
+      appointmentId:
+        type: string
+        description: UUID of the appointment
+    get:
+      is: [secured]
+      description: Get appointment by ID.
+      responses:
+        200:
+          description: Appointment retrieved successfully
+          body:
+            application/json:
+              type: Appointment
+        404:
+          description: Appointment not found
+          body:
+            application/json:
+              type: ErrorResponse
+    put:
+      is: [secured]
+      description: Update appointment details.
+      body:
+        application/json:
+          type: UpdateAppointmentRequest
+      responses:
+        200:
+          description: Appointment updated
+          body:
+            application/json:
+              type: Appointment
+        400:
+          description: Bad request
+          body:
+            application/json:
+              type: ErrorResponse
+        404:
+          description: Appointment not found
+          body:
+            application/json:
+              type: ErrorResponse
+
+    /cancel:
+      description: Cancel a scheduled appointment.
+      post:
+        is: [secured]
+        description: Cancel the appointment with a reason.
+        body:
+          application/json:
+            type: CancelAppointmentRequest
+        responses:
+          200:
+            description: Appointment cancelled successfully
+            body:
+              application/json:
+                type: Appointment
+          400:
+            description: Bad request
+            body:
+              application/json:
+                type: ErrorResponse
+          404:
+            description: Appointment not found
+            body:
+              application/json:
+                type: ErrorResponse
+
+/prescriptions:
+  description: Manage patient prescriptions.
+  get:
+    is: [secured, paged]
+    description: List prescriptions with optional filters.
+    queryParameters:
+      patientId:
+        type: string
+        required: false
+        description: Filter prescriptions by patient UUID
+      status:
+        type: PrescriptionStatus
+        required: false
+        description: Filter prescriptions by status
+    responses:
+      200:
+        description: Prescriptions retrieved successfully
+        body:
+          application/json:
+            type: PrescriptionListResponse
+  post:
+    is: [secured]
+    description: Create a new prescription.
+    body:
+      application/json:
+        type: CreatePrescriptionRequest
+    responses:
+      201:
+        description: Prescription created
+        body:
+          application/json:
+            type: Prescription
+      400:
+        description: Bad request
+        body:
+          application/json:
+            type: ErrorResponse
+
+  /{prescriptionId}:
+    description: Operations on a specific prescription.
+    uriParameters:
+      prescriptionId:
+        type: string
+        description: UUID of the prescription
+    get:
+      is: [secured]
+      description: Get prescription by ID.
+      responses:
+        200:
+          description: Prescription retrieved successfully
+          body:
+            application/json:
+              type: Prescription
+        404:
+          description: Prescription not found
+          body:
+            application/json:
+              type: ErrorResponse
+    put:
+      is: [secured]
+      description: Update prescription details.
+      body:
+        application/json:
+          type: UpdatePrescriptionRequest
+      responses:
+        200:
+          description: Prescription updated
+          body:
+            application/json:
+              type: Prescription
+        400:
+          description: Bad request
+          body:
+            application/json:
+              type: ErrorResponse
+        404:
+          description: Prescription not found
+          body:
+            application/json:
+              type: ErrorResponse
+
+/medical-records:
+  description: Manage patient medical records and clinical documentation.
+  get:
+    is: [secured, paged]
+    description: List medical records with optional filters.
+    queryParameters:
+      patientId:
+        type: string
+        required: false
+        description: Filter records by patient UUID
+      type:
+        type: RecordType
+        required: false
+        description: Filter records by type
+    responses:
+      200:
+        description: Medical records retrieved successfully
+        body:
+          application/json:
+            type: MedicalRecordListResponse
+  post:
+    is: [secured]
+    description: Create a new medical record entry.
+    body:
+      application/json:
+        type: CreateMedicalRecordRequest
+    responses:
+      201:
+        description: Medical record created
+        body:
+          application/json:
+            type: MedicalRecord
+      400:
+        description: Bad request
+        body:
+          application/json:
+            type: ErrorResponse
+
+  /{recordId}:
+    description: Operations on a specific medical record.
+    uriParameters:
+      recordId:
+        type: string
+        description: UUID of the medical record
+    get:
+      is: [secured]
+      description: Get medical record by ID.
+      responses:
+        200:
+          description: Medical record retrieved successfully
+          body:
+            application/json:
+              type: MedicalRecord
+        404:
+          description: Medical record not found
+          body:
+            application/json:
+              type: ErrorResponse
