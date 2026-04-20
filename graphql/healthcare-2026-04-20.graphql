@@ -1,0 +1,857 @@
+"""
+Healthcare API — GraphQL SDL
+
+Covers patient management, providers, appointments, prescriptions,
+and medical records for enterprise healthcare systems.
+"""
+
+schema {
+  query: Query
+  mutation: Mutation
+  subscription: Subscription
+}
+
+# ---------------------------------------------------------------------------
+# Scalars
+# ---------------------------------------------------------------------------
+
+"""ISO-8601 date-time string (e.g. 2026-04-20T08:30:00Z)"""
+scalar DateTime
+
+"""ISO-8601 calendar date string (e.g. 2026-04-20)"""
+scalar Date
+
+"""RFC-4122 UUID"""
+scalar UUID
+
+# ---------------------------------------------------------------------------
+# Enums
+# ---------------------------------------------------------------------------
+
+"""Biological or self-reported gender"""
+enum Gender {
+  """Male gender"""
+  MALE
+  """Female gender"""
+  FEMALE
+  """Non-binary gender identity"""
+  NON_BINARY
+  """Other gender identity"""
+  OTHER
+}
+
+"""Lifecycle status of a patient record"""
+enum PatientStatus {
+  """Patient is currently active and receiving care"""
+  ACTIVE
+  """Patient record is inactive"""
+  INACTIVE
+  """Patient is deceased"""
+  DECEASED
+}
+
+"""Lifecycle status of a healthcare provider"""
+enum ProviderStatus {
+  """Provider is actively practising"""
+  ACTIVE
+  """Provider is temporarily on leave"""
+  ON_LEAVE
+  """Provider is no longer practising at this facility"""
+  INACTIVE
+}
+
+"""Category of a scheduled appointment"""
+enum AppointmentType {
+  """Initial or general consultation"""
+  CONSULTATION
+  """Follow-up visit for an existing condition"""
+  FOLLOW_UP
+  """Medical procedure or minor surgery"""
+  PROCEDURE
+  """Routine health screening"""
+  SCREENING
+  """Urgent or same-day appointment"""
+  URGENT
+}
+
+"""Lifecycle status of an appointment"""
+enum AppointmentStatus {
+  """Appointment has been booked but not yet started"""
+  SCHEDULED
+  """Patient has arrived and checked in"""
+  CHECKED_IN
+  """Appointment is currently in progress"""
+  IN_PROGRESS
+  """Appointment has been completed"""
+  COMPLETED
+  """Appointment was cancelled"""
+  CANCELLED
+  """Patient did not show up"""
+  NO_SHOW
+}
+
+"""Lifecycle status of a prescription"""
+enum PrescriptionStatus {
+  """Prescription is currently active"""
+  ACTIVE
+  """Prescription course has been completed"""
+  COMPLETED
+  """Prescription was cancelled by a provider"""
+  CANCELLED
+  """Prescription is temporarily on hold"""
+  ON_HOLD
+}
+
+"""Route of medication administration"""
+enum MedicationRoute {
+  """Taken by mouth"""
+  ORAL
+  """Applied to the skin"""
+  TOPICAL
+  """Administered via injection"""
+  INJECTION
+  """Administered via inhalation"""
+  INHALATION
+  """Administered intravenously"""
+  INTRAVENOUS
+}
+
+"""Category of a medical record entry"""
+enum RecordType {
+  """Laboratory test result"""
+  LAB_RESULT
+  """Imaging study (X-ray, MRI, CT, etc.)"""
+  IMAGING
+  """Clinical diagnosis"""
+  DIAGNOSIS
+  """Procedure or surgery record"""
+  PROCEDURE
+  """Clinical note"""
+  NOTE
+  """Referral to another provider or specialist"""
+  REFERRAL
+}
+
+"""Confidentiality level for medical records"""
+enum Confidentiality {
+  """Standard access for authorised care team members"""
+  NORMAL
+  """Restricted to treating providers only"""
+  RESTRICTED
+  """Highly restricted — requires explicit authorisation"""
+  VERY_RESTRICTED
+}
+
+"""ABO/Rh blood type classification"""
+enum BloodType {
+  """A positive"""
+  A_POSITIVE
+  """A negative"""
+  A_NEGATIVE
+  """B positive"""
+  B_POSITIVE
+  """B negative"""
+  B_NEGATIVE
+  """AB positive"""
+  AB_POSITIVE
+  """AB negative"""
+  AB_NEGATIVE
+  """O positive"""
+  O_POSITIVE
+  """O negative"""
+  O_NEGATIVE
+}
+
+# ---------------------------------------------------------------------------
+# Interfaces
+# ---------------------------------------------------------------------------
+
+"""Audit timestamps shared by all domain records"""
+interface Auditable {
+  """When this record was created"""
+  createdAt: DateTime!
+  """When this record was last updated"""
+  updatedAt: DateTime!
+}
+
+# ---------------------------------------------------------------------------
+# Types
+# ---------------------------------------------------------------------------
+
+"""Physical or mailing address"""
+type Address {
+  """Street address line"""
+  street: String!
+  """City name"""
+  city: String!
+  """State or province"""
+  state: String!
+  """ZIP or postal code"""
+  zipCode: String!
+}
+
+"""A patient registered in the healthcare system"""
+type Patient implements Auditable {
+  """Unique patient identifier"""
+  patientId: UUID!
+  """Medical record number"""
+  mrn: String!
+  """Patient's legal first name"""
+  firstName: String!
+  """Patient's legal last name"""
+  lastName: String!
+  """Date of birth"""
+  dateOfBirth: Date!
+  """Self-reported gender"""
+  gender: Gender!
+  """Primary email address"""
+  email: String
+  """Primary phone number"""
+  phone: String
+  """Residential address"""
+  address: Address
+  """Name of the insurance provider"""
+  insuranceProvider: String
+  """Insurance policy number"""
+  insurancePolicyNumber: String
+  """Primary care provider for this patient"""
+  primaryProvider: Provider
+  """Current lifecycle status"""
+  status: PatientStatus!
+  """ABO/Rh blood type"""
+  bloodType: BloodType
+  """Known allergies"""
+  allergies: [String!]
+  """Emergency contact full name"""
+  emergencyContactName: String
+  """Emergency contact phone number"""
+  emergencyContactPhone: String
+  """Appointments for this patient"""
+  appointments(status: AppointmentStatus): [Appointment!]!
+  """Active and historical prescriptions"""
+  prescriptions(status: PrescriptionStatus): [Prescription!]!
+  """Medical records for this patient"""
+  medicalRecords(recordType: RecordType): [MedicalRecord!]!
+  """When this record was created"""
+  createdAt: DateTime!
+  """When this record was last updated"""
+  updatedAt: DateTime!
+}
+
+"""A healthcare provider (physician, nurse practitioner, specialist, etc.)"""
+type Provider implements Auditable {
+  """Unique provider identifier"""
+  providerId: UUID!
+  """National Provider Identifier"""
+  npi: String!
+  """Provider's legal first name"""
+  firstName: String!
+  """Provider's legal last name"""
+  lastName: String!
+  """Medical specialty (e.g. Cardiology, Pediatrics)"""
+  specialty: String!
+  """Work email address"""
+  email: String!
+  """Work phone number"""
+  phone: String
+  """Department or unit"""
+  department: String
+  """Current lifecycle status"""
+  status: ProviderStatus!
+  """Medical licence number"""
+  licenseNumber: String!
+  """State in which the licence was issued"""
+  licenseState: String!
+  """Whether the provider is accepting new patients"""
+  acceptingNewPatients: Boolean!
+  """Patients assigned to this provider"""
+  patients(status: PatientStatus): [Patient!]!
+  """Appointments for this provider"""
+  appointments(status: AppointmentStatus): [Appointment!]!
+  """When this record was created"""
+  createdAt: DateTime!
+  """When this record was last updated"""
+  updatedAt: DateTime!
+}
+
+"""A scheduled appointment between a patient and provider"""
+type Appointment implements Auditable {
+  """Unique appointment identifier"""
+  appointmentId: UUID!
+  """The patient for this appointment"""
+  patient: Patient!
+  """The provider for this appointment"""
+  provider: Provider!
+  """Scheduled start date and time"""
+  scheduledStart: DateTime!
+  """Scheduled end date and time"""
+  scheduledEnd: DateTime!
+  """Category of the appointment"""
+  appointmentType: AppointmentType!
+  """Current lifecycle status"""
+  status: AppointmentStatus!
+  """Reason for the visit"""
+  reason: String
+  """Clinical notes from the appointment"""
+  notes: String
+  """Facility or room location"""
+  location: String
+  """When this record was created"""
+  createdAt: DateTime!
+  """When this record was last updated"""
+  updatedAt: DateTime!
+}
+
+"""A medication prescription issued to a patient"""
+type Prescription implements Auditable {
+  """Unique prescription identifier"""
+  prescriptionId: UUID!
+  """The patient this prescription is for"""
+  patient: Patient!
+  """The prescribing provider"""
+  provider: Provider!
+  """Medication name"""
+  medication: String!
+  """Dosage amount and unit (e.g. 500mg)"""
+  dosage: String!
+  """Dosing frequency (e.g. twice daily)"""
+  frequency: String!
+  """Route of administration"""
+  route: MedicationRoute!
+  """Date the prescription becomes effective"""
+  startDate: Date!
+  """Date the prescription expires"""
+  endDate: Date
+  """Number of refills remaining"""
+  refillsRemaining: Int!
+  """Total number of refills authorised"""
+  refillsTotal: Int!
+  """Current lifecycle status"""
+  status: PrescriptionStatus!
+  """Dispensing pharmacy name"""
+  pharmacy: String
+  """Additional prescriber notes"""
+  notes: String
+  """When this record was created"""
+  createdAt: DateTime!
+  """When this record was last updated"""
+  updatedAt: DateTime!
+}
+
+"""A medical record entry for a patient encounter"""
+type MedicalRecord implements Auditable {
+  """Unique record identifier"""
+  recordId: UUID!
+  """The patient this record belongs to"""
+  patient: Patient!
+  """The provider who authored this record"""
+  provider: Provider!
+  """Date of the clinical encounter"""
+  encounterDate: DateTime!
+  """Category of this record"""
+  recordType: RecordType!
+  """Short title or summary"""
+  title: String!
+  """Detailed description of the encounter"""
+  description: String
+  """Clinical findings or results"""
+  findings: String
+  """URL to an attached document or image"""
+  attachmentUrl: String
+  """Confidentiality level for access control"""
+  confidentiality: Confidentiality!
+  """When this record was created"""
+  createdAt: DateTime!
+  """When this record was last updated"""
+  updatedAt: DateTime!
+}
+
+# ---------------------------------------------------------------------------
+# Connection / Edge types (Relay pagination)
+# ---------------------------------------------------------------------------
+
+"""Cursor-based pagination for patients"""
+type PatientConnection {
+  """List of patient edges in this page"""
+  edges: [PatientEdge!]!
+  """Pagination metadata"""
+  pageInfo: PageInfo!
+  """Total number of matching records"""
+  totalCount: Int!
+}
+
+"""An edge wrapping a single patient"""
+type PatientEdge {
+  """The patient node"""
+  node: Patient!
+  """Opaque pagination cursor"""
+  cursor: String!
+}
+
+"""Cursor-based pagination for providers"""
+type ProviderConnection {
+  """List of provider edges in this page"""
+  edges: [ProviderEdge!]!
+  """Pagination metadata"""
+  pageInfo: PageInfo!
+  """Total number of matching records"""
+  totalCount: Int!
+}
+
+"""An edge wrapping a single provider"""
+type ProviderEdge {
+  """The provider node"""
+  node: Provider!
+  """Opaque pagination cursor"""
+  cursor: String!
+}
+
+"""Cursor-based pagination for appointments"""
+type AppointmentConnection {
+  """List of appointment edges in this page"""
+  edges: [AppointmentEdge!]!
+  """Pagination metadata"""
+  pageInfo: PageInfo!
+  """Total number of matching records"""
+  totalCount: Int!
+}
+
+"""An edge wrapping a single appointment"""
+type AppointmentEdge {
+  """The appointment node"""
+  node: Appointment!
+  """Opaque pagination cursor"""
+  cursor: String!
+}
+
+"""Cursor-based pagination for prescriptions"""
+type PrescriptionConnection {
+  """List of prescription edges in this page"""
+  edges: [PrescriptionEdge!]!
+  """Pagination metadata"""
+  pageInfo: PageInfo!
+  """Total number of matching records"""
+  totalCount: Int!
+}
+
+"""An edge wrapping a single prescription"""
+type PrescriptionEdge {
+  """The prescription node"""
+  node: Prescription!
+  """Opaque pagination cursor"""
+  cursor: String!
+}
+
+"""Cursor-based pagination for medical records"""
+type MedicalRecordConnection {
+  """List of medical record edges in this page"""
+  edges: [MedicalRecordEdge!]!
+  """Pagination metadata"""
+  pageInfo: PageInfo!
+  """Total number of matching records"""
+  totalCount: Int!
+}
+
+"""An edge wrapping a single medical record"""
+type MedicalRecordEdge {
+  """The medical record node"""
+  node: MedicalRecord!
+  """Opaque pagination cursor"""
+  cursor: String!
+}
+
+"""Standard Relay pagination metadata"""
+type PageInfo {
+  """Whether more pages exist after this one"""
+  hasNextPage: Boolean!
+  """Whether more pages exist before this one"""
+  hasPreviousPage: Boolean!
+  """Cursor for the first item in this page"""
+  startCursor: String
+  """Cursor for the last item in this page"""
+  endCursor: String
+}
+
+# ---------------------------------------------------------------------------
+# Inputs
+# ---------------------------------------------------------------------------
+
+"""Fields required to register a new patient"""
+input CreatePatientInput {
+  """Patient's legal first name"""
+  firstName: String!
+  """Patient's legal last name"""
+  lastName: String!
+  """Date of birth"""
+  dateOfBirth: Date!
+  """Self-reported gender"""
+  gender: Gender!
+  """Primary email address"""
+  email: String
+  """Primary phone number"""
+  phone: String
+  """Residential address"""
+  address: AddressInput
+  """Name of the insurance provider"""
+  insuranceProvider: String
+  """Insurance policy number"""
+  insurancePolicyNumber: String
+  """ID of the primary care provider"""
+  primaryProviderId: UUID
+  """ABO/Rh blood type"""
+  bloodType: BloodType
+  """Known allergies"""
+  allergies: [String!]
+  """Emergency contact full name"""
+  emergencyContactName: String
+  """Emergency contact phone number"""
+  emergencyContactPhone: String
+}
+
+"""Fields that can be updated on a patient"""
+input UpdatePatientInput {
+  """Patient's legal first name"""
+  firstName: String
+  """Patient's legal last name"""
+  lastName: String
+  """Primary email address"""
+  email: String
+  """Primary phone number"""
+  phone: String
+  """Residential address"""
+  address: AddressInput
+  """Name of the insurance provider"""
+  insuranceProvider: String
+  """Insurance policy number"""
+  insurancePolicyNumber: String
+  """ID of the primary care provider"""
+  primaryProviderId: UUID
+  """Current lifecycle status"""
+  status: PatientStatus
+  """ABO/Rh blood type"""
+  bloodType: BloodType
+  """Known allergies"""
+  allergies: [String!]
+  """Emergency contact full name"""
+  emergencyContactName: String
+  """Emergency contact phone number"""
+  emergencyContactPhone: String
+}
+
+"""Fields required to register a new provider"""
+input CreateProviderInput {
+  """National Provider Identifier"""
+  npi: String!
+  """Provider's legal first name"""
+  firstName: String!
+  """Provider's legal last name"""
+  lastName: String!
+  """Medical specialty"""
+  specialty: String!
+  """Work email address"""
+  email: String!
+  """Work phone number"""
+  phone: String
+  """Department or unit"""
+  department: String
+  """Medical licence number"""
+  licenseNumber: String!
+  """State in which the licence was issued"""
+  licenseState: String!
+  """Whether the provider is accepting new patients"""
+  acceptingNewPatients: Boolean
+}
+
+"""Fields that can be updated on a provider"""
+input UpdateProviderInput {
+  """Provider's legal first name"""
+  firstName: String
+  """Provider's legal last name"""
+  lastName: String
+  """Medical specialty"""
+  specialty: String
+  """Work email address"""
+  email: String
+  """Work phone number"""
+  phone: String
+  """Department or unit"""
+  department: String
+  """Current lifecycle status"""
+  status: ProviderStatus
+  """Medical licence number"""
+  licenseNumber: String
+  """State in which the licence was issued"""
+  licenseState: String
+  """Whether the provider is accepting new patients"""
+  acceptingNewPatients: Boolean
+}
+
+"""Fields required to schedule a new appointment"""
+input ScheduleAppointmentInput {
+  """ID of the patient"""
+  patientId: UUID!
+  """ID of the provider"""
+  providerId: UUID!
+  """Scheduled start date and time"""
+  scheduledStart: DateTime!
+  """Scheduled end date and time"""
+  scheduledEnd: DateTime!
+  """Category of the appointment"""
+  appointmentType: AppointmentType!
+  """Reason for the visit"""
+  reason: String
+  """Facility or room location"""
+  location: String
+}
+
+"""Fields that can be updated on an appointment"""
+input UpdateAppointmentInput {
+  """New scheduled start date and time"""
+  scheduledStart: DateTime
+  """New scheduled end date and time"""
+  scheduledEnd: DateTime
+  """Updated appointment category"""
+  appointmentType: AppointmentType
+  """Updated lifecycle status"""
+  status: AppointmentStatus
+  """Updated reason for the visit"""
+  reason: String
+  """Updated clinical notes"""
+  notes: String
+  """Updated facility or room location"""
+  location: String
+}
+
+"""Fields required to cancel an appointment"""
+input CancelAppointmentInput {
+  """ID of the appointment to cancel"""
+  appointmentId: UUID!
+  """Reason for cancellation"""
+  reason: String
+}
+
+"""Fields required to create a new prescription"""
+input CreatePrescriptionInput {
+  """ID of the patient"""
+  patientId: UUID!
+  """ID of the prescribing provider"""
+  providerId: UUID!
+  """Medication name"""
+  medication: String!
+  """Dosage amount and unit"""
+  dosage: String!
+  """Dosing frequency"""
+  frequency: String!
+  """Route of administration"""
+  route: MedicationRoute!
+  """Date the prescription becomes effective"""
+  startDate: Date!
+  """Date the prescription expires"""
+  endDate: Date
+  """Total number of refills authorised"""
+  refillsTotal: Int!
+  """Dispensing pharmacy name"""
+  pharmacy: String
+  """Additional prescriber notes"""
+  notes: String
+}
+
+"""Fields that can be updated on a prescription"""
+input UpdatePrescriptionInput {
+  """Updated dosage amount and unit"""
+  dosage: String
+  """Updated dosing frequency"""
+  frequency: String
+  """Updated route of administration"""
+  route: MedicationRoute
+  """Updated end date"""
+  endDate: Date
+  """Updated number of refills remaining"""
+  refillsRemaining: Int
+  """Updated lifecycle status"""
+  status: PrescriptionStatus
+  """Updated pharmacy name"""
+  pharmacy: String
+  """Updated prescriber notes"""
+  notes: String
+}
+
+"""Fields required to create a new medical record"""
+input CreateMedicalRecordInput {
+  """ID of the patient"""
+  patientId: UUID!
+  """ID of the authoring provider"""
+  providerId: UUID!
+  """Date of the clinical encounter"""
+  encounterDate: DateTime!
+  """Category of this record"""
+  recordType: RecordType!
+  """Short title or summary"""
+  title: String!
+  """Detailed description of the encounter"""
+  description: String
+  """Clinical findings or results"""
+  findings: String
+  """URL to an attached document or image"""
+  attachmentUrl: String
+  """Confidentiality level for access control"""
+  confidentiality: Confidentiality
+}
+
+"""Input for a physical or mailing address"""
+input AddressInput {
+  """Street address line"""
+  street: String!
+  """City name"""
+  city: String!
+  """State or province"""
+  state: String!
+  """ZIP or postal code"""
+  zipCode: String!
+}
+
+# ---------------------------------------------------------------------------
+# Queries
+# ---------------------------------------------------------------------------
+
+"""Root query type — all read operations"""
+type Query {
+  """Retrieve a single patient by ID"""
+  patient(patientId: UUID!): Patient
+
+  """List patients with optional filtering and cursor-based pagination"""
+  patients(
+    """Maximum number of results to return"""
+    first: Int
+    """Cursor for forward pagination"""
+    after: String
+    """Filter by patient lifecycle status"""
+    status: PatientStatus
+    """Filter by primary provider ID"""
+    providerId: UUID
+  ): PatientConnection!
+
+  """Retrieve a single provider by ID"""
+  provider(providerId: UUID!): Provider
+
+  """List providers with optional filtering and cursor-based pagination"""
+  providers(
+    """Maximum number of results to return"""
+    first: Int
+    """Cursor for forward pagination"""
+    after: String
+    """Filter by medical specialty"""
+    specialty: String
+    """Filter by provider lifecycle status"""
+    status: ProviderStatus
+  ): ProviderConnection!
+
+  """Retrieve a single appointment by ID"""
+  appointment(appointmentId: UUID!): Appointment
+
+  """List appointments with optional filtering and cursor-based pagination"""
+  appointments(
+    """Maximum number of results to return"""
+    first: Int
+    """Cursor for forward pagination"""
+    after: String
+    """Filter by patient ID"""
+    patientId: UUID
+    """Filter by provider ID"""
+    providerId: UUID
+    """Filter by appointment lifecycle status"""
+    status: AppointmentStatus
+    """Only return appointments on or after this date"""
+    fromDate: DateTime
+    """Only return appointments on or before this date"""
+    toDate: DateTime
+  ): AppointmentConnection!
+
+  """Retrieve a single prescription by ID"""
+  prescription(prescriptionId: UUID!): Prescription
+
+  """List prescriptions with optional filtering and cursor-based pagination"""
+  prescriptions(
+    """Maximum number of results to return"""
+    first: Int
+    """Cursor for forward pagination"""
+    after: String
+    """Filter by patient ID"""
+    patientId: UUID
+    """Filter by prescription lifecycle status"""
+    status: PrescriptionStatus
+  ): PrescriptionConnection!
+
+  """Retrieve a single medical record by ID"""
+  medicalRecord(recordId: UUID!): MedicalRecord
+
+  """List medical records with optional filtering and cursor-based pagination"""
+  medicalRecords(
+    """Maximum number of results to return"""
+    first: Int
+    """Cursor for forward pagination"""
+    after: String
+    """Filter by patient ID"""
+    patientId: UUID
+    """Filter by record category"""
+    recordType: RecordType
+    """Filter by confidentiality level"""
+    confidentiality: Confidentiality
+  ): MedicalRecordConnection!
+}
+
+# ---------------------------------------------------------------------------
+# Mutations
+# ---------------------------------------------------------------------------
+
+"""Root mutation type — all write operations"""
+type Mutation {
+  """Register a new patient"""
+  createPatient(input: CreatePatientInput!): Patient!
+
+  """Update an existing patient's details"""
+  updatePatient(patientId: UUID!, input: UpdatePatientInput!): Patient!
+
+  """Register a new healthcare provider"""
+  createProvider(input: CreateProviderInput!): Provider!
+
+  """Update an existing provider's details"""
+  updateProvider(providerId: UUID!, input: UpdateProviderInput!): Provider!
+
+  """Schedule a new appointment"""
+  scheduleAppointment(input: ScheduleAppointmentInput!): Appointment!
+
+  """Update an existing appointment"""
+  updateAppointment(appointmentId: UUID!, input: UpdateAppointmentInput!): Appointment!
+
+  """Cancel a scheduled appointment"""
+  cancelAppointment(input: CancelAppointmentInput!): Appointment!
+
+  """Create a new prescription"""
+  createPrescription(input: CreatePrescriptionInput!): Prescription!
+
+  """Update an existing prescription"""
+  updatePrescription(prescriptionId: UUID!, input: UpdatePrescriptionInput!): Prescription!
+
+  """Create a new medical record entry"""
+  createMedicalRecord(input: CreateMedicalRecordInput!): MedicalRecord!
+}
+
+# ---------------------------------------------------------------------------
+# Subscriptions
+# ---------------------------------------------------------------------------
+
+"""Root subscription type — real-time event streams"""
+type Subscription {
+  """Notified when a new appointment is scheduled for a provider"""
+  appointmentScheduled(providerId: UUID!): Appointment!
+
+  """Notified when an appointment's status changes"""
+  appointmentStatusChanged(appointmentId: UUID!): Appointment!
+
+  """Notified when a new prescription is created for a patient"""
+  prescriptionCreated(patientId: UUID!): Prescription!
+
+  """Notified when a new medical record is created for a patient"""
+  medicalRecordCreated(patientId: UUID!): MedicalRecord!
+}
