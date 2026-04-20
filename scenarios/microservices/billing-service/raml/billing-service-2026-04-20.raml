@@ -1,0 +1,1107 @@
+#%RAML 1.0
+title: StreamFlix Billing Service API
+version: 1.0.0
+baseUri: https://api.streamflix.com/billing/v1
+mediaType: application/json
+description: Subscription management, payment processing, and billing cycle management
+  for the StreamFlix streaming platform
+
+securitySchemes:
+  bearerAuth:
+    type: OAuth 2.0
+    description: JWT Bearer Token Authentication
+    describedBy:
+      headers:
+        Authorization:
+          description: Bearer token
+          type: string
+          pattern: ^Bearer .+$
+          example: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+
+types:
+  SubscriptionPlan:
+    properties:
+      id:
+        type: string
+        required: true
+        example: 550e8400-e29b-41d4-a716-446655440000
+      name:
+        type: string
+        required: true
+        enum: [basic, standard, premium]
+        example: premium
+      displayName:
+        type: string
+        required: true
+        example: Premium Plan
+      description:
+        type: string
+        required: true
+        example: Full access to all content including 4K streaming
+      monthlyPrice:
+        type: number
+        required: true
+        example: 15.99
+      annualPrice:
+        type: number
+        required: true
+        example: 159.99
+      currency:
+        type: string
+        required: true
+        example: USD
+      maxProfiles:
+        type: integer
+        required: true
+        example: 4
+      maxSimultaneousStreams:
+        type: integer
+        required: true
+        example: 4
+      supportedResolutions:
+        type: array
+        required: true
+        items: string
+        example: [HD, FHD, 4K]
+      offlineDownloads:
+        type: boolean
+        required: true
+        example: true
+      adSupported:
+        type: boolean
+        required: true
+        example: false
+      features:
+        type: array
+        required: true
+        items: string
+        example: [4K streaming, Offline downloads, Ad-free]
+      createdAt:
+        type: datetime
+        required: true
+        example: 2026-01-15T10:30:00Z
+      updatedAt:
+        type: datetime
+        required: true
+        example: 2026-04-20T14:22:00Z
+
+  Subscription:
+    properties:
+      id:
+        type: string
+        required: true
+        example: 660e8400-e29b-41d4-a716-446655440000
+      userId:
+        type: string
+        required: true
+        example: 550e8400-e29b-41d4-a716-446655440000
+      planId:
+        type: string
+        required: true
+        example: 770e8400-e29b-41d4-a716-446655440000
+      plan:
+        type: SubscriptionPlan
+        required: false
+      status:
+        type: string
+        required: true
+        enum: [active, paused, cancelled, expired]
+        example: active
+      billingCycle:
+        type: string
+        required: true
+        enum: [monthly, annual]
+        example: monthly
+      startDate:
+        type: datetime
+        required: true
+        example: 2026-03-20T10:30:00Z
+      renewalDate:
+        type: datetime
+        required: true
+        example: 2026-05-20T10:30:00Z
+      cancellationDate:
+        type: datetime
+        required: false
+        example: 2026-04-15T10:30:00Z
+      currentPrice:
+        type: number
+        required: true
+        example: 15.99
+      discountAmount:
+        type: number
+        required: true
+        example: 2.0
+      finalPrice:
+        type: number
+        required: true
+        example: 13.99
+      paymentMethodId:
+        type: string
+        required: true
+        example: 880e8400-e29b-41d4-a716-446655440000
+      autoRenewal:
+        type: boolean
+        required: true
+        example: true
+      createdAt:
+        type: datetime
+        required: true
+        example: 2026-01-15T10:30:00Z
+      updatedAt:
+        type: datetime
+        required: true
+        example: 2026-04-20T14:22:00Z
+
+  SubscriptionCreate:
+    properties:
+      planId:
+        type: string
+        required: true
+        example: 770e8400-e29b-41d4-a716-446655440000
+      billingCycle:
+        type: string
+        required: true
+        enum: [monthly, annual]
+        example: monthly
+      paymentMethodId:
+        type: string
+        required: true
+        example: 880e8400-e29b-41d4-a716-446655440000
+      autoRenewal?:
+        type: boolean
+        example: true
+      promotionalCode?:
+        type: string
+        example: WELCOME2026
+
+  SubscriptionChangeRequest:
+    properties:
+      planId:
+        type: string
+        required: true
+        example: 770e8400-e29b-41d4-a716-446655440000
+      effectiveDate?:
+        type: string
+        enum: [immediate, nextBillingCycle]
+        example: immediate
+
+  SubscriptionCancelRequest:
+    properties:
+      reason:
+        type: string
+        required: true
+        enum: [too_expensive, not_using, switching_to_competitor, other]
+        example: too_expensive
+      feedback?:
+        type: string
+        example: Plan is too expensive for my usage
+      effectiveDate?:
+        type: string
+        enum: [immediate, endOfBillingCycle]
+        example: immediate
+
+  PaymentMethod:
+    properties:
+      id:
+        type: string
+        required: true
+        example: 990e8400-e29b-41d4-a716-446655440000
+      userId:
+        type: string
+        required: true
+        example: 550e8400-e29b-41d4-a716-446655440000
+      type:
+        type: string
+        required: true
+        enum: [credit_card, debit_card, paypal, bank_transfer]
+        example: credit_card
+      cardHolderName:
+        type: string
+        required: true
+        example: John Doe
+      lastFourDigits:
+        type: string
+        required: true
+        example: '4242'
+      expiryMonth:
+        type: integer
+        required: true
+        example: 12
+      expiryYear:
+        type: integer
+        required: true
+        example: 2027
+      isDefault:
+        type: boolean
+        required: true
+        example: true
+      isVerified:
+        type: boolean
+        required: true
+        example: true
+      cardBrand:
+        type: string
+        required: true
+        enum: [visa, mastercard, amex, discover]
+        example: visa
+      billingAddress:
+        type: BillingAddress
+        required: false
+      createdAt:
+        type: datetime
+        required: true
+        example: 2026-01-15T10:30:00Z
+
+  PaymentMethodCreate:
+    properties:
+      type:
+        type: string
+        required: true
+        enum: [credit_card, debit_card]
+        example: credit_card
+      cardHolderName:
+        type: string
+        required: true
+        example: John Doe
+      cardNumber:
+        type: string
+        required: true
+        example: '4532111111111111'
+      expiryMonth:
+        type: integer
+        required: true
+        minimum: 1
+        maximum: 12
+        example: 12
+      expiryYear:
+        type: integer
+        required: true
+        example: 2027
+      cvv:
+        type: string
+        required: true
+        minLength: 3
+        maxLength: 4
+        example: '123'
+      isDefault?:
+        type: boolean
+        example: true
+      billingAddress?:
+        type: BillingAddressInput
+
+  PaymentMethodUpdate:
+    properties:
+      expiryMonth?:
+        type: integer
+        minimum: 1
+        maximum: 12
+        example: 12
+      expiryYear?:
+        type: integer
+        example: 2027
+      isDefault?:
+        type: boolean
+        example: true
+      billingAddress?:
+        type: BillingAddressInput
+
+  BillingAddress:
+    properties:
+      street:
+        type: string
+        required: false
+        example: 123 Main St
+      city:
+        type: string
+        required: false
+        example: New York
+      state:
+        type: string
+        required: false
+        example: NY
+      zipCode:
+        type: string
+        required: false
+        example: '10001'
+      country:
+        type: string
+        required: false
+        example: US
+
+  BillingAddressInput:
+    properties:
+      street:
+        type: string
+        required: true
+        example: 123 Main St
+      city:
+        type: string
+        required: true
+        example: New York
+      state:
+        type: string
+        required: true
+        example: NY
+      zipCode:
+        type: string
+        required: true
+        example: '10001'
+      country:
+        type: string
+        required: true
+        example: US
+
+  Invoice:
+    properties:
+      id:
+        type: string
+        required: true
+        example: aa0e8400-e29b-41d4-a716-446655440000
+      userId:
+        type: string
+        required: true
+        example: 550e8400-e29b-41d4-a716-446655440000
+      subscriptionId:
+        type: string
+        required: true
+        example: 660e8400-e29b-41d4-a716-446655440000
+      invoiceNumber:
+        type: string
+        required: true
+        example: INV-2026-00001
+      status:
+        type: string
+        required: true
+        enum: [paid, pending, failed, cancelled]
+        example: paid
+      amount:
+        type: number
+        required: true
+        example: 15.99
+      tax:
+        type: number
+        required: true
+        example: 1.28
+      totalAmount:
+        type: number
+        required: true
+        example: 17.27
+      currency:
+        type: string
+        required: true
+        example: USD
+      issueDate:
+        type: datetime
+        required: true
+        example: 2026-04-20T10:30:00Z
+      dueDate:
+        type: datetime
+        required: true
+        example: 2026-05-20T10:30:00Z
+      paidDate:
+        type: datetime
+        required: false
+        example: 2026-04-20T12:15:00Z
+      billingPeriodStart:
+        type: datetime
+        required: true
+        example: 2026-04-20T10:30:00Z
+      billingPeriodEnd:
+        type: datetime
+        required: true
+        example: 2026-05-20T10:30:00Z
+      description:
+        type: string
+        required: true
+        example: Monthly subscription - Premium Plan
+      lineItems:
+        type: array
+        required: false
+        items: LineItem
+      createdAt:
+        type: datetime
+        required: true
+        example: 2026-04-20T10:30:00Z
+
+  LineItem:
+    properties:
+      description:
+        type: string
+        required: true
+        example: Premium Plan - Monthly
+      quantity:
+        type: integer
+        required: true
+        example: 1
+      unitPrice:
+        type: number
+        required: true
+        example: 15.99
+      amount:
+        type: number
+        required: true
+        example: 15.99
+
+  BillingCycle:
+    properties:
+      id:
+        type: string
+        required: true
+        example: bb0e8400-e29b-41d4-a716-446655440000
+      userId:
+        type: string
+        required: true
+        example: 550e8400-e29b-41d4-a716-446655440000
+      subscriptionId:
+        type: string
+        required: true
+        example: 660e8400-e29b-41d4-a716-446655440000
+      startDate:
+        type: datetime
+        required: true
+        example: 2026-04-20T10:30:00Z
+      endDate:
+        type: datetime
+        required: true
+        example: 2026-05-20T10:30:00Z
+      nextBillingDate:
+        type: datetime
+        required: true
+        example: 2026-05-20T10:30:00Z
+      daysRemaining:
+        type: integer
+        required: true
+        example: 30
+      status:
+        type: string
+        required: true
+        enum: [active, upcoming, completed, cancelled]
+        example: active
+      estimatedAmount:
+        type: number
+        required: true
+        example: 15.99
+      frequency:
+        type: string
+        required: true
+        enum: [monthly, annual]
+        example: monthly
+
+  PromotionalCode:
+    properties:
+      id:
+        type: string
+        required: true
+        example: cc0e8400-e29b-41d4-a716-446655440000
+      code:
+        type: string
+        required: true
+        example: WELCOME2026
+      description:
+        type: string
+        required: true
+        example: 20% off first month
+      discountType:
+        type: string
+        required: true
+        enum: [percentage, fixed_amount]
+        example: percentage
+      discountValue:
+        type: number
+        required: true
+        example: 20
+      maxDiscount:
+        type: number
+        required: true
+        example: 5.0
+      applicablePlans:
+        type: array
+        required: false
+        items: string
+        example: [basic, standard, premium]
+      validFrom:
+        type: datetime
+        required: true
+        example: 2026-01-01T00:00:00Z
+      validUntil:
+        type: datetime
+        required: true
+        example: 2026-12-31T23:59:59Z
+      maxUsages:
+        type: integer
+        required: true
+        example: 1000
+      currentUsages:
+        type: integer
+        required: true
+        example: 150
+      usagePerUser:
+        type: integer
+        required: true
+        example: 1
+      isActive:
+        type: boolean
+        required: true
+        example: true
+
+  PromotionalCodeValidation:
+    properties:
+      code:
+        type: string
+        required: true
+        example: WELCOME2026
+
+  PromotionalCodeApplication:
+    properties:
+      code:
+        type: string
+        required: true
+        example: WELCOME2026
+
+  Discount:
+    properties:
+      id:
+        type: string
+        required: true
+        example: dd0e8400-e29b-41d4-a716-446655440000
+      userId:
+        type: string
+        required: true
+        example: 550e8400-e29b-41d4-a716-446655440000
+      subscriptionId:
+        type: string
+        required: true
+        example: 660e8400-e29b-41d4-a716-446655440000
+      promotionalCodeId:
+        type: string
+        required: true
+        example: cc0e8400-e29b-41d4-a716-446655440000
+      code:
+        type: string
+        required: true
+        example: WELCOME2026
+      discountType:
+        type: string
+        required: true
+        enum: [percentage, fixed_amount]
+        example: percentage
+      discountValue:
+        type: number
+        required: true
+        example: 20
+      discountAmount:
+        type: number
+        required: true
+        example: 3.0
+      appliedDate:
+        type: datetime
+        required: true
+        example: 2026-04-20T10:30:00Z
+      expiryDate:
+        type: datetime
+        required: true
+        example: 2026-05-20T10:30:00Z
+      status:
+        type: string
+        required: true
+        enum: [active, expired, removed]
+        example: active
+
+  Error:
+    properties:
+      code:
+        type: string
+        required: true
+        example: INVALID_INPUT
+      message:
+        type: string
+        required: true
+        example: The provided input is invalid
+      details?:
+        type: array
+        items:
+          properties:
+            field?: string
+            message?: string
+
+/subscription-plans:
+  get:
+    description: Retrieve all available subscription plans
+    responses:
+      200:
+        description: Subscription plans retrieved successfully
+        body:
+          application/json:
+            properties:
+              plans:
+                type: array
+                items: SubscriptionPlan
+
+/subscription-plans/{planId}:
+  uriParameters:
+    planId:
+      type: string
+      description: Plan ID
+      example: 550e8400-e29b-41d4-a716-446655440000
+  get:
+    description: Retrieve details of a specific subscription plan
+    responses:
+      200:
+        description: Subscription plan retrieved successfully
+        body:
+          application/json:
+            type: SubscriptionPlan
+      404:
+        description: Subscription plan not found
+        body:
+          application/json:
+            type: Error
+
+/subscriptions:
+  get:
+    description: Retrieve the authenticated user's subscription details
+    securedBy: [bearerAuth]
+    responses:
+      200:
+        description: User subscription retrieved successfully
+        body:
+          application/json:
+            type: Subscription
+      401:
+        description: Unauthorized
+        body:
+          application/json:
+            type: Error
+      404:
+        description: Subscription not found
+        body:
+          application/json:
+            type: Error
+  post:
+    description: Create a new subscription for the authenticated user
+    securedBy: [bearerAuth]
+    body:
+      application/json:
+        type: SubscriptionCreate
+    responses:
+      201:
+        description: Subscription created successfully
+        body:
+          application/json:
+            type: Subscription
+      400:
+        description: Invalid input
+        body:
+          application/json:
+            type: Error
+      401:
+        description: Unauthorized
+        body:
+          application/json:
+            type: Error
+      409:
+        description: Subscription already exists
+        body:
+          application/json:
+            type: Error
+
+/subscriptions/upgrade:
+  put:
+    description: Upgrade to a higher tier subscription plan
+    securedBy: [bearerAuth]
+    body:
+      application/json:
+        type: SubscriptionChangeRequest
+    responses:
+      200:
+        description: Subscription upgraded successfully
+        body:
+          application/json:
+            type: Subscription
+      400:
+        description: Invalid input
+        body:
+          application/json:
+            type: Error
+      401:
+        description: Unauthorized
+        body:
+          application/json:
+            type: Error
+      404:
+        description: Subscription not found
+        body:
+          application/json:
+            type: Error
+
+/subscriptions/downgrade:
+  put:
+    description: Downgrade to a lower tier subscription plan
+    securedBy: [bearerAuth]
+    body:
+      application/json:
+        type: SubscriptionChangeRequest
+    responses:
+      200:
+        description: Subscription downgraded successfully
+        body:
+          application/json:
+            type: Subscription
+      400:
+        description: Invalid input
+        body:
+          application/json:
+            type: Error
+      401:
+        description: Unauthorized
+        body:
+          application/json:
+            type: Error
+      404:
+        description: Subscription not found
+        body:
+          application/json:
+            type: Error
+
+/subscriptions/cancel:
+  post:
+    description: Cancel the authenticated user's subscription
+    securedBy: [bearerAuth]
+    body:
+      application/json:
+        type: SubscriptionCancelRequest
+    responses:
+      200:
+        description: Subscription cancelled successfully
+        body:
+          application/json:
+            type: Subscription
+      400:
+        description: Invalid input
+        body:
+          application/json:
+            type: Error
+      401:
+        description: Unauthorized
+        body:
+          application/json:
+            type: Error
+      404:
+        description: Subscription not found
+        body:
+          application/json:
+            type: Error
+
+/payment-methods:
+  get:
+    description: Retrieve all payment methods for the authenticated user
+    securedBy: [bearerAuth]
+    responses:
+      200:
+        description: Payment methods retrieved successfully
+        body:
+          application/json:
+            properties:
+              paymentMethods:
+                type: array
+                items: PaymentMethod
+      401:
+        description: Unauthorized
+        body:
+          application/json:
+            type: Error
+  post:
+    description: Add a new payment method to the authenticated user's account
+    securedBy: [bearerAuth]
+    body:
+      application/json:
+        type: PaymentMethodCreate
+    responses:
+      201:
+        description: Payment method added successfully
+        body:
+          application/json:
+            type: PaymentMethod
+      400:
+        description: Invalid input
+        body:
+          application/json:
+            type: Error
+      401:
+        description: Unauthorized
+        body:
+          application/json:
+            type: Error
+
+/payment-methods/{paymentMethodId}:
+  uriParameters:
+    paymentMethodId:
+      type: string
+      description: Payment Method ID
+      example: 990e8400-e29b-41d4-a716-446655440000
+  get:
+    description: Retrieve details of a specific payment method
+    securedBy: [bearerAuth]
+    responses:
+      200:
+        description: Payment method retrieved successfully
+        body:
+          application/json:
+            type: PaymentMethod
+      401:
+        description: Unauthorized
+        body:
+          application/json:
+            type: Error
+      404:
+        description: Payment method not found
+        body:
+          application/json:
+            type: Error
+  put:
+    description: Update a specific payment method
+    securedBy: [bearerAuth]
+    body:
+      application/json:
+        type: PaymentMethodUpdate
+    responses:
+      200:
+        description: Payment method updated successfully
+        body:
+          application/json:
+            type: PaymentMethod
+      400:
+        description: Invalid input
+        body:
+          application/json:
+            type: Error
+      401:
+        description: Unauthorized
+        body:
+          application/json:
+            type: Error
+      404:
+        description: Payment method not found
+        body:
+          application/json:
+            type: Error
+  delete:
+    description: Remove a payment method from the authenticated user's account
+    securedBy: [bearerAuth]
+    responses:
+      204:
+        description: Payment method deleted successfully
+      401:
+        description: Unauthorized
+        body:
+          application/json:
+            type: Error
+      404:
+        description: Payment method not found
+        body:
+          application/json:
+            type: Error
+
+/invoices:
+  get:
+    description: Retrieve billing history and invoices for the authenticated user
+    securedBy: [bearerAuth]
+    queryParameters:
+      limit:
+        type: integer
+        required: false
+        default: 50
+        minimum: 1
+        maximum: 100
+        description: Number of invoices to return
+      offset:
+        type: integer
+        required: false
+        default: 0
+        minimum: 0
+        description: Number of invoices to skip
+      status:
+        type: string
+        required: false
+        enum: [paid, pending, failed, cancelled]
+        description: Filter invoices by status
+    responses:
+      200:
+        description: Invoices retrieved successfully
+        body:
+          application/json:
+            properties:
+              invoices:
+                type: array
+                items: Invoice
+              total: integer
+              limit: integer
+              offset: integer
+      401:
+        description: Unauthorized
+        body:
+          application/json:
+            type: Error
+
+/invoices/{invoiceId}:
+  uriParameters:
+    invoiceId:
+      type: string
+      description: Invoice ID
+      example: aa0e8400-e29b-41d4-a716-446655440000
+  get:
+    description: Retrieve details of a specific invoice
+    securedBy: [bearerAuth]
+    responses:
+      200:
+        description: Invoice retrieved successfully
+        body:
+          application/json:
+            type: Invoice
+      401:
+        description: Unauthorized
+        body:
+          application/json:
+            type: Error
+      404:
+        description: Invoice not found
+        body:
+          application/json:
+            type: Error
+
+/invoices/{invoiceId}/download:
+  uriParameters:
+    invoiceId:
+      type: string
+      description: Invoice ID
+      example: aa0e8400-e29b-41d4-a716-446655440000
+  get:
+    description: Download invoice as PDF
+    securedBy: [bearerAuth]
+    responses:
+      200:
+        description: Invoice PDF downloaded successfully
+        body:
+          application/pdf:
+      401:
+        description: Unauthorized
+        body:
+          application/json:
+            type: Error
+      404:
+        description: Invoice not found
+        body:
+          application/json:
+            type: Error
+
+/billing-cycle:
+  get:
+    description: Retrieve billing cycle information for the authenticated user
+    securedBy: [bearerAuth]
+    responses:
+      200:
+        description: Billing cycle retrieved successfully
+        body:
+          application/json:
+            type: BillingCycle
+      401:
+        description: Unauthorized
+        body:
+          application/json:
+            type: Error
+      404:
+        description: Billing cycle not found
+        body:
+          application/json:
+            type: Error
+
+/promotions/validate:
+  post:
+    description: Validate and get details of a promotional code
+    securedBy: [bearerAuth]
+    body:
+      application/json:
+        type: PromotionalCodeValidation
+    responses:
+      200:
+        description: Promotional code is valid
+        body:
+          application/json:
+            type: PromotionalCode
+      400:
+        description: Invalid promotional code
+        body:
+          application/json:
+            type: Error
+      401:
+        description: Unauthorized
+        body:
+          application/json:
+            type: Error
+
+/promotions/apply:
+  post:
+    description: Apply a promotional code to the user's subscription
+    securedBy: [bearerAuth]
+    body:
+      application/json:
+        type: PromotionalCodeApplication
+    responses:
+      200:
+        description: Promotional code applied successfully
+        body:
+          application/json:
+            type: Discount
+      400:
+        description: Invalid input or promotional code
+        body:
+          application/json:
+            type: Error
+      401:
+        description: Unauthorized
+        body:
+          application/json:
+            type: Error
+
+/discounts:
+  get:
+    description: Retrieve all applied discounts for the authenticated user
+    securedBy: [bearerAuth]
+    responses:
+      200:
+        description: Discounts retrieved successfully
+        body:
+          application/json:
+            properties:
+              discounts:
+                type: array
+                items: Discount
+      401:
+        description: Unauthorized
+        body:
+          application/json:
+            type: Error
+
+/discounts/{discountId}:
+  uriParameters:
+    discountId:
+      type: string
+      description: Discount ID
+      example: dd0e8400-e29b-41d4-a716-446655440000
+  delete:
+    description: Remove an applied discount from the authenticated user's subscription
+    securedBy: [bearerAuth]
+    responses:
+      204:
+        description: Discount removed successfully
+      401:
+        description: Unauthorized
+        body:
+          application/json:
+            type: Error
+      404:
+        description: Discount not found
+        body:
+          application/json:
+            type: Error

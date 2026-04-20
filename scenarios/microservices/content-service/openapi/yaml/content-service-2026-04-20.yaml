@@ -1,0 +1,1350 @@
+openapi: 3.0.0
+info:
+  title: StreamFlix Content Service API
+  version: 1.0.0
+  description: Content catalog management, metadata, search and filtering for the StreamFlix
+    streaming platform
+servers:
+- url: https://api.streamflix.com/content/v1
+  description: Production server
+- url: https://staging-api.streamflix.com/content/v1
+  description: Staging server
+tags:
+- name: Content
+  description: Content catalog operations
+- name: Search
+  description: Content search and filtering
+- name: Genres
+  description: Genre and category management
+- name: Metadata
+  description: Content metadata operations
+- name: Ratings
+  description: Content ratings and reviews
+- name: Regional Availability
+  description: Content availability by region
+paths:
+  /content:
+    get:
+      tags:
+      - Content
+      summary: List content
+      description: Retrieve a paginated list of all content in the catalog
+      operationId: listContent
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: contentType
+        in: query
+        schema:
+          type: string
+          enum:
+          - movie
+          - tvshow
+        description: Filter by content type
+      - name: limit
+        in: query
+        schema:
+          type: integer
+          default: 20
+          minimum: 1
+          maximum: 100
+        description: Number of items to return
+      - name: offset
+        in: query
+        schema:
+          type: integer
+          default: 0
+          minimum: 0
+        description: Number of items to skip
+      responses:
+        '200':
+          description: Content list retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ContentItem'
+                  total:
+                    type: integer
+                  limit:
+                    type: integer
+                  offset:
+                    type: integer
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    post:
+      tags:
+      - Content
+      summary: Create content
+      description: Create a new content item in the catalog
+      operationId: createContent
+      security:
+      - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ContentCreate'
+      responses:
+        '201':
+          description: Content created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Content'
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /content/{contentId}:
+    get:
+      tags:
+      - Content
+      summary: Get content
+      description: Retrieve detailed information about a specific content item
+      operationId: getContent
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: contentId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+        description: Content ID
+      responses:
+        '200':
+          description: Content retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Content'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Content not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    put:
+      tags:
+      - Content
+      summary: Update content
+      description: Update an existing content item
+      operationId: updateContent
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: contentId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+        description: Content ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ContentUpdate'
+      responses:
+        '200':
+          description: Content updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Content'
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Content not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    delete:
+      tags:
+      - Content
+      summary: Delete content
+      description: Delete a content item from the catalog
+      operationId: deleteContent
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: contentId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+        description: Content ID
+      responses:
+        '204':
+          description: Content deleted successfully
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Content not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /content/search:
+    get:
+      tags:
+      - Search
+      summary: Search content
+      description: Search for content using keywords and filters
+      operationId: searchContent
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: query
+        in: query
+        required: true
+        schema:
+          type: string
+          minLength: 1
+        description: Search query
+      - name: contentType
+        in: query
+        schema:
+          type: string
+          enum:
+          - movie
+          - tvshow
+        description: Filter by content type
+      - name: genres
+        in: query
+        schema:
+          type: array
+          items:
+            type: string
+        description: Filter by genres (comma-separated)
+      - name: releaseYearMin
+        in: query
+        schema:
+          type: integer
+          minimum: 1900
+        description: Minimum release year
+      - name: releaseYearMax
+        in: query
+        schema:
+          type: integer
+          minimum: 1900
+        description: Maximum release year
+      - name: ratingMin
+        in: query
+        schema:
+          type: number
+          minimum: 0
+          maximum: 10
+        description: Minimum rating (0-10)
+      - name: limit
+        in: query
+        schema:
+          type: integer
+          default: 20
+          minimum: 1
+          maximum: 100
+        description: Number of items to return
+      - name: offset
+        in: query
+        schema:
+          type: integer
+          default: 0
+          minimum: 0
+        description: Number of items to skip
+      responses:
+        '200':
+          description: Search results retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ContentItem'
+                  total:
+                    type: integer
+                  limit:
+                    type: integer
+                  offset:
+                    type: integer
+        '400':
+          description: Invalid search parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /genres:
+    get:
+      tags:
+      - Genres
+      summary: List genres
+      description: Retrieve all available genres and categories
+      operationId: listGenres
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          description: Genres retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  genres:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Genre'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    post:
+      tags:
+      - Genres
+      summary: Create genre
+      description: Create a new genre
+      operationId: createGenre
+      security:
+      - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GenreCreate'
+      responses:
+        '201':
+          description: Genre created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Genre'
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /genres/{genreId}:
+    get:
+      tags:
+      - Genres
+      summary: Get genre
+      description: Retrieve a specific genre with its details
+      operationId: getGenre
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: genreId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+        description: Genre ID
+      responses:
+        '200':
+          description: Genre retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Genre'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Genre not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    put:
+      tags:
+      - Genres
+      summary: Update genre
+      description: Update a genre
+      operationId: updateGenre
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: genreId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+        description: Genre ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GenreUpdate'
+      responses:
+        '200':
+          description: Genre updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Genre'
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Genre not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    delete:
+      tags:
+      - Genres
+      summary: Delete genre
+      description: Delete a genre
+      operationId: deleteGenre
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: genreId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+        description: Genre ID
+      responses:
+        '204':
+          description: Genre deleted successfully
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Genre not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /content/{contentId}/metadata:
+    get:
+      tags:
+      - Metadata
+      summary: Get content metadata
+      description: Retrieve detailed metadata for content including cast, crew, and
+        production details
+      operationId: getContentMetadata
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: contentId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+        description: Content ID
+      responses:
+        '200':
+          description: Content metadata retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContentMetadata'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Content not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    put:
+      tags:
+      - Metadata
+      summary: Update content metadata
+      description: Update metadata for content
+      operationId: updateContentMetadata
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: contentId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+        description: Content ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ContentMetadataUpdate'
+      responses:
+        '200':
+          description: Content metadata updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContentMetadata'
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Content not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /content/{contentId}/ratings:
+    get:
+      tags:
+      - Ratings
+      summary: Get content ratings
+      description: Retrieve ratings and reviews for content
+      operationId: getContentRatings
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: contentId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+        description: Content ID
+      - name: limit
+        in: query
+        schema:
+          type: integer
+          default: 20
+          minimum: 1
+          maximum: 100
+        description: Number of ratings to return
+      - name: offset
+        in: query
+        schema:
+          type: integer
+          default: 0
+          minimum: 0
+        description: Number of ratings to skip
+      responses:
+        '200':
+          description: Ratings retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  contentId:
+                    type: string
+                    format: uuid
+                  averageRating:
+                    type: number
+                    minimum: 0
+                    maximum: 10
+                  totalRatings:
+                    type: integer
+                  ratings:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Rating'
+                  limit:
+                    type: integer
+                  offset:
+                    type: integer
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Content not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    post:
+      tags:
+      - Ratings
+      summary: Add rating
+      description: Add a rating or review to content
+      operationId: addRating
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: contentId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+        description: Content ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RatingCreate'
+      responses:
+        '201':
+          description: Rating added successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Rating'
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Content not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /content/{contentId}/ratings/{ratingId}:
+    put:
+      tags:
+      - Ratings
+      summary: Update rating
+      description: Update a rating or review
+      operationId: updateRating
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: contentId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+        description: Content ID
+      - name: ratingId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+        description: Rating ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RatingUpdate'
+      responses:
+        '200':
+          description: Rating updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Rating'
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Rating not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    delete:
+      tags:
+      - Ratings
+      summary: Delete rating
+      description: Delete a rating or review
+      operationId: deleteRating
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: contentId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+        description: Content ID
+      - name: ratingId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+        description: Rating ID
+      responses:
+        '204':
+          description: Rating deleted successfully
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Rating not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /availability:
+    get:
+      tags:
+      - Regional Availability
+      summary: Check regional availability
+      description: Check content availability for a specific region
+      operationId: checkAvailability
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: contentId
+        in: query
+        required: true
+        schema:
+          type: string
+          format: uuid
+        description: Content ID
+      - name: region
+        in: query
+        required: true
+        schema:
+          type: string
+          pattern: ^[A-Z]{2}$
+        description: Region code (ISO 3166-1 alpha-2)
+      responses:
+        '200':
+          description: Availability information retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Availability'
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Content not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /availability/bulk:
+    post:
+      tags:
+      - Regional Availability
+      summary: Check bulk availability
+      description: Check availability for multiple content items in a region
+      operationId: checkBulkAvailability
+      security:
+      - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BulkAvailabilityRequest'
+      responses:
+        '200':
+          description: Bulk availability information retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  region:
+                    type: string
+                  availabilities:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Availability'
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    Content:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: 550e8400-e29b-41d4-a716-446655440000
+        title:
+          type: string
+          example: The Mysterious Adventure
+        description:
+          type: string
+          example: An epic adventure filled with mystery and intrigue
+        contentType:
+          type: string
+          enum:
+          - movie
+          - tvshow
+          example: movie
+        releaseDate:
+          type: string
+          format: date
+          example: '2024-06-15'
+        releaseYear:
+          type: integer
+          example: 2024
+        duration:
+          type: integer
+          description: Duration in minutes
+          example: 128
+        maturityRating:
+          type: string
+          enum:
+          - G
+          - PG
+          - PG-13
+          - R
+          - NC-17
+          example: PG-13
+        genres:
+          type: array
+          items:
+            type: string
+          example:
+          - Adventure
+          - Mystery
+        posterUrl:
+          type: string
+          format: uri
+          example: https://cdn.streamflix.com/posters/mysterious-adventure.jpg
+        thumbnailUrl:
+          type: string
+          format: uri
+          example: https://cdn.streamflix.com/thumbnails/mysterious-adventure.jpg
+        language:
+          type: string
+          example: en-US
+        createdAt:
+          type: string
+          format: date-time
+          example: '2024-01-15T10:30:00Z'
+        updatedAt:
+          type: string
+          format: date-time
+          example: '2026-04-20T14:22:00Z'
+    ContentItem:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: 550e8400-e29b-41d4-a716-446655440000
+        title:
+          type: string
+          example: The Mysterious Adventure
+        contentType:
+          type: string
+          enum:
+          - movie
+          - tvshow
+          example: movie
+        releaseYear:
+          type: integer
+          example: 2024
+        maturityRating:
+          type: string
+          enum:
+          - G
+          - PG
+          - PG-13
+          - R
+          - NC-17
+          example: PG-13
+        posterUrl:
+          type: string
+          format: uri
+          example: https://cdn.streamflix.com/posters/mysterious-adventure.jpg
+    ContentCreate:
+      type: object
+      required:
+      - title
+      - contentType
+      - description
+      properties:
+        title:
+          type: string
+          example: The Mysterious Adventure
+        description:
+          type: string
+          example: An epic adventure filled with mystery and intrigue
+        contentType:
+          type: string
+          enum:
+          - movie
+          - tvshow
+          example: movie
+        releaseDate:
+          type: string
+          format: date
+          example: '2024-06-15'
+        releaseYear:
+          type: integer
+          example: 2024
+        duration:
+          type: integer
+          description: Duration in minutes
+          example: 128
+        maturityRating:
+          type: string
+          enum:
+          - G
+          - PG
+          - PG-13
+          - R
+          - NC-17
+          example: PG-13
+        genres:
+          type: array
+          items:
+            type: string
+          example:
+          - Adventure
+          - Mystery
+        posterUrl:
+          type: string
+          format: uri
+          example: https://cdn.streamflix.com/posters/mysterious-adventure.jpg
+        language:
+          type: string
+          example: en-US
+    ContentUpdate:
+      type: object
+      properties:
+        title:
+          type: string
+          example: The Mysterious Adventure
+        description:
+          type: string
+          example: An epic adventure filled with mystery and intrigue
+        releaseDate:
+          type: string
+          format: date
+          example: '2024-06-15'
+        duration:
+          type: integer
+          description: Duration in minutes
+          example: 128
+        maturityRating:
+          type: string
+          enum:
+          - G
+          - PG
+          - PG-13
+          - R
+          - NC-17
+          example: PG-13
+        genres:
+          type: array
+          items:
+            type: string
+          example:
+          - Adventure
+          - Mystery
+        posterUrl:
+          type: string
+          format: uri
+          example: https://cdn.streamflix.com/posters/mysterious-adventure.jpg
+    Genre:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: 660e8400-e29b-41d4-a716-446655440000
+        name:
+          type: string
+          example: Adventure
+        description:
+          type: string
+          example: Action-packed adventure stories
+        createdAt:
+          type: string
+          format: date-time
+          example: '2024-01-15T10:30:00Z'
+    GenreCreate:
+      type: object
+      required:
+      - name
+      properties:
+        name:
+          type: string
+          example: Adventure
+        description:
+          type: string
+          example: Action-packed adventure stories
+    GenreUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+          example: Adventure
+        description:
+          type: string
+          example: Action-packed adventure stories
+    ContentMetadata:
+      type: object
+      properties:
+        contentId:
+          type: string
+          format: uuid
+          example: 550e8400-e29b-41d4-a716-446655440000
+        directors:
+          type: array
+          items:
+            $ref: '#/components/schemas/Person'
+        writers:
+          type: array
+          items:
+            $ref: '#/components/schemas/Person'
+        producers:
+          type: array
+          items:
+            $ref: '#/components/schemas/Person'
+        cast:
+          type: array
+          items:
+            $ref: '#/components/schemas/CastMember'
+        productionCompany:
+          type: string
+          example: StreamFlix Productions
+        budget:
+          type: integer
+          description: Budget in USD
+          example: 50000000
+        boxOffice:
+          type: integer
+          description: Box office revenue in USD
+          example: 250000000
+    ContentMetadataUpdate:
+      type: object
+      properties:
+        directors:
+          type: array
+          items:
+            $ref: '#/components/schemas/PersonInput'
+        writers:
+          type: array
+          items:
+            $ref: '#/components/schemas/PersonInput'
+        producers:
+          type: array
+          items:
+            $ref: '#/components/schemas/PersonInput'
+        cast:
+          type: array
+          items:
+            $ref: '#/components/schemas/CastMemberInput'
+        productionCompany:
+          type: string
+          example: StreamFlix Productions
+        budget:
+          type: integer
+          description: Budget in USD
+          example: 50000000
+    Person:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: 770e8400-e29b-41d4-a716-446655440000
+        name:
+          type: string
+          example: Christopher Nolan
+        role:
+          type: string
+          example: Director
+    PersonInput:
+      type: object
+      properties:
+        name:
+          type: string
+          example: Christopher Nolan
+    CastMember:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: 880e8400-e29b-41d4-a716-446655440000
+        name:
+          type: string
+          example: Christian Bale
+        character:
+          type: string
+          example: Batman
+        order:
+          type: integer
+          example: 1
+    CastMemberInput:
+      type: object
+      properties:
+        name:
+          type: string
+          example: Christian Bale
+        character:
+          type: string
+          example: Batman
+    Rating:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: 990e8400-e29b-41d4-a716-446655440000
+        contentId:
+          type: string
+          format: uuid
+          example: 550e8400-e29b-41d4-a716-446655440000
+        userId:
+          type: string
+          format: uuid
+          example: aa0e8400-e29b-41d4-a716-446655440000
+        score:
+          type: number
+          minimum: 0
+          maximum: 10
+          example: 8.5
+        review:
+          type: string
+          example: An outstanding film with incredible performances
+        helpful:
+          type: integer
+          example: 42
+        unhelpful:
+          type: integer
+          example: 3
+        createdAt:
+          type: string
+          format: date-time
+          example: '2026-04-15T12:00:00Z'
+        updatedAt:
+          type: string
+          format: date-time
+          example: '2026-04-20T10:30:00Z'
+    RatingCreate:
+      type: object
+      required:
+      - score
+      properties:
+        score:
+          type: number
+          minimum: 0
+          maximum: 10
+          example: 8.5
+        review:
+          type: string
+          example: An outstanding film with incredible performances
+    RatingUpdate:
+      type: object
+      properties:
+        score:
+          type: number
+          minimum: 0
+          maximum: 10
+          example: 8.5
+        review:
+          type: string
+          example: An outstanding film with incredible performances
+    Availability:
+      type: object
+      properties:
+        contentId:
+          type: string
+          format: uuid
+          example: 550e8400-e29b-41d4-a716-446655440000
+        region:
+          type: string
+          pattern: ^[A-Z]{2}$
+          example: US
+        isAvailable:
+          type: boolean
+          example: true
+        startDate:
+          type: string
+          format: date-time
+          example: '2026-04-20T00:00:00Z'
+        endDate:
+          type: string
+          format: date-time
+          example: '2027-04-20T00:00:00Z'
+        formats:
+          type: array
+          items:
+            type: string
+            enum:
+            - SD
+            - HD
+            - 4K
+          example:
+          - SD
+          - HD
+          - 4K
+    BulkAvailabilityRequest:
+      type: object
+      required:
+      - contentIds
+      - region
+      properties:
+        contentIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+          example:
+          - 550e8400-e29b-41d4-a716-446655440000
+          - 660e8400-e29b-41d4-a716-446655440000
+        region:
+          type: string
+          pattern: ^[A-Z]{2}$
+          example: US
+    Error:
+      type: object
+      properties:
+        code:
+          type: string
+          example: INVALID_INPUT
+        message:
+          type: string
+          example: The provided input is invalid
+        details:
+          type: array
+          items:
+            type: object
+            properties:
+              field:
+                type: string
+                example: title
+              message:
+                type: string
+                example: Title is required
