@@ -1,0 +1,710 @@
+"""
+Fleet Management API — GraphQL SDL
+
+Enterprise fleet management system for tracking vehicles, drivers, trips,
+maintenance records, and fuel logs. Provides real-time visibility into
+fleet operations, cost tracking, and compliance management.
+"""
+
+schema {
+  query: Query
+  mutation: Mutation
+  subscription: Subscription
+}
+
+# ── Scalars ──────────────────────────────────────────────────────────────────────
+
+"""ISO-8601 date-time string"""
+scalar DateTime
+
+"""ISO-8601 calendar date"""
+scalar Date
+
+"""Monetary or numeric amount as decimal string"""
+scalar Decimal
+
+"""RFC-4122 UUID"""
+scalar UUID
+
+# ── Enums ────────────────────────────────────────────────────────────────────────
+
+"""Operational status of a vehicle in the fleet"""
+enum VehicleStatus {
+  """Vehicle is operational and available for assignment"""
+  ACTIVE
+  """Vehicle is currently undergoing maintenance or repair"""
+  IN_MAINTENANCE
+  """Vehicle has been retired from active service"""
+  RETIRED
+  """Vehicle has been permanently removed from the fleet"""
+  DECOMMISSIONED
+}
+
+"""Employment status of a fleet driver"""
+enum DriverStatus {
+  """Driver is eligible to operate vehicles"""
+  ACTIVE
+  """Driver is temporarily barred from operating vehicles"""
+  SUSPENDED
+  """Driver is no longer employed or available"""
+  INACTIVE
+}
+
+"""Lifecycle status of a trip"""
+enum TripStatus {
+  """Trip is currently underway"""
+  IN_PROGRESS
+  """Trip has been finished successfully"""
+  COMPLETED
+  """Trip was cancelled before or during execution"""
+  CANCELLED
+}
+
+"""Classification of a maintenance activity"""
+enum MaintenanceType {
+  """Routine preventive maintenance per schedule"""
+  SCHEDULED
+  """Unplanned maintenance triggered by an issue"""
+  UNSCHEDULED
+  """Critical repair required for safety or compliance"""
+  EMERGENCY
+}
+
+"""Progress status of a maintenance work order"""
+enum MaintenanceStatus {
+  """Work order has been created and is awaiting execution"""
+  SCHEDULED
+  """Maintenance work is currently being performed"""
+  IN_PROGRESS
+  """Maintenance work has been finished"""
+  COMPLETED
+}
+
+"""Type of fuel or energy source used by a vehicle"""
+enum FuelType {
+  """Petrol / gasoline engine"""
+  GASOLINE
+  """Diesel engine"""
+  DIESEL
+  """Battery-electric vehicle"""
+  ELECTRIC
+  """Combined internal-combustion and electric drivetrain"""
+  HYBRID
+  """Compressed natural gas engine"""
+  CNG
+}
+
+# ── Interfaces ───────────────────────────────────────────────────────────────────
+
+"""Common audit fields present on every domain entity"""
+interface Auditable {
+  """Timestamp when the record was created"""
+  createdAt: DateTime!
+  """Timestamp when the record was last updated"""
+  updatedAt: DateTime!
+}
+
+# ── Domain Types ─────────────────────────────────────────────────────────────────
+
+"""A vehicle managed within the fleet"""
+type Vehicle implements Auditable {
+  """Unique identifier for the vehicle"""
+  vehicleId: UUID!
+  """Vehicle identification number assigned by the manufacturer"""
+  vin: String!
+  """Manufacturer of the vehicle"""
+  make: String!
+  """Model name of the vehicle"""
+  model: String!
+  """Model year of the vehicle"""
+  year: Int!
+  """Government-issued license plate number"""
+  licensePlate: String!
+  """Current operational status of the vehicle"""
+  status: VehicleStatus!
+  """Current odometer reading in miles"""
+  mileage: Decimal!
+  """Fuel or energy source used by the vehicle"""
+  fuelType: FuelType!
+  """Driver currently assigned to this vehicle, if any"""
+  assignedDriver: Driver
+  """Date the vehicle was purchased or acquired"""
+  purchaseDate: Date!
+  """Date the vehicle last received maintenance service"""
+  lastServiceDate: Date
+  """Maintenance records associated with this vehicle"""
+  maintenanceRecords: [MaintenanceRecord!]!
+  """Fuel logs recorded for this vehicle"""
+  fuelLogs: [FuelLog!]!
+  """Trips completed or in progress for this vehicle"""
+  trips: [Trip!]!
+  """Timestamp when the record was created"""
+  createdAt: DateTime!
+  """Timestamp when the record was last updated"""
+  updatedAt: DateTime!
+}
+
+"""A driver authorized to operate fleet vehicles"""
+type Driver implements Auditable {
+  """Unique identifier for the driver"""
+  driverId: UUID!
+  """Internal employee number"""
+  employeeNumber: String!
+  """Driver's first name"""
+  firstName: String!
+  """Driver's last name"""
+  lastName: String!
+  """Driver's email address"""
+  email: String!
+  """Driver's phone number"""
+  phone: String!
+  """Government-issued driver license number"""
+  licenseNumber: String!
+  """Expiration date of the driver's license"""
+  licenseExpiry: Date!
+  """Current employment status of the driver"""
+  status: DriverStatus!
+  """Vehicle currently assigned to this driver, if any"""
+  assignedVehicle: Vehicle
+  """Trips associated with this driver"""
+  trips: [Trip!]!
+  """Timestamp when the record was created"""
+  createdAt: DateTime!
+  """Timestamp when the record was last updated"""
+  updatedAt: DateTime!
+}
+
+"""A trip made by a driver in a fleet vehicle"""
+type Trip implements Auditable {
+  """Unique identifier for the trip"""
+  tripId: UUID!
+  """Vehicle used for the trip"""
+  vehicle: Vehicle!
+  """Driver who operated the vehicle"""
+  driver: Driver!
+  """Date and time the trip started"""
+  startTime: DateTime!
+  """Date and time the trip ended, null if still in progress"""
+  endTime: DateTime
+  """Odometer reading at the start of the trip in miles"""
+  startOdometer: Decimal!
+  """Odometer reading at the end of the trip in miles"""
+  endOdometer: Decimal
+  """Total distance traveled during the trip in miles"""
+  distanceTraveled: Decimal
+  """Starting location or address of the trip"""
+  origin: String!
+  """Ending location or address of the trip"""
+  destination: String!
+  """Current lifecycle status of the trip"""
+  status: TripStatus!
+  """Business purpose or reason for the trip"""
+  purpose: String
+  """Timestamp when the record was created"""
+  createdAt: DateTime!
+  """Timestamp when the record was last updated"""
+  updatedAt: DateTime!
+}
+
+"""A maintenance work order for a fleet vehicle"""
+type MaintenanceRecord implements Auditable {
+  """Unique identifier for the maintenance record"""
+  recordId: UUID!
+  """Vehicle being serviced"""
+  vehicle: Vehicle!
+  """Classification of the maintenance activity"""
+  maintenanceType: MaintenanceType!
+  """Detailed description of the maintenance work performed"""
+  description: String!
+  """Name of the service provider or repair shop"""
+  vendor: String!
+  """Total cost of the maintenance work"""
+  cost: Decimal!
+  """Date the maintenance is or was scheduled for"""
+  scheduledDate: Date!
+  """Date the maintenance was completed, null if not yet finished"""
+  completedDate: Date
+  """Current progress status of the work order"""
+  status: MaintenanceStatus!
+  """Timestamp when the record was created"""
+  createdAt: DateTime!
+  """Timestamp when the record was last updated"""
+  updatedAt: DateTime!
+}
+
+"""A fuel purchase or charging event for a fleet vehicle"""
+type FuelLog implements Auditable {
+  """Unique identifier for the fuel log entry"""
+  logId: UUID!
+  """Vehicle that was fueled"""
+  vehicle: Vehicle!
+  """Driver who performed the fueling"""
+  driver: Driver!
+  """Date the fueling took place"""
+  date: Date!
+  """Amount of fuel purchased in gallons or equivalent"""
+  gallons: Decimal!
+  """Price per gallon at time of purchase"""
+  costPerGallon: Decimal!
+  """Total cost of the fuel purchase"""
+  totalCost: Decimal!
+  """Odometer reading at the time of fueling in miles"""
+  odometer: Decimal!
+  """Type of fuel purchased"""
+  fuelType: FuelType!
+  """Name or address of the fueling station"""
+  station: String!
+  """Timestamp when the record was created"""
+  createdAt: DateTime!
+  """Timestamp when the record was last updated"""
+  updatedAt: DateTime!
+}
+
+# ── Pagination ───────────────────────────────────────────────────────────────────
+
+"""Relay-style pagination metadata"""
+type PageInfo {
+  """Whether more results exist after the last edge"""
+  hasNextPage: Boolean!
+  """Whether more results exist before the first edge"""
+  hasPreviousPage: Boolean!
+  """Cursor of the first edge in the current page"""
+  startCursor: String
+  """Cursor of the last edge in the current page"""
+  endCursor: String
+}
+
+"""Paginated list of vehicles"""
+type VehicleConnection {
+  """List of vehicle edges"""
+  edges: [VehicleEdge!]!
+  """Pagination metadata"""
+  pageInfo: PageInfo!
+  """Total number of matching vehicles"""
+  totalCount: Int!
+}
+
+"""An edge in a vehicle connection"""
+type VehicleEdge {
+  """The vehicle record"""
+  node: Vehicle!
+  """Opaque cursor for pagination"""
+  cursor: String!
+}
+
+"""Paginated list of drivers"""
+type DriverConnection {
+  """List of driver edges"""
+  edges: [DriverEdge!]!
+  """Pagination metadata"""
+  pageInfo: PageInfo!
+  """Total number of matching drivers"""
+  totalCount: Int!
+}
+
+"""An edge in a driver connection"""
+type DriverEdge {
+  """The driver record"""
+  node: Driver!
+  """Opaque cursor for pagination"""
+  cursor: String!
+}
+
+"""Paginated list of trips"""
+type TripConnection {
+  """List of trip edges"""
+  edges: [TripEdge!]!
+  """Pagination metadata"""
+  pageInfo: PageInfo!
+  """Total number of matching trips"""
+  totalCount: Int!
+}
+
+"""An edge in a trip connection"""
+type TripEdge {
+  """The trip record"""
+  node: Trip!
+  """Opaque cursor for pagination"""
+  cursor: String!
+}
+
+"""Paginated list of maintenance records"""
+type MaintenanceRecordConnection {
+  """List of maintenance record edges"""
+  edges: [MaintenanceRecordEdge!]!
+  """Pagination metadata"""
+  pageInfo: PageInfo!
+  """Total number of matching maintenance records"""
+  totalCount: Int!
+}
+
+"""An edge in a maintenance record connection"""
+type MaintenanceRecordEdge {
+  """The maintenance record"""
+  node: MaintenanceRecord!
+  """Opaque cursor for pagination"""
+  cursor: String!
+}
+
+"""Paginated list of fuel logs"""
+type FuelLogConnection {
+  """List of fuel log edges"""
+  edges: [FuelLogEdge!]!
+  """Pagination metadata"""
+  pageInfo: PageInfo!
+  """Total number of matching fuel log entries"""
+  totalCount: Int!
+}
+
+"""An edge in a fuel log connection"""
+type FuelLogEdge {
+  """The fuel log entry"""
+  node: FuelLog!
+  """Opaque cursor for pagination"""
+  cursor: String!
+}
+
+# ── Input Types ──────────────────────────────────────────────────────────────────
+
+"""Input for registering a new vehicle in the fleet"""
+input CreateVehicleInput {
+  """Vehicle identification number assigned by the manufacturer"""
+  vin: String!
+  """Manufacturer of the vehicle"""
+  make: String!
+  """Model name of the vehicle"""
+  model: String!
+  """Model year of the vehicle"""
+  year: Int!
+  """Government-issued license plate number"""
+  licensePlate: String!
+  """Initial odometer reading in miles"""
+  mileage: Decimal!
+  """Fuel or energy source used by the vehicle"""
+  fuelType: FuelType!
+  """Date the vehicle was purchased or acquired"""
+  purchaseDate: Date!
+}
+
+"""Input for updating an existing vehicle's details"""
+input UpdateVehicleInput {
+  """Identifier of the vehicle to update"""
+  vehicleId: UUID!
+  """Updated license plate number"""
+  licensePlate: String
+  """Updated operational status"""
+  status: VehicleStatus
+  """Updated odometer reading in miles"""
+  mileage: Decimal
+  """Identifier of the driver to assign, null to unassign"""
+  assignedDriverId: UUID
+}
+
+"""Input for registering a new driver"""
+input CreateDriverInput {
+  """Internal employee number"""
+  employeeNumber: String!
+  """Driver's first name"""
+  firstName: String!
+  """Driver's last name"""
+  lastName: String!
+  """Driver's email address"""
+  email: String!
+  """Driver's phone number"""
+  phone: String!
+  """Government-issued driver license number"""
+  licenseNumber: String!
+  """Expiration date of the driver's license"""
+  licenseExpiry: Date!
+}
+
+"""Input for updating an existing driver's details"""
+input UpdateDriverInput {
+  """Identifier of the driver to update"""
+  driverId: UUID!
+  """Updated email address"""
+  email: String
+  """Updated phone number"""
+  phone: String
+  """Updated license number"""
+  licenseNumber: String
+  """Updated license expiry date"""
+  licenseExpiry: Date
+  """Updated employment status"""
+  status: DriverStatus
+}
+
+"""Input for creating a new trip"""
+input CreateTripInput {
+  """Identifier of the vehicle used for the trip"""
+  vehicleId: UUID!
+  """Identifier of the driver operating the vehicle"""
+  driverId: UUID!
+  """Odometer reading at the start of the trip in miles"""
+  startOdometer: Decimal!
+  """Starting location or address"""
+  origin: String!
+  """Ending location or address"""
+  destination: String!
+  """Business purpose or reason for the trip"""
+  purpose: String
+}
+
+"""Input for completing an in-progress trip"""
+input CompleteTripInput {
+  """Identifier of the trip to complete"""
+  tripId: UUID!
+  """Odometer reading at the end of the trip in miles"""
+  endOdometer: Decimal!
+}
+
+"""Input for creating a new maintenance work order"""
+input CreateMaintenanceRecordInput {
+  """Identifier of the vehicle to be serviced"""
+  vehicleId: UUID!
+  """Classification of the maintenance activity"""
+  maintenanceType: MaintenanceType!
+  """Detailed description of the maintenance work"""
+  description: String!
+  """Name of the service provider or repair shop"""
+  vendor: String!
+  """Estimated cost of the maintenance work"""
+  cost: Decimal!
+  """Date the maintenance is scheduled for"""
+  scheduledDate: Date!
+}
+
+"""Input for updating an existing maintenance record"""
+input UpdateMaintenanceRecordInput {
+  """Identifier of the maintenance record to update"""
+  recordId: UUID!
+  """Updated description of the work"""
+  description: String
+  """Updated vendor name"""
+  vendor: String
+  """Updated cost of the work"""
+  cost: Decimal
+  """Updated scheduled date"""
+  scheduledDate: Date
+  """Updated completion date"""
+  completedDate: Date
+  """Updated progress status"""
+  status: MaintenanceStatus
+}
+
+"""Input for recording a fuel purchase or charging event"""
+input CreateFuelLogInput {
+  """Identifier of the vehicle that was fueled"""
+  vehicleId: UUID!
+  """Identifier of the driver who performed the fueling"""
+  driverId: UUID!
+  """Date the fueling took place"""
+  date: Date!
+  """Amount of fuel purchased in gallons or equivalent"""
+  gallons: Decimal!
+  """Price per gallon at time of purchase"""
+  costPerGallon: Decimal!
+  """Total cost of the fuel purchase"""
+  totalCost: Decimal!
+  """Odometer reading at the time of fueling in miles"""
+  odometer: Decimal!
+  """Type of fuel purchased"""
+  fuelType: FuelType!
+  """Name or address of the fueling station"""
+  station: String!
+}
+
+# ── Queries ──────────────────────────────────────────────────────────────────────
+
+"""Root query type for reading fleet management data"""
+type Query {
+  """Retrieve a single vehicle by its unique identifier"""
+  vehicle(
+    """Unique identifier of the vehicle"""
+    vehicleId: UUID!
+  ): Vehicle
+
+  """Paginated list of vehicles with optional filters"""
+  vehicles(
+    """Number of records to return"""
+    first: Int
+    """Cursor after which to return records"""
+    after: String
+    """Filter by operational status"""
+    status: VehicleStatus
+    """Filter by fuel type"""
+    fuelType: FuelType
+  ): VehicleConnection!
+
+  """Retrieve a single driver by their unique identifier"""
+  driver(
+    """Unique identifier of the driver"""
+    driverId: UUID!
+  ): Driver
+
+  """Paginated list of drivers with optional filters"""
+  drivers(
+    """Number of records to return"""
+    first: Int
+    """Cursor after which to return records"""
+    after: String
+    """Filter by employment status"""
+    status: DriverStatus
+  ): DriverConnection!
+
+  """Retrieve a single trip by its unique identifier"""
+  trip(
+    """Unique identifier of the trip"""
+    tripId: UUID!
+  ): Trip
+
+  """Paginated list of trips with optional filters"""
+  trips(
+    """Number of records to return"""
+    first: Int
+    """Cursor after which to return records"""
+    after: String
+    """Filter by vehicle identifier"""
+    vehicleId: UUID
+    """Filter by driver identifier"""
+    driverId: UUID
+    """Filter by trip status"""
+    status: TripStatus
+  ): TripConnection!
+
+  """Retrieve a single maintenance record by its unique identifier"""
+  maintenanceRecord(
+    """Unique identifier of the maintenance record"""
+    recordId: UUID!
+  ): MaintenanceRecord
+
+  """Paginated list of maintenance records with optional filters"""
+  maintenanceRecords(
+    """Number of records to return"""
+    first: Int
+    """Cursor after which to return records"""
+    after: String
+    """Filter by vehicle identifier"""
+    vehicleId: UUID
+    """Filter by maintenance status"""
+    status: MaintenanceStatus
+  ): MaintenanceRecordConnection!
+
+  """Retrieve a single fuel log entry by its unique identifier"""
+  fuelLog(
+    """Unique identifier of the fuel log entry"""
+    logId: UUID!
+  ): FuelLog
+
+  """Paginated list of fuel log entries with optional filters"""
+  fuelLogs(
+    """Number of records to return"""
+    first: Int
+    """Cursor after which to return records"""
+    after: String
+    """Filter by vehicle identifier"""
+    vehicleId: UUID
+    """Filter by driver identifier"""
+    driverId: UUID
+  ): FuelLogConnection!
+}
+
+# ── Mutations ────────────────────────────────────────────────────────────────────
+
+"""Root mutation type for creating and updating fleet data"""
+type Mutation {
+  """Register a new vehicle in the fleet"""
+  createVehicle(
+    """Vehicle registration details"""
+    input: CreateVehicleInput!
+  ): Vehicle!
+
+  """Update an existing vehicle's details"""
+  updateVehicle(
+    """Fields to update on the vehicle"""
+    input: UpdateVehicleInput!
+  ): Vehicle!
+
+  """Retire a vehicle from active service"""
+  retireVehicle(
+    """Identifier of the vehicle to retire"""
+    vehicleId: UUID!
+  ): Vehicle!
+
+  """Register a new driver"""
+  createDriver(
+    """Driver registration details"""
+    input: CreateDriverInput!
+  ): Driver!
+
+  """Update an existing driver's details"""
+  updateDriver(
+    """Fields to update on the driver"""
+    input: UpdateDriverInput!
+  ): Driver!
+
+  """Create a new trip"""
+  createTrip(
+    """Trip details"""
+    input: CreateTripInput!
+  ): Trip!
+
+  """Mark an in-progress trip as completed"""
+  completeTrip(
+    """Trip completion details"""
+    input: CompleteTripInput!
+  ): Trip!
+
+  """Cancel an in-progress trip"""
+  cancelTrip(
+    """Identifier of the trip to cancel"""
+    tripId: UUID!
+  ): Trip!
+
+  """Create a new maintenance work order"""
+  createMaintenanceRecord(
+    """Maintenance record details"""
+    input: CreateMaintenanceRecordInput!
+  ): MaintenanceRecord!
+
+  """Update an existing maintenance record"""
+  updateMaintenanceRecord(
+    """Fields to update on the maintenance record"""
+    input: UpdateMaintenanceRecordInput!
+  ): MaintenanceRecord!
+
+  """Record a fuel purchase or charging event"""
+  createFuelLog(
+    """Fuel log entry details"""
+    input: CreateFuelLogInput!
+  ): FuelLog!
+}
+
+# ── Subscriptions ────────────────────────────────────────────────────────────────
+
+"""Root subscription type for real-time fleet events"""
+type Subscription {
+  """Emitted when a vehicle's operational status changes"""
+  vehicleStatusChanged(
+    """Optionally filter to a specific vehicle"""
+    vehicleId: UUID
+  ): Vehicle!
+
+  """Emitted when a new trip begins"""
+  tripStarted(
+    """Optionally filter to a specific vehicle"""
+    vehicleId: UUID
+  ): Trip!
+
+  """Emitted when a trip is completed"""
+  tripCompleted(
+    """Optionally filter to a specific vehicle"""
+    vehicleId: UUID
+  ): Trip!
+
+  """Emitted when a maintenance work order is scheduled"""
+  maintenanceScheduled(
+    """Optionally filter to a specific vehicle"""
+    vehicleId: UUID
+  ): MaintenanceRecord!
+}
