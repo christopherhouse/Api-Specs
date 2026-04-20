@@ -6,16 +6,31 @@ This repository is a curated catalog of API specifications in various formats. S
 
 ## Repository Structure
 
+The repository is organized by **business domain/scenario**. Each domain has its own folder under `scenarios/` containing all spec formats for that domain:
+
 ```
-rest/
-  openapi/          # OpenAPI 3.0.x specs (.json or .yaml)
-  wadl/             # WADL specs (.wadl, XML-based)
-  raml/             # RAML 1.0 specs (.raml)
-soap/
-  *.wsdl            # WSDL specs (.wsdl, XML-based)
-graphql/
-  *.graphql         # GraphQL SDL specs (.graphql)
+scenarios/
+  <domain-name>/          # e.g., banking, crm, healthcare
+    README.md             # Domain description and API features
+    graphql/              # GraphQL SDL specs (.graphql)
+    soap/                 # WSDL specs (.wsdl, XML-based)
+    rest/
+      openapi/
+        json/             # OpenAPI 3.0.x specs (.json)
+        yaml/             # OpenAPI 3.0.x specs (.yaml)
+      wadl/               # WADL specs (.wadl, XML-based)
+      raml/               # RAML 1.0 specs (.raml)
 ```
+
+## Domain Organization
+
+When creating or adding specs:
+
+1. **Choose or create a domain folder** under `scenarios/` (e.g., `scenarios/banking/`)
+2. **Create a README.md** in the domain folder describing the API and its features
+3. **Place specs** in the appropriate format subdirectory within the domain
+4. **Follow the naming convention** for spec files (see below)
+
 
 ## Naming Conventions
 
@@ -69,7 +84,7 @@ Examples: `banking-2026-04-18.json`, `hr-2026-04-18.wsdl`, `logistics-2026-04-18
 ### RAML (REST)
 
 - Use **RAML 1.0** only. Do **not** use RAML 0.8.
-- Place files in `rest/raml/` with the `.raml` extension.
+- Place files in `scenarios/<domain>/rest/raml/` with the `.raml` extension.
 - Begin every spec with `#%RAML 1.0` as the first line.
 - Include `title`, `version`, `baseUri`, and `mediaType` at the root.
 - Define reusable data types under the `types` section.
@@ -83,7 +98,7 @@ Examples: `banking-2026-04-18.json`, `hr-2026-04-18.wsdl`, `logistics-2026-04-18
 
 ### GraphQL (SDL)
 
-- Place files in `graphql/` with the `.graphql` extension.
+- Place files in `scenarios/<domain>/graphql/` with the `.graphql` extension.
 - Use **GraphQL SDL** (Schema Definition Language) format.
 - Begin the schema with a `schema { query: Query, mutation: Mutation }` block (include `subscription` if used).
 - Define a `Query` type with at least 5 query fields covering list and single-item lookups.
