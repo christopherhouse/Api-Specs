@@ -1,0 +1,987 @@
+#%RAML 1.0
+title: StreamFlix Content Service API
+version: 1.0.0
+baseUri: https://api.streamflix.com/content/v1
+mediaType: application/json
+description: Content catalog management, metadata, search and filtering for the StreamFlix streaming platform
+
+securitySchemes:
+  bearerAuth:
+    type: OAuth 2.0
+    description: JWT Bearer Token Authentication
+    describedBy:
+      headers:
+        Authorization:
+          description: Bearer token
+          type: string
+          pattern: ^Bearer .+$
+          example: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+
+types:
+  Content:
+    properties:
+      id:
+        type: string
+        required: true
+        example: 550e8400-e29b-41d4-a716-446655440000
+      title:
+        type: string
+        required: true
+        example: The Mysterious Adventure
+      description:
+        type: string
+        required: true
+        example: An epic adventure filled with mystery and intrigue
+      contentType:
+        type: string
+        required: true
+        enum: [movie, tvshow]
+        example: movie
+      releaseDate:
+        type: string
+        required: false
+        example: 2024-06-15
+      releaseYear:
+        type: integer
+        required: false
+        example: 2024
+      duration:
+        type: integer
+        required: false
+        description: Duration in minutes
+        example: 128
+      maturityRating:
+        type: string
+        required: false
+        enum: [G, PG, PG-13, R, NC-17]
+        example: PG-13
+      genres:
+        type: array
+        required: false
+        items: string
+        example: [Adventure, Mystery]
+      posterUrl:
+        type: string
+        required: false
+        example: https://cdn.streamflix.com/posters/mysterious-adventure.jpg
+      thumbnailUrl:
+        type: string
+        required: false
+        example: https://cdn.streamflix.com/thumbnails/mysterious-adventure.jpg
+      language:
+        type: string
+        required: false
+        example: en-US
+      createdAt:
+        type: datetime
+        required: true
+        example: 2024-01-15T10:30:00Z
+      updatedAt:
+        type: datetime
+        required: true
+        example: 2026-04-20T14:22:00Z
+
+  ContentItem:
+    properties:
+      id:
+        type: string
+        required: true
+        example: 550e8400-e29b-41d4-a716-446655440000
+      title:
+        type: string
+        required: true
+        example: The Mysterious Adventure
+      contentType:
+        type: string
+        required: true
+        enum: [movie, tvshow]
+        example: movie
+      releaseYear:
+        type: integer
+        required: false
+        example: 2024
+      maturityRating:
+        type: string
+        required: false
+        enum: [G, PG, PG-13, R, NC-17]
+        example: PG-13
+      posterUrl:
+        type: string
+        required: false
+        example: https://cdn.streamflix.com/posters/mysterious-adventure.jpg
+
+  ContentCreate:
+    properties:
+      title:
+        type: string
+        required: true
+        example: The Mysterious Adventure
+      description:
+        type: string
+        required: true
+        example: An epic adventure filled with mystery and intrigue
+      contentType:
+        type: string
+        required: true
+        enum: [movie, tvshow]
+        example: movie
+      releaseDate?:
+        type: string
+        example: 2024-06-15
+      releaseYear?:
+        type: integer
+        example: 2024
+      duration?:
+        type: integer
+        description: Duration in minutes
+        example: 128
+      maturityRating?:
+        type: string
+        enum: [G, PG, PG-13, R, NC-17]
+        example: PG-13
+      genres?:
+        type: array
+        items: string
+        example: [Adventure, Mystery]
+      posterUrl?:
+        type: string
+        example: https://cdn.streamflix.com/posters/mysterious-adventure.jpg
+      language?:
+        type: string
+        example: en-US
+
+  ContentUpdate:
+    properties:
+      title?: string
+      description?: string
+      releaseDate?: string
+      duration?: integer
+      maturityRating?:
+        type: string
+        enum: [G, PG, PG-13, R, NC-17]
+      genres?:
+        type: array
+        items: string
+      posterUrl?: string
+
+  Genre:
+    properties:
+      id:
+        type: string
+        required: true
+        example: 660e8400-e29b-41d4-a716-446655440000
+      name:
+        type: string
+        required: true
+        example: Adventure
+      description:
+        type: string
+        required: false
+        example: Action-packed adventure stories
+      createdAt:
+        type: datetime
+        required: true
+        example: 2024-01-15T10:30:00Z
+
+  GenreCreate:
+    properties:
+      name:
+        type: string
+        required: true
+        example: Adventure
+      description?:
+        type: string
+        example: Action-packed adventure stories
+
+  GenreUpdate:
+    properties:
+      name?: string
+      description?: string
+
+  Person:
+    properties:
+      id:
+        type: string
+        required: true
+        example: 770e8400-e29b-41d4-a716-446655440000
+      name:
+        type: string
+        required: true
+        example: Christopher Nolan
+      role:
+        type: string
+        required: false
+        example: Director
+
+  PersonInput:
+    properties:
+      name:
+        type: string
+        required: true
+        example: Christopher Nolan
+
+  CastMember:
+    properties:
+      id:
+        type: string
+        required: true
+        example: 880e8400-e29b-41d4-a716-446655440000
+      name:
+        type: string
+        required: true
+        example: Christian Bale
+      character:
+        type: string
+        required: true
+        example: Batman
+      order:
+        type: integer
+        required: false
+        example: 1
+
+  CastMemberInput:
+    properties:
+      name:
+        type: string
+        required: true
+        example: Christian Bale
+      character:
+        type: string
+        required: true
+        example: Batman
+
+  ContentMetadata:
+    properties:
+      contentId:
+        type: string
+        required: true
+        example: 550e8400-e29b-41d4-a716-446655440000
+      directors:
+        type: array
+        required: false
+        items: Person
+      writers:
+        type: array
+        required: false
+        items: Person
+      producers:
+        type: array
+        required: false
+        items: Person
+      cast:
+        type: array
+        required: false
+        items: CastMember
+      productionCompany:
+        type: string
+        required: false
+        example: StreamFlix Productions
+      budget:
+        type: integer
+        required: false
+        description: Budget in USD
+        example: 50000000
+      boxOffice:
+        type: integer
+        required: false
+        description: Box office revenue in USD
+        example: 250000000
+
+  ContentMetadataUpdate:
+    properties:
+      directors?:
+        type: array
+        items: PersonInput
+      writers?:
+        type: array
+        items: PersonInput
+      producers?:
+        type: array
+        items: PersonInput
+      cast?:
+        type: array
+        items: CastMemberInput
+      productionCompany?: string
+      budget?:
+        type: integer
+        description: Budget in USD
+
+  Rating:
+    properties:
+      id:
+        type: string
+        required: true
+        example: 990e8400-e29b-41d4-a716-446655440000
+      contentId:
+        type: string
+        required: true
+        example: 550e8400-e29b-41d4-a716-446655440000
+      userId:
+        type: string
+        required: true
+        example: aa0e8400-e29b-41d4-a716-446655440000
+      score:
+        type: number
+        required: true
+        description: Rating score from 0 to 10
+        example: 8.5
+      review:
+        type: string
+        required: false
+        example: An outstanding film with incredible performances
+      helpful:
+        type: integer
+        required: true
+        example: 42
+      unhelpful:
+        type: integer
+        required: true
+        example: 3
+      createdAt:
+        type: datetime
+        required: true
+        example: 2026-04-15T12:00:00Z
+      updatedAt:
+        type: datetime
+        required: true
+        example: 2026-04-20T10:30:00Z
+
+  RatingCreate:
+    properties:
+      score:
+        type: number
+        required: true
+        description: Rating score from 0 to 10
+        example: 8.5
+      review?:
+        type: string
+        example: An outstanding film with incredible performances
+
+  RatingUpdate:
+    properties:
+      score?:
+        type: number
+        description: Rating score from 0 to 10
+      review?: string
+
+  Availability:
+    properties:
+      contentId:
+        type: string
+        required: true
+        example: 550e8400-e29b-41d4-a716-446655440000
+      region:
+        type: string
+        required: true
+        pattern: ^[A-Z]{2}$
+        example: US
+      isAvailable:
+        type: boolean
+        required: true
+        example: true
+      startDate:
+        type: datetime
+        required: false
+        example: 2026-04-20T00:00:00Z
+      endDate:
+        type: datetime
+        required: false
+        example: 2027-04-20T00:00:00Z
+      formats:
+        type: array
+        required: false
+        items: string
+        enum: [SD, HD, 4K]
+        example: [SD, HD, 4K]
+
+  BulkAvailabilityRequest:
+    properties:
+      contentIds:
+        type: array
+        required: true
+        items: string
+        example: [550e8400-e29b-41d4-a716-446655440000, 660e8400-e29b-41d4-a716-446655440000]
+      region:
+        type: string
+        required: true
+        pattern: ^[A-Z]{2}$
+        example: US
+
+  Error:
+    properties:
+      code:
+        type: string
+        required: true
+        example: INVALID_INPUT
+      message:
+        type: string
+        required: true
+        example: The provided input is invalid
+      details?:
+        type: array
+        items:
+          properties:
+            field?: string
+            message?: string
+
+/content:
+  get:
+    description: Retrieve a paginated list of all content in the catalog
+    securedBy: [bearerAuth]
+    queryParameters:
+      contentType:
+        type: string
+        required: false
+        enum: [movie, tvshow]
+        description: Filter by content type
+      limit:
+        type: integer
+        required: false
+        default: 20
+        minimum: 1
+        maximum: 100
+        description: Number of items to return
+      offset:
+        type: integer
+        required: false
+        default: 0
+        minimum: 0
+        description: Number of items to skip
+    responses:
+      200:
+        description: Content list retrieved successfully
+        body:
+          application/json:
+            properties:
+              items:
+                type: array
+                items: ContentItem
+              total: integer
+              limit: integer
+              offset: integer
+      401:
+        description: Unauthorized
+        body:
+          application/json:
+            type: Error
+  post:
+    description: Create a new content item in the catalog
+    securedBy: [bearerAuth]
+    body:
+      application/json:
+        type: ContentCreate
+    responses:
+      201:
+        description: Content created successfully
+        body:
+          application/json:
+            type: Content
+      400:
+        description: Invalid input
+        body:
+          application/json:
+            type: Error
+      401:
+        description: Unauthorized
+        body:
+          application/json:
+            type: Error
+
+/content/{contentId}:
+  uriParameters:
+    contentId:
+      type: string
+      description: Content ID
+      example: 550e8400-e29b-41d4-a716-446655440000
+  get:
+    description: Retrieve detailed information about a specific content item
+    securedBy: [bearerAuth]
+    responses:
+      200:
+        description: Content retrieved successfully
+        body:
+          application/json:
+            type: Content
+      401:
+        description: Unauthorized
+        body:
+          application/json:
+            type: Error
+      404:
+        description: Content not found
+        body:
+          application/json:
+            type: Error
+  put:
+    description: Update an existing content item
+    securedBy: [bearerAuth]
+    body:
+      application/json:
+        type: ContentUpdate
+    responses:
+      200:
+        description: Content updated successfully
+        body:
+          application/json:
+            type: Content
+      400:
+        description: Invalid input
+        body:
+          application/json:
+            type: Error
+      401:
+        description: Unauthorized
+        body:
+          application/json:
+            type: Error
+      404:
+        description: Content not found
+        body:
+          application/json:
+            type: Error
+  delete:
+    description: Delete a content item from the catalog
+    securedBy: [bearerAuth]
+    responses:
+      204:
+        description: Content deleted successfully
+      401:
+        description: Unauthorized
+        body:
+          application/json:
+            type: Error
+      404:
+        description: Content not found
+        body:
+          application/json:
+            type: Error
+
+/content/search:
+  get:
+    description: Search for content using keywords and filters
+    securedBy: [bearerAuth]
+    queryParameters:
+      query:
+        type: string
+        required: true
+        minLength: 1
+        description: Search query
+      contentType:
+        type: string
+        required: false
+        enum: [movie, tvshow]
+        description: Filter by content type
+      genres:
+        type: array
+        required: false
+        items: string
+        description: Filter by genres
+      releaseYearMin:
+        type: integer
+        required: false
+        minimum: 1900
+        description: Minimum release year
+      releaseYearMax:
+        type: integer
+        required: false
+        minimum: 1900
+        description: Maximum release year
+      ratingMin:
+        type: number
+        required: false
+        minimum: 0
+        maximum: 10
+        description: Minimum rating (0-10)
+      limit:
+        type: integer
+        required: false
+        default: 20
+        minimum: 1
+        maximum: 100
+        description: Number of items to return
+      offset:
+        type: integer
+        required: false
+        default: 0
+        minimum: 0
+        description: Number of items to skip
+    responses:
+      200:
+        description: Search results retrieved successfully
+        body:
+          application/json:
+            properties:
+              items:
+                type: array
+                items: ContentItem
+              total: integer
+              limit: integer
+              offset: integer
+      400:
+        description: Invalid search parameters
+        body:
+          application/json:
+            type: Error
+      401:
+        description: Unauthorized
+        body:
+          application/json:
+            type: Error
+
+/genres:
+  get:
+    description: Retrieve all available genres and categories
+    securedBy: [bearerAuth]
+    responses:
+      200:
+        description: Genres retrieved successfully
+        body:
+          application/json:
+            properties:
+              genres:
+                type: array
+                items: Genre
+      401:
+        description: Unauthorized
+        body:
+          application/json:
+            type: Error
+  post:
+    description: Create a new genre
+    securedBy: [bearerAuth]
+    body:
+      application/json:
+        type: GenreCreate
+    responses:
+      201:
+        description: Genre created successfully
+        body:
+          application/json:
+            type: Genre
+      400:
+        description: Invalid input
+        body:
+          application/json:
+            type: Error
+      401:
+        description: Unauthorized
+        body:
+          application/json:
+            type: Error
+
+/genres/{genreId}:
+  uriParameters:
+    genreId:
+      type: string
+      description: Genre ID
+      example: 660e8400-e29b-41d4-a716-446655440000
+  get:
+    description: Retrieve a specific genre with its details
+    securedBy: [bearerAuth]
+    responses:
+      200:
+        description: Genre retrieved successfully
+        body:
+          application/json:
+            type: Genre
+      401:
+        description: Unauthorized
+        body:
+          application/json:
+            type: Error
+      404:
+        description: Genre not found
+        body:
+          application/json:
+            type: Error
+  put:
+    description: Update a genre
+    securedBy: [bearerAuth]
+    body:
+      application/json:
+        type: GenreUpdate
+    responses:
+      200:
+        description: Genre updated successfully
+        body:
+          application/json:
+            type: Genre
+      400:
+        description: Invalid input
+        body:
+          application/json:
+            type: Error
+      401:
+        description: Unauthorized
+        body:
+          application/json:
+            type: Error
+      404:
+        description: Genre not found
+        body:
+          application/json:
+            type: Error
+  delete:
+    description: Delete a genre
+    securedBy: [bearerAuth]
+    responses:
+      204:
+        description: Genre deleted successfully
+      401:
+        description: Unauthorized
+        body:
+          application/json:
+            type: Error
+      404:
+        description: Genre not found
+        body:
+          application/json:
+            type: Error
+
+/content/{contentId}/metadata:
+  uriParameters:
+    contentId:
+      type: string
+      description: Content ID
+      example: 550e8400-e29b-41d4-a716-446655440000
+  get:
+    description: Retrieve detailed metadata for content including cast, crew, and production details
+    securedBy: [bearerAuth]
+    responses:
+      200:
+        description: Content metadata retrieved successfully
+        body:
+          application/json:
+            type: ContentMetadata
+      401:
+        description: Unauthorized
+        body:
+          application/json:
+            type: Error
+      404:
+        description: Content not found
+        body:
+          application/json:
+            type: Error
+  put:
+    description: Update metadata for content
+    securedBy: [bearerAuth]
+    body:
+      application/json:
+        type: ContentMetadataUpdate
+    responses:
+      200:
+        description: Content metadata updated successfully
+        body:
+          application/json:
+            type: ContentMetadata
+      400:
+        description: Invalid input
+        body:
+          application/json:
+            type: Error
+      401:
+        description: Unauthorized
+        body:
+          application/json:
+            type: Error
+      404:
+        description: Content not found
+        body:
+          application/json:
+            type: Error
+
+/content/{contentId}/ratings:
+  uriParameters:
+    contentId:
+      type: string
+      description: Content ID
+      example: 550e8400-e29b-41d4-a716-446655440000
+  get:
+    description: Retrieve ratings and reviews for content
+    securedBy: [bearerAuth]
+    queryParameters:
+      limit:
+        type: integer
+        required: false
+        default: 20
+        minimum: 1
+        maximum: 100
+        description: Number of ratings to return
+      offset:
+        type: integer
+        required: false
+        default: 0
+        minimum: 0
+        description: Number of ratings to skip
+    responses:
+      200:
+        description: Ratings retrieved successfully
+        body:
+          application/json:
+            properties:
+              contentId: string
+              averageRating: number
+              totalRatings: integer
+              ratings:
+                type: array
+                items: Rating
+              limit: integer
+              offset: integer
+      401:
+        description: Unauthorized
+        body:
+          application/json:
+            type: Error
+      404:
+        description: Content not found
+        body:
+          application/json:
+            type: Error
+  post:
+    description: Add a rating or review to content
+    securedBy: [bearerAuth]
+    body:
+      application/json:
+        type: RatingCreate
+    responses:
+      201:
+        description: Rating added successfully
+        body:
+          application/json:
+            type: Rating
+      400:
+        description: Invalid input
+        body:
+          application/json:
+            type: Error
+      401:
+        description: Unauthorized
+        body:
+          application/json:
+            type: Error
+      404:
+        description: Content not found
+        body:
+          application/json:
+            type: Error
+
+/content/{contentId}/ratings/{ratingId}:
+  uriParameters:
+    contentId:
+      type: string
+      description: Content ID
+      example: 550e8400-e29b-41d4-a716-446655440000
+    ratingId:
+      type: string
+      description: Rating ID
+      example: 990e8400-e29b-41d4-a716-446655440000
+  put:
+    description: Update a rating or review
+    securedBy: [bearerAuth]
+    body:
+      application/json:
+        type: RatingUpdate
+    responses:
+      200:
+        description: Rating updated successfully
+        body:
+          application/json:
+            type: Rating
+      400:
+        description: Invalid input
+        body:
+          application/json:
+            type: Error
+      401:
+        description: Unauthorized
+        body:
+          application/json:
+            type: Error
+      404:
+        description: Rating not found
+        body:
+          application/json:
+            type: Error
+  delete:
+    description: Delete a rating or review
+    securedBy: [bearerAuth]
+    responses:
+      204:
+        description: Rating deleted successfully
+      401:
+        description: Unauthorized
+        body:
+          application/json:
+            type: Error
+      404:
+        description: Rating not found
+        body:
+          application/json:
+            type: Error
+
+/availability:
+  get:
+    description: Check content availability for a specific region
+    securedBy: [bearerAuth]
+    queryParameters:
+      contentId:
+        type: string
+        required: true
+        description: Content ID
+        example: 550e8400-e29b-41d4-a716-446655440000
+      region:
+        type: string
+        required: true
+        pattern: ^[A-Z]{2}$
+        description: Region code (ISO 3166-1 alpha-2)
+        example: US
+    responses:
+      200:
+        description: Availability information retrieved successfully
+        body:
+          application/json:
+            type: Availability
+      400:
+        description: Invalid input
+        body:
+          application/json:
+            type: Error
+      401:
+        description: Unauthorized
+        body:
+          application/json:
+            type: Error
+      404:
+        description: Content not found
+        body:
+          application/json:
+            type: Error
+
+/availability/bulk:
+  post:
+    description: Check availability for multiple content items in a region
+    securedBy: [bearerAuth]
+    body:
+      application/json:
+        type: BulkAvailabilityRequest
+    responses:
+      200:
+        description: Bulk availability information retrieved successfully
+        body:
+          application/json:
+            properties:
+              region: string
+              availabilities:
+                type: array
+                items: Availability
+      400:
+        description: Invalid input
+        body:
+          application/json:
+            type: Error
+      401:
+        description: Unauthorized
+        body:
+          application/json:
+            type: Error

@@ -1,0 +1,1354 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "StreamFlix Recommendation Service API",
+    "version": "1.0.0",
+    "description": "Personalized content recommendations engine for the StreamFlix streaming platform"
+  },
+  "servers": [
+    {
+      "url": "https://api.streamflix.com/recommendations/v1",
+      "description": "Production server"
+    },
+    {
+      "url": "https://staging-api.streamflix.com/recommendations/v1",
+      "description": "Staging server"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Recommendations",
+      "description": "Personalized content recommendations"
+    },
+    {
+      "name": "Trending",
+      "description": "Trending and popular content"
+    },
+    {
+      "name": "Similar Content",
+      "description": "Similar content suggestions"
+    },
+    {
+      "name": "Contextual",
+      "description": "Contextual recommendations"
+    },
+    {
+      "name": "Genres",
+      "description": "Genre-based recommendations"
+    },
+    {
+      "name": "Feedback",
+      "description": "Recommendation feedback"
+    },
+    {
+      "name": "Preferences",
+      "description": "Recommendation preferences"
+    }
+  ],
+  "paths": {
+    "/recommendations/personalized": {
+      "get": {
+        "tags": ["Recommendations"],
+        "summary": "Get personalized recommendations",
+        "description": "Retrieve personalized content recommendations based on user watch history and preferences",
+        "operationId": "getPersonalizedRecommendations",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "profileId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Profile ID for recommendations"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 20,
+              "minimum": 1,
+              "maximum": 100
+            },
+            "description": "Number of recommendations to return"
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 0,
+              "minimum": 0
+            },
+            "description": "Number of items to skip"
+          },
+          {
+            "name": "contentType",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": ["movie", "series", "all"],
+              "default": "all"
+            },
+            "description": "Filter by content type"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Personalized recommendations retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecommendationList"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/recommendations/trending": {
+      "get": {
+        "tags": ["Trending"],
+        "summary": "Get trending content",
+        "description": "Retrieve currently trending content across the platform",
+        "operationId": "getTrendingContent",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 20,
+              "minimum": 1,
+              "maximum": 100
+            },
+            "description": "Number of trending items to return"
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 0,
+              "minimum": 0
+            },
+            "description": "Number of items to skip"
+          },
+          {
+            "name": "timeWindow",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": ["24h", "7d", "30d"],
+              "default": "7d"
+            },
+            "description": "Time window for trending data"
+          },
+          {
+            "name": "region",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "example": "US"
+            },
+            "description": "Geographic region code"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Trending content retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrendingList"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/recommendations/popular": {
+      "get": {
+        "tags": ["Trending"],
+        "summary": "Get popular content",
+        "description": "Retrieve most popular content based on overall viewing patterns",
+        "operationId": "getPopularContent",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 20,
+              "minimum": 1,
+              "maximum": 100
+            },
+            "description": "Number of popular items to return"
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 0,
+              "minimum": 0
+            },
+            "description": "Number of items to skip"
+          },
+          {
+            "name": "contentType",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": ["movie", "series", "all"],
+              "default": "all"
+            },
+            "description": "Filter by content type"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Popular content retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PopularList"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/recommendations/similar/{contentId}": {
+      "get": {
+        "tags": ["Similar Content"],
+        "summary": "Get similar content",
+        "description": "Retrieve content similar to a specified content item",
+        "operationId": "getSimilarContent",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "contentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Content ID to find similar items for"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 20,
+              "minimum": 1,
+              "maximum": 100
+            },
+            "description": "Number of similar items to return"
+          },
+          {
+            "name": "minSimilarityScore",
+            "in": "query",
+            "schema": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1,
+              "default": 0.5
+            },
+            "description": "Minimum similarity score threshold"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Similar content retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SimilarContentList"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Content not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/recommendations/because-you-watched": {
+      "get": {
+        "tags": ["Contextual"],
+        "summary": "Get 'Because You Watched' recommendations",
+        "description": "Retrieve recommendations based on specific watched content",
+        "operationId": "getBecauseYouWatchedRecommendations",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "profileId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Profile ID for recommendations"
+          },
+          {
+            "name": "contentId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Content ID to base recommendations on"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 20,
+              "minimum": 1,
+              "maximum": 100
+            },
+            "description": "Number of recommendations to return"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Because You Watched recommendations retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContextualRecommendationList"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/recommendations/by-genre": {
+      "get": {
+        "tags": ["Genres"],
+        "summary": "Get genre-based recommendations",
+        "description": "Retrieve content recommendations for a specific genre",
+        "operationId": "getGenreRecommendations",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "genre",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": ["action", "comedy", "drama", "horror", "thriller", "romance", "sci-fi", "fantasy", "documentary", "animation"]
+            },
+            "description": "Genre to filter recommendations"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 20,
+              "minimum": 1,
+              "maximum": 100
+            },
+            "description": "Number of recommendations to return"
+          },
+          {
+            "name": "sortBy",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": ["relevance", "rating", "release_date"],
+              "default": "relevance"
+            },
+            "description": "Sort order for recommendations"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Genre-based recommendations retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenreRecommendationList"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/recommendations/{recommendationId}/feedback": {
+      "post": {
+        "tags": ["Feedback"],
+        "summary": "Submit recommendation feedback",
+        "description": "Submit thumbs up/down feedback for a recommendation",
+        "operationId": "submitRecommendationFeedback",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "recommendationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Recommendation ID"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RecommendationFeedback"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Feedback submitted successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeedbackResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/recommendations/feedback/update": {
+      "put": {
+        "tags": ["Feedback"],
+        "summary": "Update recommendation feedback",
+        "description": "Update existing recommendation feedback",
+        "operationId": "updateRecommendationFeedback",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FeedbackUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Feedback updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeedbackResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Feedback not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/recommendations/preferences": {
+      "get": {
+        "tags": ["Preferences"],
+        "summary": "Get recommendation preferences",
+        "description": "Retrieve recommendation preferences for a profile",
+        "operationId": "getRecommendationPreferences",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "profileId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Profile ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Recommendation preferences retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecommendationPreferences"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": ["Preferences"],
+        "summary": "Update recommendation preferences",
+        "description": "Update recommendation preferences for a profile",
+        "operationId": "updateRecommendationPreferences",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "profileId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Profile ID"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PreferencesUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Recommendation preferences updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecommendationPreferences"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    },
+    "schemas": {
+      "Recommendation": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          },
+          "contentId": {
+            "type": "string",
+            "format": "uuid",
+            "example": "660e8400-e29b-41d4-a716-446655440000"
+          },
+          "title": {
+            "type": "string",
+            "example": "Breaking Bad"
+          },
+          "description": {
+            "type": "string",
+            "example": "A high school chemistry teacher turned methamphetamine manufacturer"
+          },
+          "contentType": {
+            "type": "string",
+            "enum": ["movie", "series"],
+            "example": "series"
+          },
+          "posterUrl": {
+            "type": "string",
+            "format": "uri",
+            "example": "https://cdn.streamflix.com/posters/breaking-bad.jpg"
+          },
+          "genre": {
+            "type": "string",
+            "example": "drama"
+          },
+          "releaseYear": {
+            "type": "integer",
+            "example": 2008
+          },
+          "rating": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 10,
+            "example": 9.5
+          },
+          "recommendationScore": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1,
+            "description": "Personalized recommendation score",
+            "example": 0.92
+          },
+          "recommendationReason": {
+            "type": "string",
+            "example": "Based on your interest in drama and similar shows you've watched"
+          }
+        }
+      },
+      "RecommendationList": {
+        "type": "object",
+        "properties": {
+          "recommendations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Recommendation"
+            }
+          },
+          "total": {
+            "type": "integer",
+            "example": 150
+          },
+          "limit": {
+            "type": "integer",
+            "example": 20
+          },
+          "offset": {
+            "type": "integer",
+            "example": 0
+          }
+        }
+      },
+      "TrendingItem": {
+        "type": "object",
+        "properties": {
+          "contentId": {
+            "type": "string",
+            "format": "uuid",
+            "example": "660e8400-e29b-41d4-a716-446655440000"
+          },
+          "title": {
+            "type": "string",
+            "example": "The Last of Us"
+          },
+          "contentType": {
+            "type": "string",
+            "enum": ["movie", "series"],
+            "example": "series"
+          },
+          "posterUrl": {
+            "type": "string",
+            "format": "uri",
+            "example": "https://cdn.streamflix.com/posters/the-last-of-us.jpg"
+          },
+          "trendingRank": {
+            "type": "integer",
+            "example": 1
+          },
+          "trendingScore": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1,
+            "example": 0.98
+          },
+          "viewsInPeriod": {
+            "type": "integer",
+            "example": 2500000
+          },
+          "category": {
+            "type": "string",
+            "example": "action"
+          }
+        }
+      },
+      "TrendingList": {
+        "type": "object",
+        "properties": {
+          "trendingContent": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TrendingItem"
+            }
+          },
+          "timeWindow": {
+            "type": "string",
+            "example": "7d"
+          },
+          "region": {
+            "type": "string",
+            "example": "US"
+          },
+          "total": {
+            "type": "integer",
+            "example": 100
+          }
+        }
+      },
+      "PopularItem": {
+        "type": "object",
+        "properties": {
+          "contentId": {
+            "type": "string",
+            "format": "uuid",
+            "example": "660e8400-e29b-41d4-a716-446655440000"
+          },
+          "title": {
+            "type": "string",
+            "example": "Inception"
+          },
+          "contentType": {
+            "type": "string",
+            "enum": ["movie", "series"],
+            "example": "movie"
+          },
+          "posterUrl": {
+            "type": "string",
+            "format": "uri",
+            "example": "https://cdn.streamflix.com/posters/inception.jpg"
+          },
+          "popularityRank": {
+            "type": "integer",
+            "example": 1
+          },
+          "averageRating": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 10,
+            "example": 8.8
+          },
+          "viewCount": {
+            "type": "integer",
+            "example": 5000000
+          },
+          "releaseYear": {
+            "type": "integer",
+            "example": 2010
+          }
+        }
+      },
+      "PopularList": {
+        "type": "object",
+        "properties": {
+          "popularContent": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PopularItem"
+            }
+          },
+          "total": {
+            "type": "integer",
+            "example": 500
+          },
+          "limit": {
+            "type": "integer",
+            "example": 20
+          },
+          "offset": {
+            "type": "integer",
+            "example": 0
+          }
+        }
+      },
+      "SimilarContent": {
+        "type": "object",
+        "properties": {
+          "contentId": {
+            "type": "string",
+            "format": "uuid",
+            "example": "770e8400-e29b-41d4-a716-446655440000"
+          },
+          "title": {
+            "type": "string",
+            "example": "Better Call Saul"
+          },
+          "contentType": {
+            "type": "string",
+            "enum": ["movie", "series"],
+            "example": "series"
+          },
+          "posterUrl": {
+            "type": "string",
+            "format": "uri",
+            "example": "https://cdn.streamflix.com/posters/better-call-saul.jpg"
+          },
+          "similarityScore": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1,
+            "description": "Score indicating how similar to the requested content",
+            "example": 0.87
+          },
+          "genre": {
+            "type": "string",
+            "example": "crime-drama"
+          },
+          "commonElements": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "example": ["crime", "anti-hero protagonist", "character development"]
+          }
+        }
+      },
+      "SimilarContentList": {
+        "type": "object",
+        "properties": {
+          "sourceContentId": {
+            "type": "string",
+            "format": "uuid",
+            "example": "660e8400-e29b-41d4-a716-446655440000"
+          },
+          "sourceContentTitle": {
+            "type": "string",
+            "example": "Breaking Bad"
+          },
+          "similarContent": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SimilarContent"
+            }
+          },
+          "total": {
+            "type": "integer",
+            "example": 45
+          }
+        }
+      },
+      "ContextualRecommendation": {
+        "type": "object",
+        "properties": {
+          "contentId": {
+            "type": "string",
+            "format": "uuid",
+            "example": "880e8400-e29b-41d4-a716-446655440000"
+          },
+          "title": {
+            "type": "string",
+            "example": "Ozark"
+          },
+          "contentType": {
+            "type": "string",
+            "enum": ["movie", "series"],
+            "example": "series"
+          },
+          "posterUrl": {
+            "type": "string",
+            "format": "uri",
+            "example": "https://cdn.streamflix.com/posters/ozark.jpg"
+          },
+          "reason": {
+            "type": "string",
+            "example": "Because you watched Breaking Bad"
+          },
+          "relevanceScore": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1,
+            "example": 0.89
+          }
+        }
+      },
+      "ContextualRecommendationList": {
+        "type": "object",
+        "properties": {
+          "baseContentId": {
+            "type": "string",
+            "format": "uuid",
+            "example": "660e8400-e29b-41d4-a716-446655440000"
+          },
+          "baseContentTitle": {
+            "type": "string",
+            "example": "Breaking Bad"
+          },
+          "recommendations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ContextualRecommendation"
+            }
+          },
+          "total": {
+            "type": "integer",
+            "example": 25
+          }
+        }
+      },
+      "GenreRecommendation": {
+        "type": "object",
+        "properties": {
+          "contentId": {
+            "type": "string",
+            "format": "uuid",
+            "example": "990e8400-e29b-41d4-a716-446655440000"
+          },
+          "title": {
+            "type": "string",
+            "example": "Interstellar"
+          },
+          "contentType": {
+            "type": "string",
+            "enum": ["movie", "series"],
+            "example": "movie"
+          },
+          "posterUrl": {
+            "type": "string",
+            "format": "uri",
+            "example": "https://cdn.streamflix.com/posters/interstellar.jpg"
+          },
+          "genre": {
+            "type": "string",
+            "example": "sci-fi"
+          },
+          "releaseYear": {
+            "type": "integer",
+            "example": 2014
+          },
+          "rating": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 10,
+            "example": 8.6
+          },
+          "relevanceToGenre": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1,
+            "example": 0.95
+          }
+        }
+      },
+      "GenreRecommendationList": {
+        "type": "object",
+        "properties": {
+          "genre": {
+            "type": "string",
+            "example": "sci-fi"
+          },
+          "recommendations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GenreRecommendation"
+            }
+          },
+          "total": {
+            "type": "integer",
+            "example": 250
+          },
+          "limit": {
+            "type": "integer",
+            "example": 20
+          }
+        }
+      },
+      "RecommendationFeedback": {
+        "type": "object",
+        "required": ["rating", "contentId"],
+        "properties": {
+          "contentId": {
+            "type": "string",
+            "format": "uuid",
+            "example": "660e8400-e29b-41d4-a716-446655440000"
+          },
+          "rating": {
+            "type": "string",
+            "enum": ["up", "down"],
+            "description": "Thumbs up or down feedback",
+            "example": "up"
+          },
+          "reason": {
+            "type": "string",
+            "example": "Not interested in this type of content"
+          }
+        }
+      },
+      "FeedbackResponse": {
+        "type": "object",
+        "properties": {
+          "feedbackId": {
+            "type": "string",
+            "format": "uuid",
+            "example": "aa0e8400-e29b-41d4-a716-446655440000"
+          },
+          "contentId": {
+            "type": "string",
+            "format": "uuid",
+            "example": "660e8400-e29b-41d4-a716-446655440000"
+          },
+          "rating": {
+            "type": "string",
+            "enum": ["up", "down"],
+            "example": "up"
+          },
+          "submittedAt": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-04-20T15:30:00Z"
+          },
+          "message": {
+            "type": "string",
+            "example": "Feedback recorded successfully"
+          }
+        }
+      },
+      "FeedbackUpdate": {
+        "type": "object",
+        "required": ["feedbackId", "rating"],
+        "properties": {
+          "feedbackId": {
+            "type": "string",
+            "format": "uuid",
+            "example": "aa0e8400-e29b-41d4-a716-446655440000"
+          },
+          "rating": {
+            "type": "string",
+            "enum": ["up", "down"],
+            "example": "down"
+          },
+          "reason": {
+            "type": "string",
+            "example": "Changed my mind after watching the preview"
+          }
+        }
+      },
+      "RecommendationPreferences": {
+        "type": "object",
+        "properties": {
+          "profileId": {
+            "type": "string",
+            "format": "uuid",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          },
+          "preferredGenres": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "example": ["action", "sci-fi", "drama"]
+          },
+          "excludedGenres": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "example": ["horror"]
+          },
+          "minRating": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 10,
+            "example": 7.0
+          },
+          "includeNewReleases": {
+            "type": "boolean",
+            "example": true
+          },
+          "includeOnlyWatchedGenres": {
+            "type": "boolean",
+            "description": "Only recommend genres user has watched before",
+            "example": false
+          },
+          "diversifyRecommendations": {
+            "type": "boolean",
+            "description": "Show variety in recommendations",
+            "example": true
+          },
+          "language": {
+            "type": "string",
+            "example": "en-US"
+          },
+          "maturityRating": {
+            "type": "string",
+            "enum": ["G", "PG", "PG-13", "R", "NC-17"],
+            "example": "R"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-04-20T10:00:00Z"
+          }
+        }
+      },
+      "PreferencesUpdate": {
+        "type": "object",
+        "properties": {
+          "preferredGenres": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "example": ["action", "sci-fi", "drama"]
+          },
+          "excludedGenres": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "example": ["horror"]
+          },
+          "minRating": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 10,
+            "example": 7.0
+          },
+          "includeNewReleases": {
+            "type": "boolean",
+            "example": true
+          },
+          "includeOnlyWatchedGenres": {
+            "type": "boolean",
+            "example": false
+          },
+          "diversifyRecommendations": {
+            "type": "boolean",
+            "example": true
+          },
+          "maturityRating": {
+            "type": "string",
+            "enum": ["G", "PG", "PG-13", "R", "NC-17"],
+            "example": "R"
+          }
+        }
+      },
+      "Error": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "example": "INVALID_INPUT"
+          },
+          "message": {
+            "type": "string",
+            "example": "The provided input is invalid"
+          },
+          "details": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "field": {
+                  "type": "string",
+                  "example": "profileId"
+                },
+                "message": {
+                  "type": "string",
+                  "example": "Profile ID must be a valid UUID"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

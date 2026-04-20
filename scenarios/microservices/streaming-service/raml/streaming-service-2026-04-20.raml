@@ -1,0 +1,1002 @@
+#%RAML 1.0
+title: StreamFlix Streaming Service API
+version: 1.0.0
+baseUri: https://api.streamflix.com/streaming/v1
+mediaType: application/json
+description: Video streaming and playback management for the StreamFlix streaming platform
+
+securitySchemes:
+  bearerAuth:
+    type: OAuth 2.0
+    description: JWT Bearer Token Authentication
+    describedBy:
+      headers:
+        Authorization:
+          description: Bearer token
+          type: string
+          pattern: ^Bearer .+$
+          example: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+
+types:
+  StreamInitializeRequest:
+    properties:
+      contentId:
+        type: string
+        required: true
+        example: 880e8400-e29b-41d4-a716-446655440000
+      profileId:
+        type: string
+        required: true
+        example: 660e8400-e29b-41d4-a716-446655440000
+      deviceId:
+        type: string
+        required: true
+        example: device-12345
+      resumeFromProgress?:
+        type: boolean
+        example: true
+      preferredQuality?:
+        type: string
+        enum: [auto, low, medium, high, 4k]
+        example: auto
+
+  StreamResponse:
+    properties:
+      streamId:
+        type: string
+        required: true
+        example: 550e8400-e29b-41d4-a716-446655440000
+      contentId:
+        type: string
+        required: true
+        example: 880e8400-e29b-41d4-a716-446655440000
+      profileId:
+        type: string
+        required: true
+        example: 660e8400-e29b-41d4-a716-446655440000
+      playbackUrl:
+        type: string
+        required: true
+        example: https://stream.streamflix.com/manifests/stream-550e8400-e29b-41d4-a716-446655440000.m3u8
+      manifestUrls:
+        type: object
+        required: true
+        properties:
+          hls:
+            type: string
+            example: https://stream.streamflix.com/hls/550e8400-e29b-41d4-a716-446655440000/manifest.m3u8
+          dash:
+            type: string
+            example: https://stream.streamflix.com/dash/550e8400-e29b-41d4-a716-446655440000/manifest.mpd
+      duration:
+        type: integer
+        required: true
+        description: Content duration in seconds
+        example: 7200
+      currentQuality:
+        type: string
+        required: true
+        example: 1080p
+      currentBitrate:
+        type: integer
+        required: true
+        description: Current bitrate in kbps
+        example: 5000
+      expiresAt:
+        type: datetime
+        required: true
+        example: 2026-04-20T22:30:00Z
+      createdAt:
+        type: datetime
+        required: true
+        example: 2026-04-20T20:30:00Z
+
+  QualityProfile:
+    properties:
+      profileId:
+        type: string
+        required: true
+        example: profile-720p
+      label:
+        type: string
+        required: true
+        example: HD
+      resolution:
+        type: string
+        required: true
+        example: 1280x720
+      bitrate:
+        type: integer
+        required: true
+        description: Bitrate in kbps
+        example: 3000
+      frameRate:
+        type: integer
+        required: true
+        example: 30
+      codec:
+        type: string
+        required: true
+        example: h264
+
+  QualitySetting:
+    properties:
+      streamId:
+        type: string
+        required: true
+        example: 550e8400-e29b-41d4-a716-446655440000
+      adaptiveBitrate:
+        type: boolean
+        required: true
+        example: true
+      selectedProfile:
+        type: QualityProfile
+        required: true
+      availableProfiles:
+        type: array
+        required: true
+        items: QualityProfile
+
+  QualityUpdateRequest:
+    properties:
+      adaptiveBitrate?:
+        type: boolean
+        example: true
+      profileId?:
+        type: string
+        example: profile-1080p
+
+  SubtitleTrack:
+    properties:
+      trackId:
+        type: string
+        required: true
+        example: subtitle-en
+      language:
+        type: string
+        required: true
+        example: en
+      languageName:
+        type: string
+        required: true
+        example: English
+      isDefault:
+        type: boolean
+        required: true
+        example: false
+      format:
+        type: string
+        required: true
+        enum: [srt, vtt, ass, webvtt]
+        example: webvtt
+      url:
+        type: string
+        required: true
+        example: https://cdn.streamflix.com/subtitles/content-880e8400/subtitle-en.vtt
+
+  AudioTrack:
+    properties:
+      trackId:
+        type: string
+        required: true
+        example: audio-en-stereo
+      language:
+        type: string
+        required: true
+        example: en
+      languageName:
+        type: string
+        required: true
+        example: English
+      isDefault:
+        type: boolean
+        required: true
+        example: true
+      codec:
+        type: string
+        required: true
+        example: aac
+      channels:
+        type: string
+        required: true
+        enum: [mono, stereo, 5.1, 7.1]
+        example: stereo
+      bitrate:
+        type: integer
+        required: true
+        description: Bitrate in kbps
+        example: 128
+
+  TrackSelectionRequest:
+    properties:
+      trackId:
+        type: string
+        required: true
+        example: audio-en-stereo
+
+  DownloadInitiateRequest:
+    properties:
+      contentId:
+        type: string
+        required: true
+        example: 880e8400-e29b-41d4-a716-446655440000
+      profileId:
+        type: string
+        required: true
+        example: 660e8400-e29b-41d4-a716-446655440000
+      quality?:
+        type: string
+        enum: [low, medium, high]
+        example: high
+      subtitleLanguages?:
+        type: array
+        items: string
+        example: [en, es]
+      audioLanguages?:
+        type: array
+        items: string
+        example: [en, es]
+
+  Download:
+    properties:
+      downloadId:
+        type: string
+        required: true
+        example: 990e8400-e29b-41d4-a716-446655440000
+      contentId:
+        type: string
+        required: true
+        example: 880e8400-e29b-41d4-a716-446655440000
+      profileId:
+        type: string
+        required: true
+        example: 660e8400-e29b-41d4-a716-446655440000
+      status:
+        type: string
+        required: true
+        enum: [pending, downloading, completed, failed, paused]
+        example: downloading
+      quality:
+        type: string
+        required: true
+        example: high
+      progress:
+        type: number
+        required: true
+        description: Download progress percentage (0-100)
+        example: 45.5
+      fileSize:
+        type: integer
+        required: true
+        description: Total file size in bytes
+        example: 2147483648
+      downloadedSize:
+        type: integer
+        required: true
+        description: Downloaded size in bytes
+        example: 976773120
+      expiresAt:
+        type: datetime
+        required: true
+        description: When the downloaded content expires
+        example: 2026-05-20T20:30:00Z
+      createdAt:
+        type: datetime
+        required: true
+        example: 2026-04-20T19:30:00Z
+
+  PlaybackStateUpdate:
+    properties:
+      contentId:
+        type: string
+        required: true
+        example: 880e8400-e29b-41d4-a716-446655440000
+      profileId:
+        type: string
+        required: true
+        example: 660e8400-e29b-41d4-a716-446655440000
+      currentPosition:
+        type: integer
+        required: true
+        description: Current playback position in seconds
+        example: 3600
+      duration:
+        type: integer
+        required: true
+        description: Total duration in seconds
+        example: 7200
+      playbackStatus:
+        type: string
+        required: true
+        enum: [playing, paused, stopped, buffering]
+        example: playing
+
+  PlaybackState:
+    properties:
+      contentId:
+        type: string
+        required: true
+        example: 880e8400-e29b-41d4-a716-446655440000
+      profileId:
+        type: string
+        required: true
+        example: 660e8400-e29b-41d4-a716-446655440000
+      currentPosition:
+        type: integer
+        required: true
+        description: Current playback position in seconds
+        example: 3600
+      duration:
+        type: integer
+        required: true
+        description: Total duration in seconds
+        example: 7200
+      playbackStatus:
+        type: string
+        required: true
+        example: playing
+      lastUpdated:
+        type: datetime
+        required: true
+        example: 2026-04-20T20:30:00Z
+
+  ResumePointRequest:
+    properties:
+      contentId:
+        type: string
+        required: true
+        example: 880e8400-e29b-41d4-a716-446655440000
+      profileId:
+        type: string
+        required: true
+        example: 660e8400-e29b-41d4-a716-446655440000
+
+  ResumePoint:
+    properties:
+      contentId:
+        type: string
+        required: true
+        example: 880e8400-e29b-41d4-a716-446655440000
+      profileId:
+        type: string
+        required: true
+        example: 660e8400-e29b-41d4-a716-446655440000
+      position:
+        type: integer
+        required: true
+        description: Resume position in seconds
+        example: 3600
+      percentage:
+        type: number
+        required: true
+        description: Resume position as percentage of duration
+        example: 50.0
+      lastWatchedAt:
+        type: datetime
+        required: true
+        example: 2026-04-20T20:30:00Z
+
+  DrmLicenseRequest:
+    properties:
+      contentId:
+        type: string
+        required: true
+        example: 880e8400-e29b-41d4-a716-446655440000
+      drmType?:
+        type: string
+        enum: [widevine, fairplay, playready]
+        example: widevine
+      licenseChallenge?:
+        type: string
+        example: CAEQvwIaAkFTIlA1QUhjdUEycUx2Q04K...
+
+  DrmLicense:
+    properties:
+      licenseId:
+        type: string
+        required: true
+        example: 770e8400-e29b-41d4-a716-446655440000
+      contentId:
+        type: string
+        required: true
+        example: 880e8400-e29b-41d4-a716-446655440000
+      drmType:
+        type: string
+        required: true
+        example: widevine
+      licenseBlob:
+        type: string
+        required: true
+        description: Encrypted license blob
+        example: AkFTIlA5QUhjdUEycUx2Q04...
+      expiresAt:
+        type: datetime
+        required: true
+        example: 2026-04-21T20:30:00Z
+      createdAt:
+        type: datetime
+        required: true
+        example: 2026-04-20T20:30:00Z
+
+  Error:
+    properties:
+      code:
+        type: string
+        required: true
+        example: INVALID_INPUT
+      message:
+        type: string
+        required: true
+        example: The provided input is invalid
+      details?:
+        type: array
+        items:
+          properties:
+            field?: string
+            message?: string
+
+/streams/initialize:
+  post:
+    description: Initialize a new streaming session and get playback URL
+    securedBy: [bearerAuth]
+    body:
+      application/json:
+        type: StreamInitializeRequest
+    responses:
+      200:
+        description: Stream initialized successfully
+        body:
+          application/json:
+            type: StreamResponse
+      400:
+        description: Invalid input
+        body:
+          application/json:
+            type: Error
+      401:
+        description: Unauthorized
+        body:
+          application/json:
+            type: Error
+      403:
+        description: Content not available for this user
+        body:
+          application/json:
+            type: Error
+
+/streams/{streamId}:
+  uriParameters:
+    streamId:
+      type: string
+      description: Stream ID
+      example: 550e8400-e29b-41d4-a716-446655440000
+  get:
+    description: Retrieve details of an active stream session
+    securedBy: [bearerAuth]
+    responses:
+      200:
+        description: Stream details retrieved successfully
+        body:
+          application/json:
+            type: StreamResponse
+      401:
+        description: Unauthorized
+        body:
+          application/json:
+            type: Error
+      404:
+        description: Stream not found
+        body:
+          application/json:
+            type: Error
+  delete:
+    description: Close an active streaming session
+    securedBy: [bearerAuth]
+    responses:
+      204:
+        description: Stream closed successfully
+      401:
+        description: Unauthorized
+        body:
+          application/json:
+            type: Error
+      404:
+        description: Stream not found
+        body:
+          application/json:
+            type: Error
+
+  /manifest:
+    get:
+      description: Get HLS or DASH manifest for the stream
+      securedBy: [bearerAuth]
+      queryParameters:
+        format:
+          type: string
+          required: true
+          enum: [hls, dash]
+          description: Manifest format
+      responses:
+        200:
+          description: Manifest retrieved successfully
+          body:
+            application/vnd.apple.mpegurl:
+            application/dash+xml:
+        401:
+          description: Unauthorized
+          body:
+            application/json:
+              type: Error
+        404:
+          description: Stream not found
+          body:
+            application/json:
+              type: Error
+
+/quality/profiles:
+  get:
+    description: Retrieve available bitrate and quality profiles for a content
+    securedBy: [bearerAuth]
+    queryParameters:
+      contentId:
+        type: string
+        required: true
+        description: Content ID
+        example: 880e8400-e29b-41d4-a716-446655440000
+    responses:
+      200:
+        description: Quality profiles retrieved successfully
+        body:
+          application/json:
+            properties:
+              profiles:
+                type: array
+                items: QualityProfile
+      401:
+        description: Unauthorized
+        body:
+          application/json:
+            type: Error
+
+/streams/{streamId}/quality:
+  uriParameters:
+    streamId:
+      type: string
+      description: Stream ID
+      example: 550e8400-e29b-41d4-a716-446655440000
+  get:
+    description: Get current quality and bitrate setting for a stream
+    securedBy: [bearerAuth]
+    responses:
+      200:
+        description: Quality setting retrieved successfully
+        body:
+          application/json:
+            type: QualitySetting
+      401:
+        description: Unauthorized
+        body:
+          application/json:
+            type: Error
+      404:
+        description: Stream not found
+        body:
+          application/json:
+            type: Error
+  put:
+    description: Update quality and bitrate setting for a stream
+    securedBy: [bearerAuth]
+    body:
+      application/json:
+        type: QualityUpdateRequest
+    responses:
+      200:
+        description: Quality setting updated successfully
+        body:
+          application/json:
+            type: QualitySetting
+      400:
+        description: Invalid input
+        body:
+          application/json:
+            type: Error
+      401:
+        description: Unauthorized
+        body:
+          application/json:
+            type: Error
+      404:
+        description: Stream not found
+        body:
+          application/json:
+            type: Error
+
+/tracks/subtitles:
+  get:
+    description: Retrieve available subtitle tracks for a content
+    securedBy: [bearerAuth]
+    queryParameters:
+      contentId:
+        type: string
+        required: true
+        description: Content ID
+        example: 880e8400-e29b-41d4-a716-446655440000
+    responses:
+      200:
+        description: Subtitle tracks retrieved successfully
+        body:
+          application/json:
+            properties:
+              tracks:
+                type: array
+                items: SubtitleTrack
+      401:
+        description: Unauthorized
+        body:
+          application/json:
+            type: Error
+
+/streams/{streamId}/subtitles:
+  uriParameters:
+    streamId:
+      type: string
+      description: Stream ID
+      example: 550e8400-e29b-41d4-a716-446655440000
+  get:
+    description: Get the currently selected subtitle track for a stream
+    securedBy: [bearerAuth]
+    responses:
+      200:
+        description: Subtitle track retrieved successfully
+        body:
+          application/json:
+            type: SubtitleTrack
+      204:
+        description: No subtitle track selected
+      401:
+        description: Unauthorized
+        body:
+          application/json:
+            type: Error
+      404:
+        description: Stream not found
+        body:
+          application/json:
+            type: Error
+  put:
+    description: Select or change the subtitle track for a stream
+    securedBy: [bearerAuth]
+    body:
+      application/json:
+        type: TrackSelectionRequest
+    responses:
+      200:
+        description: Subtitle track selected successfully
+        body:
+          application/json:
+            type: SubtitleTrack
+      400:
+        description: Invalid input
+        body:
+          application/json:
+            type: Error
+      401:
+        description: Unauthorized
+        body:
+          application/json:
+            type: Error
+      404:
+        description: Stream or track not found
+        body:
+          application/json:
+            type: Error
+  delete:
+    description: Disable subtitle display for a stream
+    securedBy: [bearerAuth]
+    responses:
+      204:
+        description: Subtitle track disabled successfully
+      401:
+        description: Unauthorized
+        body:
+          application/json:
+            type: Error
+      404:
+        description: Stream not found
+        body:
+          application/json:
+            type: Error
+
+/tracks/audio:
+  get:
+    description: Retrieve available audio tracks for a content
+    securedBy: [bearerAuth]
+    queryParameters:
+      contentId:
+        type: string
+        required: true
+        description: Content ID
+        example: 880e8400-e29b-41d4-a716-446655440000
+    responses:
+      200:
+        description: Audio tracks retrieved successfully
+        body:
+          application/json:
+            properties:
+              tracks:
+                type: array
+                items: AudioTrack
+      401:
+        description: Unauthorized
+        body:
+          application/json:
+            type: Error
+
+/streams/{streamId}/audio:
+  uriParameters:
+    streamId:
+      type: string
+      description: Stream ID
+      example: 550e8400-e29b-41d4-a716-446655440000
+  get:
+    description: Get the currently selected audio track for a stream
+    securedBy: [bearerAuth]
+    responses:
+      200:
+        description: Audio track retrieved successfully
+        body:
+          application/json:
+            type: AudioTrack
+      401:
+        description: Unauthorized
+        body:
+          application/json:
+            type: Error
+      404:
+        description: Stream not found
+        body:
+          application/json:
+            type: Error
+  put:
+    description: Select or change the audio track for a stream
+    securedBy: [bearerAuth]
+    body:
+      application/json:
+        type: TrackSelectionRequest
+    responses:
+      200:
+        description: Audio track selected successfully
+        body:
+          application/json:
+            type: AudioTrack
+      400:
+        description: Invalid input
+        body:
+          application/json:
+            type: Error
+      401:
+        description: Unauthorized
+        body:
+          application/json:
+            type: Error
+      404:
+        description: Stream or track not found
+        body:
+          application/json:
+            type: Error
+
+/downloads/initiate:
+  post:
+    description: Initialize download of content for offline viewing
+    securedBy: [bearerAuth]
+    body:
+      application/json:
+        type: DownloadInitiateRequest
+    responses:
+      201:
+        description: Download initiated successfully
+        body:
+          application/json:
+            type: Download
+      400:
+        description: Invalid input
+        body:
+          application/json:
+            type: Error
+      401:
+        description: Unauthorized
+        body:
+          application/json:
+            type: Error
+      403:
+        description: Download not allowed for this content or user
+        body:
+          application/json:
+            type: Error
+
+/downloads:
+  get:
+    description: Get list of downloaded content
+    securedBy: [bearerAuth]
+    queryParameters:
+      profileId:
+        type: string
+        required: true
+        description: Profile ID
+        example: 660e8400-e29b-41d4-a716-446655440000
+      status?:
+        type: string
+        enum: [pending, downloading, completed, failed]
+        description: Filter by download status
+    responses:
+      200:
+        description: Downloads retrieved successfully
+        body:
+          application/json:
+            properties:
+              downloads:
+                type: array
+                items: Download
+      401:
+        description: Unauthorized
+        body:
+          application/json:
+            type: Error
+
+/downloads/{downloadId}:
+  uriParameters:
+    downloadId:
+      type: string
+      description: Download ID
+      example: 990e8400-e29b-41d4-a716-446655440000
+  get:
+    description: Retrieve details of a specific download
+    securedBy: [bearerAuth]
+    responses:
+      200:
+        description: Download details retrieved successfully
+        body:
+          application/json:
+            type: Download
+      401:
+        description: Unauthorized
+        body:
+          application/json:
+            type: Error
+      404:
+        description: Download not found
+        body:
+          application/json:
+            type: Error
+  delete:
+    description: Cancel or delete a download
+    securedBy: [bearerAuth]
+    responses:
+      204:
+        description: Download deleted successfully
+      401:
+        description: Unauthorized
+        body:
+          application/json:
+            type: Error
+      404:
+        description: Download not found
+        body:
+          application/json:
+            type: Error
+
+/playback/state:
+  post:
+    description: Update playback progress and state for a stream
+    securedBy: [bearerAuth]
+    body:
+      application/json:
+        type: PlaybackStateUpdate
+    responses:
+      200:
+        description: Playback state updated successfully
+        body:
+          application/json:
+            type: PlaybackState
+      400:
+        description: Invalid input
+        body:
+          application/json:
+            type: Error
+      401:
+        description: Unauthorized
+        body:
+          application/json:
+            type: Error
+
+/playback/resume:
+  post:
+    description: Get the resume point for content playback
+    securedBy: [bearerAuth]
+    body:
+      application/json:
+        type: ResumePointRequest
+    responses:
+      200:
+        description: Resume point retrieved successfully
+        body:
+          application/json:
+            type: ResumePoint
+      204:
+        description: No resume point available
+      401:
+        description: Unauthorized
+        body:
+          application/json:
+            type: Error
+
+/drm/license:
+  post:
+    description: Acquire DRM license for protected content
+    securedBy: [bearerAuth]
+    body:
+      application/json:
+        type: DrmLicenseRequest
+    responses:
+      200:
+        description: DRM license acquired successfully
+        body:
+          application/json:
+            type: DrmLicense
+      400:
+        description: Invalid input
+        body:
+          application/json:
+            type: Error
+      401:
+        description: Unauthorized
+        body:
+          application/json:
+            type: Error
+      403:
+        description: DRM license not available for this content or user
+        body:
+          application/json:
+            type: Error
+
+/drm/license/{licenseId}:
+  uriParameters:
+    licenseId:
+      type: string
+      description: License ID
+      example: 770e8400-e29b-41d4-a716-446655440000
+  get:
+    description: Retrieve details of a DRM license
+    securedBy: [bearerAuth]
+    responses:
+      200:
+        description: DRM license retrieved successfully
+        body:
+          application/json:
+            type: DrmLicense
+      401:
+        description: Unauthorized
+        body:
+          application/json:
+            type: Error
+      404:
+        description: License not found
+        body:
+          application/json:
+            type: Error
+  delete:
+    description: Revoke a DRM license
+    securedBy: [bearerAuth]
+    responses:
+      204:
+        description: DRM license revoked successfully
+      401:
+        description: Unauthorized
+        body:
+          application/json:
+            type: Error
+      404:
+        description: License not found
+        body:
+          application/json:
+            type: Error

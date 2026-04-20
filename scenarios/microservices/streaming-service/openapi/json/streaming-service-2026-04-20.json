@@ -1,0 +1,1929 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "StreamFlix Streaming Service API",
+    "version": "1.0.0",
+    "description": "Video streaming and playback management for the StreamFlix streaming platform"
+  },
+  "servers": [
+    {
+      "url": "https://api.streamflix.com/streaming/v1",
+      "description": "Production server"
+    },
+    {
+      "url": "https://staging-api.streamflix.com/streaming/v1",
+      "description": "Staging server"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Streams",
+      "description": "Stream initialization and management"
+    },
+    {
+      "name": "Quality",
+      "description": "Quality and bitrate selection"
+    },
+    {
+      "name": "Tracks",
+      "description": "Subtitle and audio track management"
+    },
+    {
+      "name": "Downloads",
+      "description": "Download management for offline viewing"
+    },
+    {
+      "name": "Playback",
+      "description": "Playback state and progress tracking"
+    },
+    {
+      "name": "DRM",
+      "description": "DRM and license management"
+    }
+  ],
+  "paths": {
+    "/streams/initialize": {
+      "post": {
+        "tags": ["Streams"],
+        "summary": "Initialize a stream",
+        "description": "Initialize a new streaming session and get playback URL",
+        "operationId": "initializeStream",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StreamInitializeRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Stream initialized successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StreamResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Content not available for this user",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/streams/{streamId}": {
+      "get": {
+        "tags": ["Streams"],
+        "summary": "Get stream details",
+        "description": "Retrieve details of an active stream session",
+        "operationId": "getStream",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "streamId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Stream ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Stream details retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StreamResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Stream not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": ["Streams"],
+        "summary": "Close stream",
+        "description": "Close an active streaming session",
+        "operationId": "closeStream",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "streamId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Stream ID"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Stream closed successfully"
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Stream not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/streams/{streamId}/manifest": {
+      "get": {
+        "tags": ["Streams"],
+        "summary": "Get stream manifest",
+        "description": "Get HLS or DASH manifest for the stream",
+        "operationId": "getStreamManifest",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "streamId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Stream ID"
+          },
+          {
+            "name": "format",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": ["hls", "dash"]
+            },
+            "description": "Manifest format"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Manifest retrieved successfully",
+            "content": {
+              "application/vnd.apple.mpegurl": {},
+              "application/dash+xml": {}
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Stream not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/quality/profiles": {
+      "get": {
+        "tags": ["Quality"],
+        "summary": "Get available quality profiles",
+        "description": "Retrieve available bitrate and quality profiles for a content",
+        "operationId": "getQualityProfiles",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "contentId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Content ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Quality profiles retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "profiles": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/QualityProfile"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/streams/{streamId}/quality": {
+      "get": {
+        "tags": ["Quality"],
+        "summary": "Get current quality setting",
+        "description": "Get current quality and bitrate setting for a stream",
+        "operationId": "getStreamQuality",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "streamId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Stream ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Quality setting retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QualitySetting"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Stream not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": ["Quality"],
+        "summary": "Update quality setting",
+        "description": "Update quality and bitrate setting for a stream",
+        "operationId": "updateStreamQuality",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "streamId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Stream ID"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/QualityUpdateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Quality setting updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QualitySetting"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Stream not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/tracks/subtitles": {
+      "get": {
+        "tags": ["Tracks"],
+        "summary": "Get available subtitle tracks",
+        "description": "Retrieve available subtitle tracks for a content",
+        "operationId": "getSubtitleTracks",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "contentId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Content ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Subtitle tracks retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "tracks": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/SubtitleTrack"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/streams/{streamId}/subtitles": {
+      "get": {
+        "tags": ["Tracks"],
+        "summary": "Get selected subtitle track",
+        "description": "Get the currently selected subtitle track for a stream",
+        "operationId": "getStreamSubtitle",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "streamId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Stream ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Subtitle track retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubtitleTrack"
+                }
+              }
+            }
+          },
+          "204": {
+            "description": "No subtitle track selected"
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Stream not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": ["Tracks"],
+        "summary": "Select subtitle track",
+        "description": "Select or change the subtitle track for a stream",
+        "operationId": "selectSubtitleTrack",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "streamId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Stream ID"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrackSelectionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Subtitle track selected successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubtitleTrack"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Stream or track not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": ["Tracks"],
+        "summary": "Disable subtitle track",
+        "description": "Disable subtitle display for a stream",
+        "operationId": "disableSubtitleTrack",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "streamId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Stream ID"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Subtitle track disabled successfully"
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Stream not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/tracks/audio": {
+      "get": {
+        "tags": ["Tracks"],
+        "summary": "Get available audio tracks",
+        "description": "Retrieve available audio tracks for a content",
+        "operationId": "getAudioTracks",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "contentId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Content ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Audio tracks retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "tracks": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/AudioTrack"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/streams/{streamId}/audio": {
+      "get": {
+        "tags": ["Tracks"],
+        "summary": "Get selected audio track",
+        "description": "Get the currently selected audio track for a stream",
+        "operationId": "getStreamAudio",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "streamId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Stream ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Audio track retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AudioTrack"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Stream not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": ["Tracks"],
+        "summary": "Select audio track",
+        "description": "Select or change the audio track for a stream",
+        "operationId": "selectAudioTrack",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "streamId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Stream ID"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrackSelectionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Audio track selected successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AudioTrack"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Stream or track not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/downloads/initiate": {
+      "post": {
+        "tags": ["Downloads"],
+        "summary": "Initiate content download",
+        "description": "Initialize download of content for offline viewing",
+        "operationId": "initiateDownload",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DownloadInitiateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Download initiated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Download"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Download not allowed for this content or user",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/downloads": {
+      "get": {
+        "tags": ["Downloads"],
+        "summary": "List downloads",
+        "description": "Get list of downloaded content",
+        "operationId": "listDownloads",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "profileId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Profile ID"
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": ["pending", "downloading", "completed", "failed"]
+            },
+            "description": "Filter by download status"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Downloads retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "downloads": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Download"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/downloads/{downloadId}": {
+      "get": {
+        "tags": ["Downloads"],
+        "summary": "Get download details",
+        "description": "Retrieve details of a specific download",
+        "operationId": "getDownload",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "downloadId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Download ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Download details retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Download"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Download not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": ["Downloads"],
+        "summary": "Delete download",
+        "description": "Cancel or delete a download",
+        "operationId": "deleteDownload",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "downloadId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Download ID"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Download deleted successfully"
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Download not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/playback/state": {
+      "post": {
+        "tags": ["Playback"],
+        "summary": "Update playback state",
+        "description": "Update playback progress and state for a stream",
+        "operationId": "updatePlaybackState",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PlaybackStateUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Playback state updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlaybackState"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/playback/resume": {
+      "post": {
+        "tags": ["Playback"],
+        "summary": "Get resume point",
+        "description": "Get the resume point for content playback",
+        "operationId": "getResumePoint",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResumePointRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Resume point retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResumePoint"
+                }
+              }
+            }
+          },
+          "204": {
+            "description": "No resume point available"
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/drm/license": {
+      "post": {
+        "tags": ["DRM"],
+        "summary": "Acquire DRM license",
+        "description": "Acquire DRM license for protected content",
+        "operationId": "acquireDrmLicense",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DrmLicenseRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "DRM license acquired successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DrmLicense"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "DRM license not available for this content or user",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/drm/license/{licenseId}": {
+      "get": {
+        "tags": ["DRM"],
+        "summary": "Get DRM license details",
+        "description": "Retrieve details of a DRM license",
+        "operationId": "getDrmLicense",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "licenseId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "License ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "DRM license retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DrmLicense"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "License not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": ["DRM"],
+        "summary": "Revoke DRM license",
+        "description": "Revoke a DRM license",
+        "operationId": "revokeDrmLicense",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "licenseId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "License ID"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "DRM license revoked successfully"
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "License not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    },
+    "schemas": {
+      "StreamInitializeRequest": {
+        "type": "object",
+        "required": ["contentId", "profileId", "deviceId"],
+        "properties": {
+          "contentId": {
+            "type": "string",
+            "format": "uuid",
+            "example": "880e8400-e29b-41d4-a716-446655440000"
+          },
+          "profileId": {
+            "type": "string",
+            "format": "uuid",
+            "example": "660e8400-e29b-41d4-a716-446655440000"
+          },
+          "deviceId": {
+            "type": "string",
+            "example": "device-12345"
+          },
+          "resumeFromProgress": {
+            "type": "boolean",
+            "example": true
+          },
+          "preferredQuality": {
+            "type": "string",
+            "enum": ["auto", "low", "medium", "high", "4k"],
+            "example": "auto"
+          }
+        }
+      },
+      "StreamResponse": {
+        "type": "object",
+        "properties": {
+          "streamId": {
+            "type": "string",
+            "format": "uuid",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          },
+          "contentId": {
+            "type": "string",
+            "format": "uuid",
+            "example": "880e8400-e29b-41d4-a716-446655440000"
+          },
+          "profileId": {
+            "type": "string",
+            "format": "uuid",
+            "example": "660e8400-e29b-41d4-a716-446655440000"
+          },
+          "playbackUrl": {
+            "type": "string",
+            "format": "uri",
+            "example": "https://stream.streamflix.com/manifests/stream-550e8400-e29b-41d4-a716-446655440000.m3u8"
+          },
+          "manifestUrls": {
+            "type": "object",
+            "properties": {
+              "hls": {
+                "type": "string",
+                "format": "uri",
+                "example": "https://stream.streamflix.com/hls/550e8400-e29b-41d4-a716-446655440000/manifest.m3u8"
+              },
+              "dash": {
+                "type": "string",
+                "format": "uri",
+                "example": "https://stream.streamflix.com/dash/550e8400-e29b-41d4-a716-446655440000/manifest.mpd"
+              }
+            }
+          },
+          "duration": {
+            "type": "integer",
+            "description": "Content duration in seconds",
+            "example": 7200
+          },
+          "currentQuality": {
+            "type": "string",
+            "example": "1080p"
+          },
+          "currentBitrate": {
+            "type": "integer",
+            "description": "Current bitrate in kbps",
+            "example": 5000
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-04-20T22:30:00Z"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-04-20T20:30:00Z"
+          }
+        }
+      },
+      "QualityProfile": {
+        "type": "object",
+        "properties": {
+          "profileId": {
+            "type": "string",
+            "example": "profile-720p"
+          },
+          "label": {
+            "type": "string",
+            "example": "HD"
+          },
+          "resolution": {
+            "type": "string",
+            "example": "1280x720"
+          },
+          "bitrate": {
+            "type": "integer",
+            "description": "Bitrate in kbps",
+            "example": 3000
+          },
+          "frameRate": {
+            "type": "integer",
+            "example": 30
+          },
+          "codec": {
+            "type": "string",
+            "example": "h264"
+          }
+        }
+      },
+      "QualitySetting": {
+        "type": "object",
+        "properties": {
+          "streamId": {
+            "type": "string",
+            "format": "uuid",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          },
+          "adaptiveBitrate": {
+            "type": "boolean",
+            "example": true
+          },
+          "selectedProfile": {
+            "$ref": "#/components/schemas/QualityProfile"
+          },
+          "availableProfiles": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/QualityProfile"
+            }
+          }
+        }
+      },
+      "QualityUpdateRequest": {
+        "type": "object",
+        "properties": {
+          "adaptiveBitrate": {
+            "type": "boolean",
+            "example": true
+          },
+          "profileId": {
+            "type": "string",
+            "example": "profile-1080p"
+          }
+        }
+      },
+      "SubtitleTrack": {
+        "type": "object",
+        "properties": {
+          "trackId": {
+            "type": "string",
+            "example": "subtitle-en"
+          },
+          "language": {
+            "type": "string",
+            "example": "en"
+          },
+          "languageName": {
+            "type": "string",
+            "example": "English"
+          },
+          "isDefault": {
+            "type": "boolean",
+            "example": false
+          },
+          "format": {
+            "type": "string",
+            "enum": ["srt", "vtt", "ass", "webvtt"],
+            "example": "webvtt"
+          },
+          "url": {
+            "type": "string",
+            "format": "uri",
+            "example": "https://cdn.streamflix.com/subtitles/content-880e8400/subtitle-en.vtt"
+          }
+        }
+      },
+      "AudioTrack": {
+        "type": "object",
+        "properties": {
+          "trackId": {
+            "type": "string",
+            "example": "audio-en-stereo"
+          },
+          "language": {
+            "type": "string",
+            "example": "en"
+          },
+          "languageName": {
+            "type": "string",
+            "example": "English"
+          },
+          "isDefault": {
+            "type": "boolean",
+            "example": true
+          },
+          "codec": {
+            "type": "string",
+            "example": "aac"
+          },
+          "channels": {
+            "type": "string",
+            "enum": ["mono", "stereo", "5.1", "7.1"],
+            "example": "stereo"
+          },
+          "bitrate": {
+            "type": "integer",
+            "description": "Bitrate in kbps",
+            "example": 128
+          }
+        }
+      },
+      "TrackSelectionRequest": {
+        "type": "object",
+        "required": ["trackId"],
+        "properties": {
+          "trackId": {
+            "type": "string",
+            "example": "audio-en-stereo"
+          }
+        }
+      },
+      "DownloadInitiateRequest": {
+        "type": "object",
+        "required": ["contentId", "profileId"],
+        "properties": {
+          "contentId": {
+            "type": "string",
+            "format": "uuid",
+            "example": "880e8400-e29b-41d4-a716-446655440000"
+          },
+          "profileId": {
+            "type": "string",
+            "format": "uuid",
+            "example": "660e8400-e29b-41d4-a716-446655440000"
+          },
+          "quality": {
+            "type": "string",
+            "enum": ["low", "medium", "high"],
+            "example": "high"
+          },
+          "subtitleLanguages": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "example": ["en", "es"]
+          },
+          "audioLanguages": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "example": ["en", "es"]
+          }
+        }
+      },
+      "Download": {
+        "type": "object",
+        "properties": {
+          "downloadId": {
+            "type": "string",
+            "format": "uuid",
+            "example": "990e8400-e29b-41d4-a716-446655440000"
+          },
+          "contentId": {
+            "type": "string",
+            "format": "uuid",
+            "example": "880e8400-e29b-41d4-a716-446655440000"
+          },
+          "profileId": {
+            "type": "string",
+            "format": "uuid",
+            "example": "660e8400-e29b-41d4-a716-446655440000"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["pending", "downloading", "completed", "failed", "paused"],
+            "example": "downloading"
+          },
+          "quality": {
+            "type": "string",
+            "example": "high"
+          },
+          "progress": {
+            "type": "number",
+            "description": "Download progress percentage (0-100)",
+            "example": 45.5
+          },
+          "fileSize": {
+            "type": "integer",
+            "description": "Total file size in bytes",
+            "example": 2147483648
+          },
+          "downloadedSize": {
+            "type": "integer",
+            "description": "Downloaded size in bytes",
+            "example": 976773120
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When the downloaded content expires",
+            "example": "2026-05-20T20:30:00Z"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-04-20T19:30:00Z"
+          }
+        }
+      },
+      "PlaybackStateUpdate": {
+        "type": "object",
+        "required": ["contentId", "profileId"],
+        "properties": {
+          "contentId": {
+            "type": "string",
+            "format": "uuid",
+            "example": "880e8400-e29b-41d4-a716-446655440000"
+          },
+          "profileId": {
+            "type": "string",
+            "format": "uuid",
+            "example": "660e8400-e29b-41d4-a716-446655440000"
+          },
+          "currentPosition": {
+            "type": "integer",
+            "description": "Current playback position in seconds",
+            "example": 3600
+          },
+          "duration": {
+            "type": "integer",
+            "description": "Total duration in seconds",
+            "example": 7200
+          },
+          "playbackStatus": {
+            "type": "string",
+            "enum": ["playing", "paused", "stopped", "buffering"],
+            "example": "playing"
+          }
+        }
+      },
+      "PlaybackState": {
+        "type": "object",
+        "properties": {
+          "contentId": {
+            "type": "string",
+            "format": "uuid",
+            "example": "880e8400-e29b-41d4-a716-446655440000"
+          },
+          "profileId": {
+            "type": "string",
+            "format": "uuid",
+            "example": "660e8400-e29b-41d4-a716-446655440000"
+          },
+          "currentPosition": {
+            "type": "integer",
+            "description": "Current playback position in seconds",
+            "example": 3600
+          },
+          "duration": {
+            "type": "integer",
+            "description": "Total duration in seconds",
+            "example": 7200
+          },
+          "playbackStatus": {
+            "type": "string",
+            "example": "playing"
+          },
+          "lastUpdated": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-04-20T20:30:00Z"
+          }
+        }
+      },
+      "ResumePointRequest": {
+        "type": "object",
+        "required": ["contentId", "profileId"],
+        "properties": {
+          "contentId": {
+            "type": "string",
+            "format": "uuid",
+            "example": "880e8400-e29b-41d4-a716-446655440000"
+          },
+          "profileId": {
+            "type": "string",
+            "format": "uuid",
+            "example": "660e8400-e29b-41d4-a716-446655440000"
+          }
+        }
+      },
+      "ResumePoint": {
+        "type": "object",
+        "properties": {
+          "contentId": {
+            "type": "string",
+            "format": "uuid",
+            "example": "880e8400-e29b-41d4-a716-446655440000"
+          },
+          "profileId": {
+            "type": "string",
+            "format": "uuid",
+            "example": "660e8400-e29b-41d4-a716-446655440000"
+          },
+          "position": {
+            "type": "integer",
+            "description": "Resume position in seconds",
+            "example": 3600
+          },
+          "percentage": {
+            "type": "number",
+            "description": "Resume position as percentage of duration",
+            "example": 50.0
+          },
+          "lastWatchedAt": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-04-20T20:30:00Z"
+          }
+        }
+      },
+      "DrmLicenseRequest": {
+        "type": "object",
+        "required": ["contentId"],
+        "properties": {
+          "contentId": {
+            "type": "string",
+            "format": "uuid",
+            "example": "880e8400-e29b-41d4-a716-446655440000"
+          },
+          "drmType": {
+            "type": "string",
+            "enum": ["widevine", "fairplay", "playready"],
+            "example": "widevine"
+          },
+          "licenseChallenge": {
+            "type": "string",
+            "example": "CAEQvwIaAkFTIlA1QUhjdUEycUx2Q04K..."
+          }
+        }
+      },
+      "DrmLicense": {
+        "type": "object",
+        "properties": {
+          "licenseId": {
+            "type": "string",
+            "format": "uuid",
+            "example": "770e8400-e29b-41d4-a716-446655440000"
+          },
+          "contentId": {
+            "type": "string",
+            "format": "uuid",
+            "example": "880e8400-e29b-41d4-a716-446655440000"
+          },
+          "drmType": {
+            "type": "string",
+            "example": "widevine"
+          },
+          "licenseBlob": {
+            "type": "string",
+            "description": "Encrypted license blob",
+            "example": "AkFTIlA5QUhjdUEycUx2Q04..."
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-04-21T20:30:00Z"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-04-20T20:30:00Z"
+          }
+        }
+      },
+      "Error": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "example": "INVALID_INPUT"
+          },
+          "message": {
+            "type": "string",
+            "example": "The provided input is invalid"
+          },
+          "details": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "field": {
+                  "type": "string",
+                  "example": "contentId"
+                },
+                "message": {
+                  "type": "string",
+                  "example": "Content ID is required"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

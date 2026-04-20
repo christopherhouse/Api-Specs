@@ -1,0 +1,1889 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "StreamFlix Billing Service API",
+    "version": "1.0.0",
+    "description": "Subscription management, payment processing, and billing cycle management for the StreamFlix streaming platform"
+  },
+  "servers": [
+    {
+      "url": "https://api.streamflix.com/billing/v1",
+      "description": "Production server"
+    },
+    {
+      "url": "https://staging-api.streamflix.com/billing/v1",
+      "description": "Staging server"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Subscription Plans",
+      "description": "Subscription plan management"
+    },
+    {
+      "name": "Subscriptions",
+      "description": "User subscription management"
+    },
+    {
+      "name": "Payment Methods",
+      "description": "Payment method management"
+    },
+    {
+      "name": "Invoices",
+      "description": "Invoice and billing history"
+    },
+    {
+      "name": "Billing Cycle",
+      "description": "Billing cycle management"
+    },
+    {
+      "name": "Promotions",
+      "description": "Promotional codes and discounts"
+    }
+  ],
+  "paths": {
+    "/subscription-plans": {
+      "get": {
+        "tags": ["Subscription Plans"],
+        "summary": "List subscription plans",
+        "description": "Retrieve all available subscription plans",
+        "operationId": "listSubscriptionPlans",
+        "responses": {
+          "200": {
+            "description": "Subscription plans retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "plans": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/SubscriptionPlan"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/subscription-plans/{planId}": {
+      "get": {
+        "tags": ["Subscription Plans"],
+        "summary": "Get subscription plan",
+        "description": "Retrieve details of a specific subscription plan",
+        "operationId": "getSubscriptionPlan",
+        "parameters": [
+          {
+            "name": "planId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Plan ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Subscription plan retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubscriptionPlan"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Subscription plan not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/subscriptions": {
+      "get": {
+        "tags": ["Subscriptions"],
+        "summary": "Get user subscription",
+        "description": "Retrieve the authenticated user's subscription details",
+        "operationId": "getUserSubscription",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User subscription retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Subscription"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Subscription not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["Subscriptions"],
+        "summary": "Create subscription",
+        "description": "Create a new subscription for the authenticated user",
+        "operationId": "createSubscription",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SubscriptionCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Subscription created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Subscription"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Subscription already exists",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/subscriptions/upgrade": {
+      "put": {
+        "tags": ["Subscriptions"],
+        "summary": "Upgrade subscription",
+        "description": "Upgrade to a higher tier subscription plan",
+        "operationId": "upgradeSubscription",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SubscriptionChangeRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Subscription upgraded successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Subscription"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Subscription not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/subscriptions/downgrade": {
+      "put": {
+        "tags": ["Subscriptions"],
+        "summary": "Downgrade subscription",
+        "description": "Downgrade to a lower tier subscription plan",
+        "operationId": "downgradeSubscription",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SubscriptionChangeRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Subscription downgraded successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Subscription"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Subscription not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/subscriptions/cancel": {
+      "post": {
+        "tags": ["Subscriptions"],
+        "summary": "Cancel subscription",
+        "description": "Cancel the authenticated user's subscription",
+        "operationId": "cancelSubscription",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SubscriptionCancelRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Subscription cancelled successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Subscription"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Subscription not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/payment-methods": {
+      "get": {
+        "tags": ["Payment Methods"],
+        "summary": "List payment methods",
+        "description": "Retrieve all payment methods for the authenticated user",
+        "operationId": "listPaymentMethods",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Payment methods retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "paymentMethods": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/PaymentMethod"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["Payment Methods"],
+        "summary": "Add payment method",
+        "description": "Add a new payment method to the authenticated user's account",
+        "operationId": "addPaymentMethod",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PaymentMethodCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Payment method added successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentMethod"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/payment-methods/{paymentMethodId}": {
+      "get": {
+        "tags": ["Payment Methods"],
+        "summary": "Get payment method",
+        "description": "Retrieve details of a specific payment method",
+        "operationId": "getPaymentMethod",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "paymentMethodId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Payment Method ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Payment method retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentMethod"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Payment method not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": ["Payment Methods"],
+        "summary": "Update payment method",
+        "description": "Update a specific payment method",
+        "operationId": "updatePaymentMethod",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "paymentMethodId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Payment Method ID"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PaymentMethodUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Payment method updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentMethod"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Payment method not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": ["Payment Methods"],
+        "summary": "Delete payment method",
+        "description": "Remove a payment method from the authenticated user's account",
+        "operationId": "deletePaymentMethod",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "paymentMethodId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Payment Method ID"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Payment method deleted successfully"
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Payment method not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/invoices": {
+      "get": {
+        "tags": ["Invoices"],
+        "summary": "List invoices",
+        "description": "Retrieve billing history and invoices for the authenticated user",
+        "operationId": "listInvoices",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 50,
+              "minimum": 1,
+              "maximum": 100
+            },
+            "description": "Number of invoices to return"
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 0,
+              "minimum": 0
+            },
+            "description": "Number of invoices to skip"
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": ["paid", "pending", "failed", "cancelled"]
+            },
+            "description": "Filter invoices by status"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Invoices retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "invoices": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Invoice"
+                      }
+                    },
+                    "total": {
+                      "type": "integer"
+                    },
+                    "limit": {
+                      "type": "integer"
+                    },
+                    "offset": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/invoices/{invoiceId}": {
+      "get": {
+        "tags": ["Invoices"],
+        "summary": "Get invoice",
+        "description": "Retrieve details of a specific invoice",
+        "operationId": "getInvoice",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "invoiceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Invoice ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Invoice retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Invoice"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Invoice not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/invoices/{invoiceId}/download": {
+      "get": {
+        "tags": ["Invoices"],
+        "summary": "Download invoice",
+        "description": "Download invoice as PDF",
+        "operationId": "downloadInvoice",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "invoiceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Invoice ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Invoice PDF downloaded successfully",
+            "content": {
+              "application/pdf": {}
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Invoice not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/billing-cycle": {
+      "get": {
+        "tags": ["Billing Cycle"],
+        "summary": "Get billing cycle",
+        "description": "Retrieve billing cycle information for the authenticated user",
+        "operationId": "getBillingCycle",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Billing cycle retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BillingCycle"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Billing cycle not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/promotions/validate": {
+      "post": {
+        "tags": ["Promotions"],
+        "summary": "Validate promotional code",
+        "description": "Validate and get details of a promotional code",
+        "operationId": "validatePromotionalCode",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PromotionalCodeValidation"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Promotional code is valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PromotionalCode"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid promotional code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/promotions/apply": {
+      "post": {
+        "tags": ["Promotions"],
+        "summary": "Apply promotional code",
+        "description": "Apply a promotional code to the user's subscription",
+        "operationId": "applyPromotionalCode",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PromotionalCodeApplication"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Promotional code applied successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Discount"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input or promotional code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/discounts": {
+      "get": {
+        "tags": ["Promotions"],
+        "summary": "List applied discounts",
+        "description": "Retrieve all applied discounts for the authenticated user",
+        "operationId": "listAppliedDiscounts",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Discounts retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "discounts": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Discount"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/discounts/{discountId}": {
+      "delete": {
+        "tags": ["Promotions"],
+        "summary": "Remove discount",
+        "description": "Remove an applied discount from the authenticated user's subscription",
+        "operationId": "removeDiscount",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "discountId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Discount ID"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Discount removed successfully"
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Discount not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    },
+    "schemas": {
+      "SubscriptionPlan": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          },
+          "name": {
+            "type": "string",
+            "enum": ["basic", "standard", "premium"],
+            "example": "premium"
+          },
+          "displayName": {
+            "type": "string",
+            "example": "Premium Plan"
+          },
+          "description": {
+            "type": "string",
+            "example": "Full access to all content including 4K streaming"
+          },
+          "monthlyPrice": {
+            "type": "number",
+            "format": "double",
+            "example": 15.99
+          },
+          "annualPrice": {
+            "type": "number",
+            "format": "double",
+            "example": 159.99
+          },
+          "currency": {
+            "type": "string",
+            "example": "USD"
+          },
+          "maxProfiles": {
+            "type": "integer",
+            "example": 4
+          },
+          "maxSimultaneousStreams": {
+            "type": "integer",
+            "example": 4
+          },
+          "supportedResolutions": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": ["HD", "FHD", "4K"]
+            },
+            "example": ["HD", "FHD", "4K"]
+          },
+          "offlineDownloads": {
+            "type": "boolean",
+            "example": true
+          },
+          "adSupported": {
+            "type": "boolean",
+            "example": false
+          },
+          "features": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "example": ["4K streaming", "Offline downloads", "Ad-free"]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-01-15T10:30:00Z"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-04-20T14:22:00Z"
+          }
+        }
+      },
+      "Subscription": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "example": "660e8400-e29b-41d4-a716-446655440000"
+          },
+          "userId": {
+            "type": "string",
+            "format": "uuid",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          },
+          "planId": {
+            "type": "string",
+            "format": "uuid",
+            "example": "770e8400-e29b-41d4-a716-446655440000"
+          },
+          "plan": {
+            "$ref": "#/components/schemas/SubscriptionPlan"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["active", "paused", "cancelled", "expired"],
+            "example": "active"
+          },
+          "billingCycle": {
+            "type": "string",
+            "enum": ["monthly", "annual"],
+            "example": "monthly"
+          },
+          "startDate": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-03-20T10:30:00Z"
+          },
+          "renewalDate": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-05-20T10:30:00Z"
+          },
+          "cancellationDate": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Date when subscription was cancelled",
+            "example": "2026-04-15T10:30:00Z"
+          },
+          "currentPrice": {
+            "type": "number",
+            "format": "double",
+            "example": 15.99
+          },
+          "discountAmount": {
+            "type": "number",
+            "format": "double",
+            "example": 2.00
+          },
+          "finalPrice": {
+            "type": "number",
+            "format": "double",
+            "example": 13.99
+          },
+          "paymentMethodId": {
+            "type": "string",
+            "format": "uuid",
+            "example": "880e8400-e29b-41d4-a716-446655440000"
+          },
+          "autoRenewal": {
+            "type": "boolean",
+            "example": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-01-15T10:30:00Z"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-04-20T14:22:00Z"
+          }
+        }
+      },
+      "SubscriptionCreate": {
+        "type": "object",
+        "required": ["planId", "billingCycle", "paymentMethodId"],
+        "properties": {
+          "planId": {
+            "type": "string",
+            "format": "uuid",
+            "example": "770e8400-e29b-41d4-a716-446655440000"
+          },
+          "billingCycle": {
+            "type": "string",
+            "enum": ["monthly", "annual"],
+            "example": "monthly"
+          },
+          "paymentMethodId": {
+            "type": "string",
+            "format": "uuid",
+            "example": "880e8400-e29b-41d4-a716-446655440000"
+          },
+          "autoRenewal": {
+            "type": "boolean",
+            "example": true
+          },
+          "promotionalCode": {
+            "type": "string",
+            "example": "WELCOME2026"
+          }
+        }
+      },
+      "SubscriptionChangeRequest": {
+        "type": "object",
+        "required": ["planId"],
+        "properties": {
+          "planId": {
+            "type": "string",
+            "format": "uuid",
+            "example": "770e8400-e29b-41d4-a716-446655440000"
+          },
+          "effectiveDate": {
+            "type": "string",
+            "enum": ["immediate", "nextBillingCycle"],
+            "example": "immediate"
+          }
+        }
+      },
+      "SubscriptionCancelRequest": {
+        "type": "object",
+        "required": ["reason"],
+        "properties": {
+          "reason": {
+            "type": "string",
+            "enum": ["too_expensive", "not_using", "switching_to_competitor", "other"],
+            "example": "too_expensive"
+          },
+          "feedback": {
+            "type": "string",
+            "example": "Plan is too expensive for my usage"
+          },
+          "effectiveDate": {
+            "type": "string",
+            "enum": ["immediate", "endOfBillingCycle"],
+            "example": "immediate"
+          }
+        }
+      },
+      "PaymentMethod": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "example": "990e8400-e29b-41d4-a716-446655440000"
+          },
+          "userId": {
+            "type": "string",
+            "format": "uuid",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          },
+          "type": {
+            "type": "string",
+            "enum": ["credit_card", "debit_card", "paypal", "bank_transfer"],
+            "example": "credit_card"
+          },
+          "cardHolderName": {
+            "type": "string",
+            "example": "John Doe"
+          },
+          "lastFourDigits": {
+            "type": "string",
+            "example": "4242"
+          },
+          "expiryMonth": {
+            "type": "integer",
+            "example": 12
+          },
+          "expiryYear": {
+            "type": "integer",
+            "example": 2027
+          },
+          "isDefault": {
+            "type": "boolean",
+            "example": true
+          },
+          "isVerified": {
+            "type": "boolean",
+            "example": true
+          },
+          "cardBrand": {
+            "type": "string",
+            "enum": ["visa", "mastercard", "amex", "discover"],
+            "example": "visa"
+          },
+          "billingAddress": {
+            "$ref": "#/components/schemas/BillingAddress"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-01-15T10:30:00Z"
+          }
+        }
+      },
+      "PaymentMethodCreate": {
+        "type": "object",
+        "required": ["type", "cardHolderName", "cardNumber", "expiryMonth", "expiryYear", "cvv"],
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": ["credit_card", "debit_card"],
+            "example": "credit_card"
+          },
+          "cardHolderName": {
+            "type": "string",
+            "example": "John Doe"
+          },
+          "cardNumber": {
+            "type": "string",
+            "example": "4532111111111111"
+          },
+          "expiryMonth": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 12,
+            "example": 12
+          },
+          "expiryYear": {
+            "type": "integer",
+            "example": 2027
+          },
+          "cvv": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 4,
+            "example": "123"
+          },
+          "isDefault": {
+            "type": "boolean",
+            "example": true
+          },
+          "billingAddress": {
+            "$ref": "#/components/schemas/BillingAddressInput"
+          }
+        }
+      },
+      "PaymentMethodUpdate": {
+        "type": "object",
+        "properties": {
+          "expiryMonth": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 12,
+            "example": 12
+          },
+          "expiryYear": {
+            "type": "integer",
+            "example": 2027
+          },
+          "isDefault": {
+            "type": "boolean",
+            "example": true
+          },
+          "billingAddress": {
+            "$ref": "#/components/schemas/BillingAddressInput"
+          }
+        }
+      },
+      "BillingAddress": {
+        "type": "object",
+        "properties": {
+          "street": {
+            "type": "string",
+            "example": "123 Main St"
+          },
+          "city": {
+            "type": "string",
+            "example": "New York"
+          },
+          "state": {
+            "type": "string",
+            "example": "NY"
+          },
+          "zipCode": {
+            "type": "string",
+            "example": "10001"
+          },
+          "country": {
+            "type": "string",
+            "example": "US"
+          }
+        }
+      },
+      "BillingAddressInput": {
+        "type": "object",
+        "required": ["street", "city", "state", "zipCode", "country"],
+        "properties": {
+          "street": {
+            "type": "string",
+            "example": "123 Main St"
+          },
+          "city": {
+            "type": "string",
+            "example": "New York"
+          },
+          "state": {
+            "type": "string",
+            "example": "NY"
+          },
+          "zipCode": {
+            "type": "string",
+            "example": "10001"
+          },
+          "country": {
+            "type": "string",
+            "example": "US"
+          }
+        }
+      },
+      "Invoice": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "example": "aa0e8400-e29b-41d4-a716-446655440000"
+          },
+          "userId": {
+            "type": "string",
+            "format": "uuid",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          },
+          "subscriptionId": {
+            "type": "string",
+            "format": "uuid",
+            "example": "660e8400-e29b-41d4-a716-446655440000"
+          },
+          "invoiceNumber": {
+            "type": "string",
+            "example": "INV-2026-00001"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["paid", "pending", "failed", "cancelled"],
+            "example": "paid"
+          },
+          "amount": {
+            "type": "number",
+            "format": "double",
+            "example": 15.99
+          },
+          "tax": {
+            "type": "number",
+            "format": "double",
+            "example": 1.28
+          },
+          "totalAmount": {
+            "type": "number",
+            "format": "double",
+            "example": 17.27
+          },
+          "currency": {
+            "type": "string",
+            "example": "USD"
+          },
+          "issueDate": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-04-20T10:30:00Z"
+          },
+          "dueDate": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-05-20T10:30:00Z"
+          },
+          "paidDate": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Date when invoice was paid",
+            "example": "2026-04-20T12:15:00Z"
+          },
+          "billingPeriodStart": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-04-20T10:30:00Z"
+          },
+          "billingPeriodEnd": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-05-20T10:30:00Z"
+          },
+          "description": {
+            "type": "string",
+            "example": "Monthly subscription - Premium Plan"
+          },
+          "lineItems": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LineItem"
+            }
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-04-20T10:30:00Z"
+          }
+        }
+      },
+      "LineItem": {
+        "type": "object",
+        "properties": {
+          "description": {
+            "type": "string",
+            "example": "Premium Plan - Monthly"
+          },
+          "quantity": {
+            "type": "integer",
+            "example": 1
+          },
+          "unitPrice": {
+            "type": "number",
+            "format": "double",
+            "example": 15.99
+          },
+          "amount": {
+            "type": "number",
+            "format": "double",
+            "example": 15.99
+          }
+        }
+      },
+      "BillingCycle": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "example": "bb0e8400-e29b-41d4-a716-446655440000"
+          },
+          "userId": {
+            "type": "string",
+            "format": "uuid",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          },
+          "subscriptionId": {
+            "type": "string",
+            "format": "uuid",
+            "example": "660e8400-e29b-41d4-a716-446655440000"
+          },
+          "startDate": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-04-20T10:30:00Z"
+          },
+          "endDate": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-05-20T10:30:00Z"
+          },
+          "nextBillingDate": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-05-20T10:30:00Z"
+          },
+          "daysRemaining": {
+            "type": "integer",
+            "example": 30
+          },
+          "status": {
+            "type": "string",
+            "enum": ["active", "upcoming", "completed", "cancelled"],
+            "example": "active"
+          },
+          "estimatedAmount": {
+            "type": "number",
+            "format": "double",
+            "example": 15.99
+          },
+          "frequency": {
+            "type": "string",
+            "enum": ["monthly", "annual"],
+            "example": "monthly"
+          }
+        }
+      },
+      "PromotionalCode": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "example": "cc0e8400-e29b-41d4-a716-446655440000"
+          },
+          "code": {
+            "type": "string",
+            "example": "WELCOME2026"
+          },
+          "description": {
+            "type": "string",
+            "example": "20% off first month"
+          },
+          "discountType": {
+            "type": "string",
+            "enum": ["percentage", "fixed_amount"],
+            "example": "percentage"
+          },
+          "discountValue": {
+            "type": "number",
+            "format": "double",
+            "example": 20
+          },
+          "maxDiscount": {
+            "type": "number",
+            "format": "double",
+            "example": 5.00
+          },
+          "applicablePlans": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Plan names this code applies to (empty means all plans)",
+            "example": ["basic", "standard", "premium"]
+          },
+          "validFrom": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-01-01T00:00:00Z"
+          },
+          "validUntil": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-12-31T23:59:59Z"
+          },
+          "maxUsages": {
+            "type": "integer",
+            "description": "Maximum number of times this code can be used",
+            "example": 1000
+          },
+          "currentUsages": {
+            "type": "integer",
+            "example": 150
+          },
+          "usagePerUser": {
+            "type": "integer",
+            "description": "Maximum usages per user",
+            "example": 1
+          },
+          "isActive": {
+            "type": "boolean",
+            "example": true
+          }
+        }
+      },
+      "PromotionalCodeValidation": {
+        "type": "object",
+        "required": ["code"],
+        "properties": {
+          "code": {
+            "type": "string",
+            "example": "WELCOME2026"
+          }
+        }
+      },
+      "PromotionalCodeApplication": {
+        "type": "object",
+        "required": ["code"],
+        "properties": {
+          "code": {
+            "type": "string",
+            "example": "WELCOME2026"
+          }
+        }
+      },
+      "Discount": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "example": "dd0e8400-e29b-41d4-a716-446655440000"
+          },
+          "userId": {
+            "type": "string",
+            "format": "uuid",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          },
+          "subscriptionId": {
+            "type": "string",
+            "format": "uuid",
+            "example": "660e8400-e29b-41d4-a716-446655440000"
+          },
+          "promotionalCodeId": {
+            "type": "string",
+            "format": "uuid",
+            "example": "cc0e8400-e29b-41d4-a716-446655440000"
+          },
+          "code": {
+            "type": "string",
+            "example": "WELCOME2026"
+          },
+          "discountType": {
+            "type": "string",
+            "enum": ["percentage", "fixed_amount"],
+            "example": "percentage"
+          },
+          "discountValue": {
+            "type": "number",
+            "format": "double",
+            "example": 20
+          },
+          "discountAmount": {
+            "type": "number",
+            "format": "double",
+            "example": 3.00
+          },
+          "appliedDate": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-04-20T10:30:00Z"
+          },
+          "expiryDate": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-05-20T10:30:00Z"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["active", "expired", "removed"],
+            "example": "active"
+          }
+        }
+      },
+      "Error": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "example": "INVALID_INPUT"
+          },
+          "message": {
+            "type": "string",
+            "example": "The provided input is invalid"
+          },
+          "details": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "field": {
+                  "type": "string",
+                  "example": "planId"
+                },
+                "message": {
+                  "type": "string",
+                  "example": "Plan ID is required"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
