@@ -8,16 +8,28 @@ Ever need a realistic API spec *right now*? Same. This repo is a living collecti
 
 ## 📂 Repository Structure
 
+The repository is organized by **business domain/scenario**, with each domain containing specs in all applicable formats:
+
 ```
 Api-Specs/
-├── rest/
-│   ├── openapi/          # OpenAPI 3.0 specs (.json, .yaml)
-│   ├── wadl/             # WADL specs (.wadl)
-│   └── raml/             # RAML 1.0 specs (.raml)
-├── soap/
-│   └── *.wsdl            # WSDL 1.1 specs
-├── graphql/
-│   └── *.graphql         # GraphQL SDL specs
+├── scenarios/
+│   ├── banking/
+│   │   ├── README.md
+│   │   ├── graphql/
+│   │   ├── soap/
+│   │   └── rest/
+│   │       ├── openapi/
+│   │       │   ├── json/
+│   │       │   └── yaml/
+│   │       ├── raml/
+│   │       └── wadl/
+│   ├── crm/
+│   │   ├── README.md
+│   │   ├── graphql/
+│   │   ├── soap/
+│   │   └── rest/
+│   │       └── ...
+│   └── [other domains...]
 └── .github/
     ├── agents/           # Copilot agent for generating specs
     ├── prompts/          # Reusable prompts for spec generation
@@ -25,15 +37,21 @@ Api-Specs/
     └── copilot-instructions.md
 ```
 
+Each domain folder contains:
+- **README.md** - Description of the domain and its API features
+- **Spec files** organized by format type (REST, SOAP, GraphQL)
+
+
 ## 📑 Spec Formats
 
-| Format | Style | Location | Use Case |
-|--------|-------|----------|----------|
-| **OpenAPI 3.0** | REST | `rest/openapi/` | Modern REST API design, code generation, API gateways |
-| **RAML 1.0** | REST | `rest/raml/` | MuleSoft/Anypoint-based REST APIs, design-first workflows |
-| **WADL** | REST (XML) | `rest/wadl/` | Legacy REST service descriptions |
-| **WSDL 1.1** | SOAP | `soap/` | Enterprise SOAP services, WCF, Java WS |
-| **GraphQL SDL** | GraphQL | `graphql/` | Graph-based APIs, schema-first design, federation |
+| Format | Style | Path Pattern | Use Case |
+|--------|-------|--------------|----------|
+| **OpenAPI 3.0** | REST | `scenarios/*/rest/openapi/json/` or `scenarios/*/rest/openapi/yaml/` | Modern REST API design, code generation, API gateways |
+| **RAML 1.0** | REST | `scenarios/*/rest/raml/` | MuleSoft/Anypoint-based REST APIs, design-first workflows |
+| **WADL** | REST (XML) | `scenarios/*/rest/wadl/` | Legacy REST service descriptions |
+| **WSDL 1.1** | SOAP | `scenarios/*/soap/` | Enterprise SOAP services, WCF, Java WS |
+| **GraphQL SDL** | GraphQL | `scenarios/*/graphql/` | Graph-based APIs, schema-first design, federation |
+
 
 ## 📛 Naming Convention
 
@@ -71,60 +89,38 @@ Every change goes through automated validation:
 # Clone the whole catalog
 git clone https://github.com/christopherhouse/Api-Specs.git
 
-# Or grab a single spec
-curl -O https://raw.githubusercontent.com/christopherhouse/Api-Specs/main/rest/openapi/banking-2026-04-18.json
+# Or grab a single spec from a domain
+curl -O https://raw.githubusercontent.com/christopherhouse/Api-Specs/main/scenarios/banking/rest/openapi/json/banking-2026-04-18.json
 ```
 
 ## 🧰 Adding a New Spec
 
-1. Pick the right directory based on format (`rest/openapi/`, `rest/raml/`, `rest/wadl/`, `soap/`, or `graphql/`)
-2. Name your file following the `<api-name>-<YYYY-MM-DD>.<ext>` convention
-3. Open a PR — CI will lint your spec automatically
-4. Merge and a new release gets cut 🎉
+1. Pick the right domain directory under `scenarios/` (e.g., `scenarios/banking/`, `scenarios/crm/`)
+   - If the domain doesn't exist, create a new folder with a README.md describing the API
+2. Place your spec in the appropriate format subdirectory (e.g., `rest/openapi/yaml/`, `soap/`, `graphql/`)
+3. Name your file following the `<api-name>-<YYYY-MM-DD>.<ext>` convention
+4. Open a PR — CI will lint your spec automatically
+5. Merge and a new release gets cut 🎉
 
 Or just ask the Copilot agent to generate one for you!
 
-## 🗂️ API Inventory
+## 🗂️ Available Scenarios
 
-Current state of all spec files in the repository:
+Browse the domains in the `scenarios/` directory. Each domain folder contains a README with details:
 
-| API | Domain | Format | File |
-|-----|--------|--------|------|
-| Banking | Retail banking — customers, accounts, transactions, beneficiaries, payments | OpenAPI 3.0 (JSON) | [`rest/openapi/banking-2026-04-18.json`](rest/openapi/banking-2026-04-18.json) |
-| Banking | Retail banking — customers, accounts, transactions, beneficiaries, payments | RAML 1.0 | [`rest/raml/banking-2026-04-18.raml`](rest/raml/banking-2026-04-18.raml) |
-| Banking | Retail banking — customers, accounts, transactions, beneficiaries, payments | GraphQL SDL | [`graphql/banking-2026-04-19.graphql`](graphql/banking-2026-04-19.graphql) |
-| Claims Management | Insurance — policyholders, policies, claims, documents, adjusters, payouts | OpenAPI 3.0 (YAML) | [`rest/openapi/claims-2026-04-18.yaml`](rest/openapi/claims-2026-04-18.yaml) |
-| Claims Management | Insurance — policyholders, policies, claims, documents, adjusters, payouts | RAML 1.0 | [`rest/raml/claims-2026-04-18.raml`](rest/raml/claims-2026-04-18.raml) |
-| Claims Management | Insurance — policyholders, policies, claims, documents, adjusters, payouts | GraphQL SDL | [`graphql/claims-2026-04-19.graphql`](graphql/claims-2026-04-19.graphql) |
-| Supply Chain | Suppliers, products, warehouses, inventory, purchase orders, shipments | OpenAPI 3.0 (YAML) | [`rest/openapi/supply-chain-2026-04-18.yaml`](rest/openapi/supply-chain-2026-04-18.yaml) |
-| Supply Chain | Suppliers, products, warehouses, inventory, purchase orders, shipments | RAML 1.0 | [`rest/raml/supply-chain-2026-04-18.raml`](rest/raml/supply-chain-2026-04-18.raml) |
-| Supply Chain | Suppliers, products, warehouses, inventory, purchase orders, shipments | GraphQL SDL | [`graphql/supply-chain-2026-04-19.graphql`](graphql/supply-chain-2026-04-19.graphql) |
-| HR Service | Employees, departments, leave requests | SOAP / WSDL 1.1 | [`soap/hr-2026-04-18.wsdl`](soap/hr-2026-04-18.wsdl) |
-| HR Service | Employees, departments, leave requests | RAML 1.0 | [`rest/raml/hr-2026-04-18.raml`](rest/raml/hr-2026-04-18.raml) |
-| HR Service | Employees, departments, leave requests | GraphQL SDL | [`graphql/hr-2026-04-19.graphql`](graphql/hr-2026-04-19.graphql) |
-| Procurement | Vendors, contracts, requisitions, purchase orders, approvals, invoices | WADL | [`rest/wadl/procurement-2026-04-18.wadl`](rest/wadl/procurement-2026-04-18.wadl) |
-| Procurement | Vendors, contracts, requisitions, purchase orders, approvals, invoices | RAML 1.0 | [`rest/raml/procurement-2026-04-18.raml`](rest/raml/procurement-2026-04-18.raml) |
-| Procurement | Vendors, contracts, requisitions, purchase orders, approvals, invoices | GraphQL SDL | [`graphql/procurement-2026-04-19.graphql`](graphql/procurement-2026-04-19.graphql) |
-| CRM | Accounts, contacts, opportunities, activities, products, quotes | OpenAPI 3.0 (YAML) | [`rest/openapi/crm-2026-04-19.yaml`](rest/openapi/crm-2026-04-19.yaml) |
-| CRM | Accounts, contacts, opportunities, activities, products, quotes | WADL | [`rest/wadl/crm-2026-04-19.wadl`](rest/wadl/crm-2026-04-19.wadl) |
-| CRM | Accounts, contacts, opportunities, activities, products, quotes | SOAP / WSDL 1.1 | [`soap/crm-2026-04-19.wsdl`](soap/crm-2026-04-19.wsdl) |
-| CRM | Accounts, contacts, opportunities, activities, products, quotes | RAML 1.0 | [`rest/raml/crm-2026-04-19.raml`](rest/raml/crm-2026-04-19.raml) |
-| CRM | Accounts, contacts, opportunities, activities, products, quotes | GraphQL SDL | [`graphql/crm-2026-04-19.graphql`](graphql/crm-2026-04-19.graphql) |
-| Fleet Management | Vehicles, drivers, trips, maintenance records, fuel logs | OpenAPI 3.0 (YAML) | [`rest/openapi/fleet-management-2026-04-20.yaml`](rest/openapi/fleet-management-2026-04-20.yaml) |
-| Fleet Management | Vehicles, drivers, trips, maintenance records, fuel logs | WADL | [`rest/wadl/fleet-management-2026-04-20.wadl`](rest/wadl/fleet-management-2026-04-20.wadl) |
-| Fleet Management | Vehicles, drivers, trips, maintenance records, fuel logs | SOAP / WSDL 1.1 | [`soap/fleet-management-2026-04-20.wsdl`](soap/fleet-management-2026-04-20.wsdl) |
-| Fleet Management | Vehicles, drivers, trips, maintenance records, fuel logs | RAML 1.0 | [`rest/raml/fleet-management-2026-04-20.raml`](rest/raml/fleet-management-2026-04-20.raml) |
-| Fleet Management | Vehicles, drivers, trips, maintenance records, fuel logs | GraphQL SDL | [`graphql/fleet-management-2026-04-20.graphql`](graphql/fleet-management-2026-04-20.graphql) |
-| Healthcare | Patients, providers, appointments, prescriptions, medical records | OpenAPI 3.0 (YAML) | [`rest/openapi/healthcare-2026-04-20.yaml`](rest/openapi/healthcare-2026-04-20.yaml) |
-| Healthcare | Patients, providers, appointments, prescriptions, medical records | WADL | [`rest/wadl/healthcare-2026-04-20.wadl`](rest/wadl/healthcare-2026-04-20.wadl) |
-| Healthcare | Patients, providers, appointments, prescriptions, medical records | SOAP / WSDL 1.1 | [`soap/healthcare-2026-04-20.wsdl`](soap/healthcare-2026-04-20.wsdl) |
-| Healthcare | Patients, providers, appointments, prescriptions, medical records | RAML 1.0 | [`rest/raml/healthcare-2026-04-20.raml`](rest/raml/healthcare-2026-04-20.raml) |
-| Healthcare | Patients, providers, appointments, prescriptions, medical records | GraphQL SDL | [`graphql/healthcare-2026-04-20.graphql`](graphql/healthcare-2026-04-20.graphql) |
-| Asset Management | Assets, categories, locations, work orders, audits | OpenAPI 3.0 (YAML) | [`rest/openapi/asset-management-2026-04-20.yaml`](rest/openapi/asset-management-2026-04-20.yaml) |
-| Asset Management | Assets, categories, locations, work orders, audits | WADL | [`rest/wadl/asset-management-2026-04-20.wadl`](rest/wadl/asset-management-2026-04-20.wadl) |
-| Asset Management | Assets, categories, locations, work orders, audits | SOAP / WSDL 1.1 | [`soap/asset-management-2026-04-20.wsdl`](soap/asset-management-2026-04-20.wsdl) |
-| Asset Management | Assets, categories, locations, work orders, audits | RAML 1.0 | [`rest/raml/asset-management-2026-04-20.raml`](rest/raml/asset-management-2026-04-20.raml) |
-| Asset Management | Assets, categories, locations, work orders, audits | GraphQL SDL | [`graphql/asset-management-2026-04-20.graphql`](graphql/asset-management-2026-04-20.graphql) |
+| Domain | Description | Available Formats |
+|--------|-------------|-------------------|
+| **Asset Management** | Assets, categories, locations, work orders, audits | OpenAPI, WADL, WSDL, RAML, GraphQL |
+| **Banking** | Retail banking — customers, accounts, transactions, beneficiaries, payments | OpenAPI, RAML, GraphQL |
+| **Claims Management** | Insurance — policyholders, policies, claims, documents, adjusters, payouts | OpenAPI, RAML, GraphQL |
+| **CRM** | Accounts, contacts, opportunities, activities, products, quotes | OpenAPI, WADL, WSDL, RAML, GraphQL |
+| **Fleet Management** | Vehicles, drivers, trips, maintenance records, fuel logs | OpenAPI, WADL, WSDL, RAML, GraphQL |
+| **Healthcare** | Patients, providers, appointments, prescriptions, medical records | OpenAPI, WADL, WSDL, RAML, GraphQL |
+| **HR Service** | Employees, departments, leave requests | WSDL, RAML, GraphQL |
+| **Procurement** | Vendors, contracts, requisitions, purchase orders, approvals, invoices | WADL, RAML, GraphQL |
+| **Supply Chain** | Suppliers, products, warehouses, inventory, purchase orders, shipments | OpenAPI, RAML, GraphQL |
+
+For detailed API features and file paths, check the README.md in each domain folder.
 
 ## 📄 License
 
