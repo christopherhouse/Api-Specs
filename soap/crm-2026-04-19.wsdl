@@ -1,0 +1,1548 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wsdl:definitions
+    name="UnifiedCrmService"
+    targetNamespace="http://schemas.example.com/crm/2026/01"
+    xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/"
+    xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/"
+    xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+    xmlns:tns="http://schemas.example.com/crm/2026/01">
+
+  <!-- 
+       Types
+  -->
+  <wsdl:types>
+    <xsd:schema
+        targetNamespace="http://schemas.example.com/crm/2026/01"
+        elementFormDefault="qualified"
+        attributeFormDefault="unqualified">
+
+      <!-- 
+           Simple types / enumerations
+      -->
+
+      <xsd:simpleType name="SourceSystem">
+        <xsd:restriction base="xsd:string">
+          <xsd:enumeration value="salesforce"/>
+          <xsd:enumeration value="dynamics"/>
+        </xsd:restriction>
+      </xsd:simpleType>
+
+      <xsd:simpleType name="AccountStatus">
+        <xsd:restriction base="xsd:string">
+          <xsd:enumeration value="active"/>
+          <xsd:enumeration value="inactive"/>
+          <xsd:enumeration value="prospect"/>
+          <xsd:enumeration value="churned"/>
+        </xsd:restriction>
+      </xsd:simpleType>
+
+      <xsd:simpleType name="LeadStatus">
+        <xsd:restriction base="xsd:string">
+          <xsd:enumeration value="new"/>
+          <xsd:enumeration value="contacted"/>
+          <xsd:enumeration value="qualified"/>
+          <xsd:enumeration value="disqualified"/>
+          <xsd:enumeration value="converted"/>
+        </xsd:restriction>
+      </xsd:simpleType>
+
+      <xsd:simpleType name="OpportunityStage">
+        <xsd:restriction base="xsd:string">
+          <xsd:enumeration value="prospecting"/>
+          <xsd:enumeration value="qualification"/>
+          <xsd:enumeration value="proposal"/>
+          <xsd:enumeration value="negotiation"/>
+          <xsd:enumeration value="closed_won"/>
+          <xsd:enumeration value="closed_lost"/>
+        </xsd:restriction>
+      </xsd:simpleType>
+
+      <xsd:simpleType name="ActivityType">
+        <xsd:restriction base="xsd:string">
+          <xsd:enumeration value="task"/>
+          <xsd:enumeration value="call"/>
+          <xsd:enumeration value="meeting"/>
+          <xsd:enumeration value="email"/>
+        </xsd:restriction>
+      </xsd:simpleType>
+
+      <xsd:simpleType name="ActivityStatus">
+        <xsd:restriction base="xsd:string">
+          <xsd:enumeration value="planned"/>
+          <xsd:enumeration value="in_progress"/>
+          <xsd:enumeration value="completed"/>
+          <xsd:enumeration value="cancelled"/>
+        </xsd:restriction>
+      </xsd:simpleType>
+
+      <xsd:simpleType name="RelatedToType">
+        <xsd:restriction base="xsd:string">
+          <xsd:enumeration value="account"/>
+          <xsd:enumeration value="contact"/>
+          <xsd:enumeration value="lead"/>
+          <xsd:enumeration value="opportunity"/>
+        </xsd:restriction>
+      </xsd:simpleType>
+
+      <xsd:simpleType name="LeadRating">
+        <xsd:restriction base="xsd:string">
+          <xsd:enumeration value="hot"/>
+          <xsd:enumeration value="warm"/>
+          <xsd:enumeration value="cold"/>
+        </xsd:restriction>
+      </xsd:simpleType>
+
+      <!-- 
+           Common complex types
+      -->
+
+      <xsd:complexType name="Address">
+        <xsd:sequence>
+          <xsd:element name="line1"           type="xsd:string"  minOccurs="0"/>
+          <xsd:element name="line2"           type="xsd:string"  minOccurs="0"/>
+          <xsd:element name="city"            type="xsd:string"  minOccurs="0"/>
+          <xsd:element name="stateOrProvince" type="xsd:string"  minOccurs="0"/>
+          <xsd:element name="postalCode"      type="xsd:string"  minOccurs="0"/>
+          <xsd:element name="country"         type="xsd:string"  minOccurs="0"/>
+        </xsd:sequence>
+      </xsd:complexType>
+
+      <xsd:complexType name="MonetaryAmount">
+        <xsd:sequence>
+          <xsd:element name="amount"   type="xsd:decimal"/>
+          <xsd:element name="currency" type="xsd:string"/>
+        </xsd:sequence>
+      </xsd:complexType>
+
+      <xsd:complexType name="SourceSystemMeta">
+        <xsd:sequence>
+          <xsd:element name="sourceSystem"    type="tns:SourceSystem"/>
+          <xsd:element name="sourceSystemId"  type="xsd:string"/>
+          <xsd:element name="sourceSystemUrl" type="xsd:anyURI"  minOccurs="0"/>
+        </xsd:sequence>
+      </xsd:complexType>
+
+      <xsd:complexType name="PaginationMeta">
+        <xsd:sequence>
+          <xsd:element name="page"       type="xsd:positiveInteger"/>
+          <xsd:element name="pageSize"   type="xsd:positiveInteger"/>
+          <xsd:element name="totalItems" type="xsd:nonNegativeInteger"/>
+          <xsd:element name="totalPages" type="xsd:nonNegativeInteger"/>
+        </xsd:sequence>
+      </xsd:complexType>
+
+      <xsd:complexType name="ErrorDetail">
+        <xsd:sequence>
+          <xsd:element name="field"   type="xsd:string"/>
+          <xsd:element name="message" type="xsd:string"/>
+        </xsd:sequence>
+      </xsd:complexType>
+
+      <xsd:complexType name="ServiceFault">
+        <xsd:sequence>
+          <xsd:element name="code"    type="xsd:string"/>
+          <xsd:element name="message" type="xsd:string"/>
+          <xsd:element name="details" minOccurs="0">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="detail" type="tns:ErrorDetail" minOccurs="0" maxOccurs="unbounded"/>
+              </xsd:sequence>
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="traceId" type="xsd:string" minOccurs="0"/>
+        </xsd:sequence>
+      </xsd:complexType>
+
+      <!-- Pagination request parameters -->
+      <xsd:complexType name="PageRequest">
+        <xsd:sequence>
+          <xsd:element name="page"     type="xsd:positiveInteger" minOccurs="0"/>
+          <xsd:element name="pageSize" type="xsd:positiveInteger" minOccurs="0"/>
+        </xsd:sequence>
+      </xsd:complexType>
+
+      <!-- 
+           Account types
+      -->
+
+      <xsd:complexType name="Account">
+        <xsd:sequence>
+          <xsd:element name="id"                  type="xsd:string"/>
+          <xsd:element name="name"                type="xsd:string"/>
+          <xsd:element name="status"              type="tns:AccountStatus"/>
+          <xsd:element name="industry"            type="xsd:string"              minOccurs="0"/>
+          <xsd:element name="website"             type="xsd:anyURI"              minOccurs="0"/>
+          <xsd:element name="phone"               type="xsd:string"              minOccurs="0"/>
+          <xsd:element name="billingAddress"      type="tns:Address"             minOccurs="0"/>
+          <xsd:element name="annualRevenue"       type="tns:MonetaryAmount"      minOccurs="0"/>
+          <xsd:element name="numberOfEmployees"   type="xsd:nonNegativeInteger"  minOccurs="0"/>
+          <xsd:element name="ownerId"             type="xsd:string"              minOccurs="0"/>
+          <xsd:element name="ownerName"           type="xsd:string"              minOccurs="0"/>
+          <xsd:element name="description"         type="xsd:string"              minOccurs="0"/>
+          <xsd:element name="sourceSystemMeta"    type="tns:SourceSystemMeta"/>
+          <xsd:element name="createdAt"           type="xsd:dateTime"/>
+          <xsd:element name="updatedAt"           type="xsd:dateTime"/>
+        </xsd:sequence>
+      </xsd:complexType>
+
+      <xsd:complexType name="AccountSummary">
+        <xsd:sequence>
+          <xsd:element name="id"           type="xsd:string"/>
+          <xsd:element name="name"         type="xsd:string"/>
+          <xsd:element name="status"       type="tns:AccountStatus"/>
+          <xsd:element name="industry"     type="xsd:string"          minOccurs="0"/>
+          <xsd:element name="sourceSystem" type="tns:SourceSystem"/>
+        </xsd:sequence>
+      </xsd:complexType>
+
+      <!-- GetAccounts -->
+      <xsd:element name="GetAccountsRequest">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="paging"       type="tns:PageRequest"      minOccurs="0"/>
+            <xsd:element name="status"       type="tns:AccountStatus"    minOccurs="0"/>
+            <xsd:element name="industry"     type="xsd:string"           minOccurs="0"/>
+            <xsd:element name="sourceSystem" type="tns:SourceSystem"     minOccurs="0"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+      <xsd:element name="GetAccountsResponse">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="account"    type="tns:AccountSummary" minOccurs="0" maxOccurs="unbounded"/>
+            <xsd:element name="pagination" type="tns:PaginationMeta"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+      <!-- GetAccount -->
+      <xsd:element name="GetAccountRequest">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="accountId" type="xsd:string"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+      <xsd:element name="GetAccountResponse">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="account" type="tns:Account"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+      <!-- CreateAccount -->
+      <xsd:element name="CreateAccountRequest">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="name"                type="xsd:string"/>
+            <xsd:element name="targetSourceSystem"  type="tns:SourceSystem"/>
+            <xsd:element name="industry"            type="xsd:string"             minOccurs="0"/>
+            <xsd:element name="website"             type="xsd:anyURI"             minOccurs="0"/>
+            <xsd:element name="phone"               type="xsd:string"             minOccurs="0"/>
+            <xsd:element name="billingAddress"      type="tns:Address"            minOccurs="0"/>
+            <xsd:element name="annualRevenue"       type="tns:MonetaryAmount"     minOccurs="0"/>
+            <xsd:element name="numberOfEmployees"   type="xsd:nonNegativeInteger" minOccurs="0"/>
+            <xsd:element name="ownerId"             type="xsd:string"             minOccurs="0"/>
+            <xsd:element name="description"         type="xsd:string"             minOccurs="0"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+      <xsd:element name="CreateAccountResponse">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="account" type="tns:Account"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+      <!-- UpdateAccount -->
+      <xsd:element name="UpdateAccountRequest">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="accountId"           type="xsd:string"/>
+            <xsd:element name="name"                type="xsd:string"             minOccurs="0"/>
+            <xsd:element name="status"              type="tns:AccountStatus"      minOccurs="0"/>
+            <xsd:element name="industry"            type="xsd:string"             minOccurs="0"/>
+            <xsd:element name="website"             type="xsd:anyURI"             minOccurs="0"/>
+            <xsd:element name="phone"               type="xsd:string"             minOccurs="0"/>
+            <xsd:element name="billingAddress"      type="tns:Address"            minOccurs="0"/>
+            <xsd:element name="annualRevenue"       type="tns:MonetaryAmount"     minOccurs="0"/>
+            <xsd:element name="numberOfEmployees"   type="xsd:nonNegativeInteger" minOccurs="0"/>
+            <xsd:element name="ownerId"             type="xsd:string"             minOccurs="0"/>
+            <xsd:element name="description"         type="xsd:string"             minOccurs="0"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+      <xsd:element name="UpdateAccountResponse">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="account" type="tns:Account"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+      <!-- DeleteAccount -->
+      <xsd:element name="DeleteAccountRequest">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="accountId" type="xsd:string"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+      <xsd:element name="DeleteAccountResponse">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="success" type="xsd:boolean"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+      <!-- 
+           Contact types
+      -->
+
+      <xsd:complexType name="Contact">
+        <xsd:sequence>
+          <xsd:element name="id"               type="xsd:string"/>
+          <xsd:element name="firstName"        type="xsd:string"/>
+          <xsd:element name="lastName"         type="xsd:string"/>
+          <xsd:element name="email"            type="xsd:string"          minOccurs="0"/>
+          <xsd:element name="phone"            type="xsd:string"          minOccurs="0"/>
+          <xsd:element name="mobilePhone"      type="xsd:string"          minOccurs="0"/>
+          <xsd:element name="jobTitle"         type="xsd:string"          minOccurs="0"/>
+          <xsd:element name="department"       type="xsd:string"          minOccurs="0"/>
+          <xsd:element name="accountId"        type="xsd:string"          minOccurs="0"/>
+          <xsd:element name="accountName"      type="xsd:string"          minOccurs="0"/>
+          <xsd:element name="mailingAddress"   type="tns:Address"         minOccurs="0"/>
+          <xsd:element name="ownerId"          type="xsd:string"          minOccurs="0"/>
+          <xsd:element name="ownerName"        type="xsd:string"          minOccurs="0"/>
+          <xsd:element name="doNotContact"     type="xsd:boolean"         minOccurs="0"/>
+          <xsd:element name="sourceSystemMeta" type="tns:SourceSystemMeta"/>
+          <xsd:element name="createdAt"        type="xsd:dateTime"/>
+          <xsd:element name="updatedAt"        type="xsd:dateTime"/>
+        </xsd:sequence>
+      </xsd:complexType>
+
+      <xsd:complexType name="ContactSummary">
+        <xsd:sequence>
+          <xsd:element name="id"           type="xsd:string"/>
+          <xsd:element name="firstName"    type="xsd:string"/>
+          <xsd:element name="lastName"     type="xsd:string"/>
+          <xsd:element name="email"        type="xsd:string"      minOccurs="0"/>
+          <xsd:element name="jobTitle"     type="xsd:string"      minOccurs="0"/>
+          <xsd:element name="accountName"  type="xsd:string"      minOccurs="0"/>
+          <xsd:element name="sourceSystem" type="tns:SourceSystem"/>
+        </xsd:sequence>
+      </xsd:complexType>
+
+      <xsd:element name="GetContactsRequest">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="paging"       type="tns:PageRequest"  minOccurs="0"/>
+            <xsd:element name="accountId"    type="xsd:string"       minOccurs="0"/>
+            <xsd:element name="sourceSystem" type="tns:SourceSystem" minOccurs="0"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+      <xsd:element name="GetContactsResponse">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="contact"    type="tns:ContactSummary" minOccurs="0" maxOccurs="unbounded"/>
+            <xsd:element name="pagination" type="tns:PaginationMeta"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+      <xsd:element name="GetContactRequest">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="contactId" type="xsd:string"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+      <xsd:element name="GetContactResponse">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="contact" type="tns:Contact"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+      <xsd:element name="CreateContactRequest">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="firstName"           type="xsd:string"/>
+            <xsd:element name="lastName"            type="xsd:string"/>
+            <xsd:element name="targetSourceSystem"  type="tns:SourceSystem"/>
+            <xsd:element name="email"               type="xsd:string"  minOccurs="0"/>
+            <xsd:element name="phone"               type="xsd:string"  minOccurs="0"/>
+            <xsd:element name="mobilePhone"         type="xsd:string"  minOccurs="0"/>
+            <xsd:element name="jobTitle"            type="xsd:string"  minOccurs="0"/>
+            <xsd:element name="department"          type="xsd:string"  minOccurs="0"/>
+            <xsd:element name="accountId"           type="xsd:string"  minOccurs="0"/>
+            <xsd:element name="mailingAddress"      type="tns:Address" minOccurs="0"/>
+            <xsd:element name="ownerId"             type="xsd:string"  minOccurs="0"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+      <xsd:element name="CreateContactResponse">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="contact" type="tns:Contact"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+      <xsd:element name="UpdateContactRequest">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="contactId"       type="xsd:string"/>
+            <xsd:element name="firstName"       type="xsd:string"  minOccurs="0"/>
+            <xsd:element name="lastName"        type="xsd:string"  minOccurs="0"/>
+            <xsd:element name="email"           type="xsd:string"  minOccurs="0"/>
+            <xsd:element name="phone"           type="xsd:string"  minOccurs="0"/>
+            <xsd:element name="mobilePhone"     type="xsd:string"  minOccurs="0"/>
+            <xsd:element name="jobTitle"        type="xsd:string"  minOccurs="0"/>
+            <xsd:element name="department"      type="xsd:string"  minOccurs="0"/>
+            <xsd:element name="accountId"       type="xsd:string"  minOccurs="0"/>
+            <xsd:element name="mailingAddress"  type="tns:Address" minOccurs="0"/>
+            <xsd:element name="ownerId"         type="xsd:string"  minOccurs="0"/>
+            <xsd:element name="doNotContact"    type="xsd:boolean" minOccurs="0"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+      <xsd:element name="UpdateContactResponse">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="contact" type="tns:Contact"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+      <xsd:element name="DeleteContactRequest">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="contactId" type="xsd:string"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+      <xsd:element name="DeleteContactResponse">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="success" type="xsd:boolean"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+      <!-- 
+           Lead types
+      -->
+
+      <xsd:complexType name="Lead">
+        <xsd:sequence>
+          <xsd:element name="id"               type="xsd:string"/>
+          <xsd:element name="firstName"        type="xsd:string"/>
+          <xsd:element name="lastName"         type="xsd:string"/>
+          <xsd:element name="status"           type="tns:LeadStatus"/>
+          <xsd:element name="email"            type="xsd:string"          minOccurs="0"/>
+          <xsd:element name="phone"            type="xsd:string"          minOccurs="0"/>
+          <xsd:element name="company"          type="xsd:string"          minOccurs="0"/>
+          <xsd:element name="jobTitle"         type="xsd:string"          minOccurs="0"/>
+          <xsd:element name="leadSource"       type="xsd:string"          minOccurs="0"/>
+          <xsd:element name="rating"           type="tns:LeadRating"      minOccurs="0"/>
+          <xsd:element name="ownerId"          type="xsd:string"          minOccurs="0"/>
+          <xsd:element name="ownerName"        type="xsd:string"          minOccurs="0"/>
+          <xsd:element name="description"      type="xsd:string"          minOccurs="0"/>
+          <xsd:element name="sourceSystemMeta" type="tns:SourceSystemMeta"/>
+          <xsd:element name="createdAt"        type="xsd:dateTime"/>
+          <xsd:element name="updatedAt"        type="xsd:dateTime"/>
+        </xsd:sequence>
+      </xsd:complexType>
+
+      <xsd:complexType name="LeadSummary">
+        <xsd:sequence>
+          <xsd:element name="id"           type="xsd:string"/>
+          <xsd:element name="firstName"    type="xsd:string"/>
+          <xsd:element name="lastName"     type="xsd:string"/>
+          <xsd:element name="status"       type="tns:LeadStatus"/>
+          <xsd:element name="company"      type="xsd:string"       minOccurs="0"/>
+          <xsd:element name="sourceSystem" type="tns:SourceSystem"/>
+        </xsd:sequence>
+      </xsd:complexType>
+
+      <xsd:element name="GetLeadsRequest">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="paging"       type="tns:PageRequest"  minOccurs="0"/>
+            <xsd:element name="status"       type="tns:LeadStatus"   minOccurs="0"/>
+            <xsd:element name="ownerId"      type="xsd:string"       minOccurs="0"/>
+            <xsd:element name="sourceSystem" type="tns:SourceSystem" minOccurs="0"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+      <xsd:element name="GetLeadsResponse">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="lead"       type="tns:LeadSummary"  minOccurs="0" maxOccurs="unbounded"/>
+            <xsd:element name="pagination" type="tns:PaginationMeta"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+      <xsd:element name="GetLeadRequest">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="leadId" type="xsd:string"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+      <xsd:element name="GetLeadResponse">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="lead" type="tns:Lead"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+      <xsd:element name="CreateLeadRequest">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="firstName"          type="xsd:string"/>
+            <xsd:element name="lastName"           type="xsd:string"/>
+            <xsd:element name="targetSourceSystem" type="tns:SourceSystem"/>
+            <xsd:element name="email"              type="xsd:string"      minOccurs="0"/>
+            <xsd:element name="phone"              type="xsd:string"      minOccurs="0"/>
+            <xsd:element name="company"            type="xsd:string"      minOccurs="0"/>
+            <xsd:element name="jobTitle"           type="xsd:string"      minOccurs="0"/>
+            <xsd:element name="leadSource"         type="xsd:string"      minOccurs="0"/>
+            <xsd:element name="rating"             type="tns:LeadRating"  minOccurs="0"/>
+            <xsd:element name="ownerId"            type="xsd:string"      minOccurs="0"/>
+            <xsd:element name="description"        type="xsd:string"      minOccurs="0"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+      <xsd:element name="CreateLeadResponse">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="lead" type="tns:Lead"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+      <xsd:element name="UpdateLeadRequest">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="leadId"       type="xsd:string"/>
+            <xsd:element name="firstName"    type="xsd:string"     minOccurs="0"/>
+            <xsd:element name="lastName"     type="xsd:string"     minOccurs="0"/>
+            <xsd:element name="email"        type="xsd:string"     minOccurs="0"/>
+            <xsd:element name="phone"        type="xsd:string"     minOccurs="0"/>
+            <xsd:element name="company"      type="xsd:string"     minOccurs="0"/>
+            <xsd:element name="jobTitle"     type="xsd:string"     minOccurs="0"/>
+            <xsd:element name="status"       type="tns:LeadStatus" minOccurs="0"/>
+            <xsd:element name="leadSource"   type="xsd:string"     minOccurs="0"/>
+            <xsd:element name="rating"       type="tns:LeadRating" minOccurs="0"/>
+            <xsd:element name="ownerId"      type="xsd:string"     minOccurs="0"/>
+            <xsd:element name="description"  type="xsd:string"     minOccurs="0"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+      <xsd:element name="UpdateLeadResponse">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="lead" type="tns:Lead"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+      <xsd:element name="ConvertLeadRequest">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="leadId"                 type="xsd:string"/>
+            <xsd:element name="createOpportunity"      type="xsd:boolean"/>
+            <xsd:element name="opportunityName"        type="xsd:string"  minOccurs="0"/>
+            <xsd:element name="opportunityCloseDate"   type="xsd:date"    minOccurs="0"/>
+            <xsd:element name="existingAccountId"      type="xsd:string"  minOccurs="0"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+      <xsd:element name="ConvertLeadResponse">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="accountId"     type="xsd:string"/>
+            <xsd:element name="contactId"     type="xsd:string"/>
+            <xsd:element name="opportunityId" type="xsd:string" minOccurs="0"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+      <!-- 
+           Opportunity types
+      -->
+
+      <xsd:complexType name="Opportunity">
+        <xsd:sequence>
+          <xsd:element name="id"               type="xsd:string"/>
+          <xsd:element name="name"             type="xsd:string"/>
+          <xsd:element name="stage"            type="tns:OpportunityStage"/>
+          <xsd:element name="closeDate"        type="xsd:date"/>
+          <xsd:element name="accountId"        type="xsd:string"             minOccurs="0"/>
+          <xsd:element name="accountName"      type="xsd:string"             minOccurs="0"/>
+          <xsd:element name="amount"           type="tns:MonetaryAmount"     minOccurs="0"/>
+          <xsd:element name="probability"      type="xsd:nonNegativeInteger" minOccurs="0"/>
+          <xsd:element name="ownerId"          type="xsd:string"             minOccurs="0"/>
+          <xsd:element name="ownerName"        type="xsd:string"             minOccurs="0"/>
+          <xsd:element name="description"      type="xsd:string"             minOccurs="0"/>
+          <xsd:element name="leadSource"       type="xsd:string"             minOccurs="0"/>
+          <xsd:element name="sourceSystemMeta" type="tns:SourceSystemMeta"/>
+          <xsd:element name="createdAt"        type="xsd:dateTime"/>
+          <xsd:element name="updatedAt"        type="xsd:dateTime"/>
+        </xsd:sequence>
+      </xsd:complexType>
+
+      <xsd:complexType name="OpportunitySummary">
+        <xsd:sequence>
+          <xsd:element name="id"           type="xsd:string"/>
+          <xsd:element name="name"         type="xsd:string"/>
+          <xsd:element name="stage"        type="tns:OpportunityStage"/>
+          <xsd:element name="closeDate"    type="xsd:date"/>
+          <xsd:element name="accountName"  type="xsd:string"         minOccurs="0"/>
+          <xsd:element name="amount"       type="tns:MonetaryAmount" minOccurs="0"/>
+          <xsd:element name="sourceSystem" type="tns:SourceSystem"/>
+        </xsd:sequence>
+      </xsd:complexType>
+
+      <xsd:element name="GetOpportunitiesRequest">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="paging"       type="tns:PageRequest"       minOccurs="0"/>
+            <xsd:element name="accountId"    type="xsd:string"             minOccurs="0"/>
+            <xsd:element name="stage"        type="tns:OpportunityStage"  minOccurs="0"/>
+            <xsd:element name="ownerId"      type="xsd:string"             minOccurs="0"/>
+            <xsd:element name="sourceSystem" type="tns:SourceSystem"       minOccurs="0"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+      <xsd:element name="GetOpportunitiesResponse">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="opportunity" type="tns:OpportunitySummary" minOccurs="0" maxOccurs="unbounded"/>
+            <xsd:element name="pagination"  type="tns:PaginationMeta"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+      <xsd:element name="GetOpportunityRequest">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="opportunityId" type="xsd:string"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+      <xsd:element name="GetOpportunityResponse">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="opportunity" type="tns:Opportunity"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+      <xsd:element name="CreateOpportunityRequest">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="name"                 type="xsd:string"/>
+            <xsd:element name="stage"                type="tns:OpportunityStage"/>
+            <xsd:element name="closeDate"            type="xsd:date"/>
+            <xsd:element name="targetSourceSystem"   type="tns:SourceSystem"/>
+            <xsd:element name="accountId"            type="xsd:string"             minOccurs="0"/>
+            <xsd:element name="amount"               type="tns:MonetaryAmount"     minOccurs="0"/>
+            <xsd:element name="probability"          type="xsd:nonNegativeInteger" minOccurs="0"/>
+            <xsd:element name="ownerId"              type="xsd:string"             minOccurs="0"/>
+            <xsd:element name="description"          type="xsd:string"             minOccurs="0"/>
+            <xsd:element name="leadSource"           type="xsd:string"             minOccurs="0"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+      <xsd:element name="CreateOpportunityResponse">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="opportunity" type="tns:Opportunity"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+      <xsd:element name="UpdateOpportunityRequest">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="opportunityId" type="xsd:string"/>
+            <xsd:element name="name"          type="xsd:string"                minOccurs="0"/>
+            <xsd:element name="stage"         type="tns:OpportunityStage"      minOccurs="0"/>
+            <xsd:element name="closeDate"     type="xsd:date"                  minOccurs="0"/>
+            <xsd:element name="accountId"     type="xsd:string"                minOccurs="0"/>
+            <xsd:element name="amount"        type="tns:MonetaryAmount"        minOccurs="0"/>
+            <xsd:element name="probability"   type="xsd:nonNegativeInteger"    minOccurs="0"/>
+            <xsd:element name="ownerId"       type="xsd:string"                minOccurs="0"/>
+            <xsd:element name="description"   type="xsd:string"                minOccurs="0"/>
+            <xsd:element name="leadSource"    type="xsd:string"                minOccurs="0"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+      <xsd:element name="UpdateOpportunityResponse">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="opportunity" type="tns:Opportunity"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+      <xsd:element name="DeleteOpportunityRequest">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="opportunityId" type="xsd:string"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+      <xsd:element name="DeleteOpportunityResponse">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="success" type="xsd:boolean"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+      <!-- 
+           Activity types
+      -->
+
+      <xsd:complexType name="Activity">
+        <xsd:sequence>
+          <xsd:element name="id"               type="xsd:string"/>
+          <xsd:element name="activityType"     type="tns:ActivityType"/>
+          <xsd:element name="subject"          type="xsd:string"/>
+          <xsd:element name="status"           type="tns:ActivityStatus"/>
+          <xsd:element name="description"      type="xsd:string"             minOccurs="0"/>
+          <xsd:element name="scheduledAt"      type="xsd:dateTime"           minOccurs="0"/>
+          <xsd:element name="completedAt"      type="xsd:dateTime"           minOccurs="0"/>
+          <xsd:element name="durationMinutes"  type="xsd:nonNegativeInteger" minOccurs="0"/>
+          <xsd:element name="relatedToType"    type="tns:RelatedToType"      minOccurs="0"/>
+          <xsd:element name="relatedToId"      type="xsd:string"             minOccurs="0"/>
+          <xsd:element name="ownerId"          type="xsd:string"             minOccurs="0"/>
+          <xsd:element name="ownerName"        type="xsd:string"             minOccurs="0"/>
+          <xsd:element name="sourceSystemMeta" type="tns:SourceSystemMeta"/>
+          <xsd:element name="createdAt"        type="xsd:dateTime"/>
+          <xsd:element name="updatedAt"        type="xsd:dateTime"/>
+        </xsd:sequence>
+      </xsd:complexType>
+
+      <xsd:complexType name="ActivitySummary">
+        <xsd:sequence>
+          <xsd:element name="id"           type="xsd:string"/>
+          <xsd:element name="activityType" type="tns:ActivityType"/>
+          <xsd:element name="subject"      type="xsd:string"/>
+          <xsd:element name="status"       type="tns:ActivityStatus"/>
+          <xsd:element name="scheduledAt"  type="xsd:dateTime"       minOccurs="0"/>
+          <xsd:element name="sourceSystem" type="tns:SourceSystem"/>
+        </xsd:sequence>
+      </xsd:complexType>
+
+      <xsd:element name="GetActivitiesRequest">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="paging"         type="tns:PageRequest"    minOccurs="0"/>
+            <xsd:element name="relatedToType"  type="tns:RelatedToType"  minOccurs="0"/>
+            <xsd:element name="relatedToId"    type="xsd:string"          minOccurs="0"/>
+            <xsd:element name="activityType"   type="tns:ActivityType"   minOccurs="0"/>
+            <xsd:element name="sourceSystem"   type="tns:SourceSystem"   minOccurs="0"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+      <xsd:element name="GetActivitiesResponse">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="activity"   type="tns:ActivitySummary" minOccurs="0" maxOccurs="unbounded"/>
+            <xsd:element name="pagination" type="tns:PaginationMeta"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+      <xsd:element name="GetActivityRequest">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="activityId" type="xsd:string"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+      <xsd:element name="GetActivityResponse">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="activity" type="tns:Activity"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+      <xsd:element name="CreateActivityRequest">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="activityType"         type="tns:ActivityType"/>
+            <xsd:element name="subject"              type="xsd:string"/>
+            <xsd:element name="targetSourceSystem"   type="tns:SourceSystem"/>
+            <xsd:element name="description"          type="xsd:string"             minOccurs="0"/>
+            <xsd:element name="scheduledAt"          type="xsd:dateTime"           minOccurs="0"/>
+            <xsd:element name="durationMinutes"      type="xsd:nonNegativeInteger" minOccurs="0"/>
+            <xsd:element name="relatedToType"        type="tns:RelatedToType"      minOccurs="0"/>
+            <xsd:element name="relatedToId"          type="xsd:string"             minOccurs="0"/>
+            <xsd:element name="ownerId"              type="xsd:string"             minOccurs="0"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+      <xsd:element name="CreateActivityResponse">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="activity" type="tns:Activity"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+      <xsd:element name="UpdateActivityRequest">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="activityId"       type="xsd:string"/>
+            <xsd:element name="subject"          type="xsd:string"             minOccurs="0"/>
+            <xsd:element name="description"      type="xsd:string"             minOccurs="0"/>
+            <xsd:element name="status"           type="tns:ActivityStatus"     minOccurs="0"/>
+            <xsd:element name="scheduledAt"      type="xsd:dateTime"           minOccurs="0"/>
+            <xsd:element name="completedAt"      type="xsd:dateTime"           minOccurs="0"/>
+            <xsd:element name="durationMinutes"  type="xsd:nonNegativeInteger" minOccurs="0"/>
+            <xsd:element name="ownerId"          type="xsd:string"             minOccurs="0"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+      <xsd:element name="UpdateActivityResponse">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="activity" type="tns:Activity"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+      <xsd:element name="DeleteActivityRequest">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="activityId" type="xsd:string"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+      <xsd:element name="DeleteActivityResponse">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="success" type="xsd:boolean"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+      <!-- 
+           Note types
+      -->
+
+      <xsd:complexType name="Note">
+        <xsd:sequence>
+          <xsd:element name="id"               type="xsd:string"/>
+          <xsd:element name="title"            type="xsd:string"/>
+          <xsd:element name="body"             type="xsd:string"/>
+          <xsd:element name="relatedToType"    type="tns:RelatedToType" minOccurs="0"/>
+          <xsd:element name="relatedToId"      type="xsd:string"        minOccurs="0"/>
+          <xsd:element name="ownerId"          type="xsd:string"        minOccurs="0"/>
+          <xsd:element name="ownerName"        type="xsd:string"        minOccurs="0"/>
+          <xsd:element name="sourceSystemMeta" type="tns:SourceSystemMeta"/>
+          <xsd:element name="createdAt"        type="xsd:dateTime"/>
+          <xsd:element name="updatedAt"        type="xsd:dateTime"/>
+        </xsd:sequence>
+      </xsd:complexType>
+
+      <xsd:complexType name="NoteSummary">
+        <xsd:sequence>
+          <xsd:element name="id"            type="xsd:string"/>
+          <xsd:element name="title"         type="xsd:string"/>
+          <xsd:element name="relatedToType" type="tns:RelatedToType" minOccurs="0"/>
+          <xsd:element name="relatedToId"   type="xsd:string"        minOccurs="0"/>
+          <xsd:element name="createdAt"     type="xsd:dateTime"      minOccurs="0"/>
+          <xsd:element name="sourceSystem"  type="tns:SourceSystem"/>
+        </xsd:sequence>
+      </xsd:complexType>
+
+      <xsd:element name="GetNotesRequest">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="paging"        type="tns:PageRequest"   minOccurs="0"/>
+            <xsd:element name="relatedToType" type="tns:RelatedToType" minOccurs="0"/>
+            <xsd:element name="relatedToId"   type="xsd:string"        minOccurs="0"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+      <xsd:element name="GetNotesResponse">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="note"       type="tns:NoteSummary"  minOccurs="0" maxOccurs="unbounded"/>
+            <xsd:element name="pagination" type="tns:PaginationMeta"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+      <xsd:element name="GetNoteRequest">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="noteId" type="xsd:string"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+      <xsd:element name="GetNoteResponse">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="note" type="tns:Note"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+      <xsd:element name="CreateNoteRequest">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="title"                type="xsd:string"/>
+            <xsd:element name="body"                 type="xsd:string"/>
+            <xsd:element name="targetSourceSystem"   type="tns:SourceSystem"/>
+            <xsd:element name="relatedToType"        type="tns:RelatedToType" minOccurs="0"/>
+            <xsd:element name="relatedToId"          type="xsd:string"        minOccurs="0"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+      <xsd:element name="CreateNoteResponse">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="note" type="tns:Note"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+      <xsd:element name="UpdateNoteRequest">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="noteId" type="xsd:string"/>
+            <xsd:element name="title"  type="xsd:string" minOccurs="0"/>
+            <xsd:element name="body"   type="xsd:string" minOccurs="0"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+      <xsd:element name="UpdateNoteResponse">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="note" type="tns:Note"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+      <xsd:element name="DeleteNoteRequest">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="noteId" type="xsd:string"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+      <xsd:element name="DeleteNoteResponse">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="success" type="xsd:boolean"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
+      <!-- Fault element -->
+      <xsd:element name="ServiceFault" type="tns:ServiceFault"/>
+
+    </xsd:schema>
+  </wsdl:types>
+
+  <!-- 
+       Messages
+  -->
+
+  <!-- Accounts -->
+  <wsdl:message name="GetAccountsRequestMsg">
+    <wsdl:part name="parameters" element="tns:GetAccountsRequest"/>
+  </wsdl:message>
+  <wsdl:message name="GetAccountsResponseMsg">
+    <wsdl:part name="parameters" element="tns:GetAccountsResponse"/>
+  </wsdl:message>
+  <wsdl:message name="GetAccountRequestMsg">
+    <wsdl:part name="parameters" element="tns:GetAccountRequest"/>
+  </wsdl:message>
+  <wsdl:message name="GetAccountResponseMsg">
+    <wsdl:part name="parameters" element="tns:GetAccountResponse"/>
+  </wsdl:message>
+  <wsdl:message name="CreateAccountRequestMsg">
+    <wsdl:part name="parameters" element="tns:CreateAccountRequest"/>
+  </wsdl:message>
+  <wsdl:message name="CreateAccountResponseMsg">
+    <wsdl:part name="parameters" element="tns:CreateAccountResponse"/>
+  </wsdl:message>
+  <wsdl:message name="UpdateAccountRequestMsg">
+    <wsdl:part name="parameters" element="tns:UpdateAccountRequest"/>
+  </wsdl:message>
+  <wsdl:message name="UpdateAccountResponseMsg">
+    <wsdl:part name="parameters" element="tns:UpdateAccountResponse"/>
+  </wsdl:message>
+  <wsdl:message name="DeleteAccountRequestMsg">
+    <wsdl:part name="parameters" element="tns:DeleteAccountRequest"/>
+  </wsdl:message>
+  <wsdl:message name="DeleteAccountResponseMsg">
+    <wsdl:part name="parameters" element="tns:DeleteAccountResponse"/>
+  </wsdl:message>
+
+  <!-- Contacts -->
+  <wsdl:message name="GetContactsRequestMsg">
+    <wsdl:part name="parameters" element="tns:GetContactsRequest"/>
+  </wsdl:message>
+  <wsdl:message name="GetContactsResponseMsg">
+    <wsdl:part name="parameters" element="tns:GetContactsResponse"/>
+  </wsdl:message>
+  <wsdl:message name="GetContactRequestMsg">
+    <wsdl:part name="parameters" element="tns:GetContactRequest"/>
+  </wsdl:message>
+  <wsdl:message name="GetContactResponseMsg">
+    <wsdl:part name="parameters" element="tns:GetContactResponse"/>
+  </wsdl:message>
+  <wsdl:message name="CreateContactRequestMsg">
+    <wsdl:part name="parameters" element="tns:CreateContactRequest"/>
+  </wsdl:message>
+  <wsdl:message name="CreateContactResponseMsg">
+    <wsdl:part name="parameters" element="tns:CreateContactResponse"/>
+  </wsdl:message>
+  <wsdl:message name="UpdateContactRequestMsg">
+    <wsdl:part name="parameters" element="tns:UpdateContactRequest"/>
+  </wsdl:message>
+  <wsdl:message name="UpdateContactResponseMsg">
+    <wsdl:part name="parameters" element="tns:UpdateContactResponse"/>
+  </wsdl:message>
+  <wsdl:message name="DeleteContactRequestMsg">
+    <wsdl:part name="parameters" element="tns:DeleteContactRequest"/>
+  </wsdl:message>
+  <wsdl:message name="DeleteContactResponseMsg">
+    <wsdl:part name="parameters" element="tns:DeleteContactResponse"/>
+  </wsdl:message>
+
+  <!-- Leads -->
+  <wsdl:message name="GetLeadsRequestMsg">
+    <wsdl:part name="parameters" element="tns:GetLeadsRequest"/>
+  </wsdl:message>
+  <wsdl:message name="GetLeadsResponseMsg">
+    <wsdl:part name="parameters" element="tns:GetLeadsResponse"/>
+  </wsdl:message>
+  <wsdl:message name="GetLeadRequestMsg">
+    <wsdl:part name="parameters" element="tns:GetLeadRequest"/>
+  </wsdl:message>
+  <wsdl:message name="GetLeadResponseMsg">
+    <wsdl:part name="parameters" element="tns:GetLeadResponse"/>
+  </wsdl:message>
+  <wsdl:message name="CreateLeadRequestMsg">
+    <wsdl:part name="parameters" element="tns:CreateLeadRequest"/>
+  </wsdl:message>
+  <wsdl:message name="CreateLeadResponseMsg">
+    <wsdl:part name="parameters" element="tns:CreateLeadResponse"/>
+  </wsdl:message>
+  <wsdl:message name="UpdateLeadRequestMsg">
+    <wsdl:part name="parameters" element="tns:UpdateLeadRequest"/>
+  </wsdl:message>
+  <wsdl:message name="UpdateLeadResponseMsg">
+    <wsdl:part name="parameters" element="tns:UpdateLeadResponse"/>
+  </wsdl:message>
+  <wsdl:message name="ConvertLeadRequestMsg">
+    <wsdl:part name="parameters" element="tns:ConvertLeadRequest"/>
+  </wsdl:message>
+  <wsdl:message name="ConvertLeadResponseMsg">
+    <wsdl:part name="parameters" element="tns:ConvertLeadResponse"/>
+  </wsdl:message>
+
+  <!-- Opportunities -->
+  <wsdl:message name="GetOpportunitiesRequestMsg">
+    <wsdl:part name="parameters" element="tns:GetOpportunitiesRequest"/>
+  </wsdl:message>
+  <wsdl:message name="GetOpportunitiesResponseMsg">
+    <wsdl:part name="parameters" element="tns:GetOpportunitiesResponse"/>
+  </wsdl:message>
+  <wsdl:message name="GetOpportunityRequestMsg">
+    <wsdl:part name="parameters" element="tns:GetOpportunityRequest"/>
+  </wsdl:message>
+  <wsdl:message name="GetOpportunityResponseMsg">
+    <wsdl:part name="parameters" element="tns:GetOpportunityResponse"/>
+  </wsdl:message>
+  <wsdl:message name="CreateOpportunityRequestMsg">
+    <wsdl:part name="parameters" element="tns:CreateOpportunityRequest"/>
+  </wsdl:message>
+  <wsdl:message name="CreateOpportunityResponseMsg">
+    <wsdl:part name="parameters" element="tns:CreateOpportunityResponse"/>
+  </wsdl:message>
+  <wsdl:message name="UpdateOpportunityRequestMsg">
+    <wsdl:part name="parameters" element="tns:UpdateOpportunityRequest"/>
+  </wsdl:message>
+  <wsdl:message name="UpdateOpportunityResponseMsg">
+    <wsdl:part name="parameters" element="tns:UpdateOpportunityResponse"/>
+  </wsdl:message>
+  <wsdl:message name="DeleteOpportunityRequestMsg">
+    <wsdl:part name="parameters" element="tns:DeleteOpportunityRequest"/>
+  </wsdl:message>
+  <wsdl:message name="DeleteOpportunityResponseMsg">
+    <wsdl:part name="parameters" element="tns:DeleteOpportunityResponse"/>
+  </wsdl:message>
+
+  <!-- Activities -->
+  <wsdl:message name="GetActivitiesRequestMsg">
+    <wsdl:part name="parameters" element="tns:GetActivitiesRequest"/>
+  </wsdl:message>
+  <wsdl:message name="GetActivitiesResponseMsg">
+    <wsdl:part name="parameters" element="tns:GetActivitiesResponse"/>
+  </wsdl:message>
+  <wsdl:message name="GetActivityRequestMsg">
+    <wsdl:part name="parameters" element="tns:GetActivityRequest"/>
+  </wsdl:message>
+  <wsdl:message name="GetActivityResponseMsg">
+    <wsdl:part name="parameters" element="tns:GetActivityResponse"/>
+  </wsdl:message>
+  <wsdl:message name="CreateActivityRequestMsg">
+    <wsdl:part name="parameters" element="tns:CreateActivityRequest"/>
+  </wsdl:message>
+  <wsdl:message name="CreateActivityResponseMsg">
+    <wsdl:part name="parameters" element="tns:CreateActivityResponse"/>
+  </wsdl:message>
+  <wsdl:message name="UpdateActivityRequestMsg">
+    <wsdl:part name="parameters" element="tns:UpdateActivityRequest"/>
+  </wsdl:message>
+  <wsdl:message name="UpdateActivityResponseMsg">
+    <wsdl:part name="parameters" element="tns:UpdateActivityResponse"/>
+  </wsdl:message>
+  <wsdl:message name="DeleteActivityRequestMsg">
+    <wsdl:part name="parameters" element="tns:DeleteActivityRequest"/>
+  </wsdl:message>
+  <wsdl:message name="DeleteActivityResponseMsg">
+    <wsdl:part name="parameters" element="tns:DeleteActivityResponse"/>
+  </wsdl:message>
+
+  <!-- Notes -->
+  <wsdl:message name="GetNotesRequestMsg">
+    <wsdl:part name="parameters" element="tns:GetNotesRequest"/>
+  </wsdl:message>
+  <wsdl:message name="GetNotesResponseMsg">
+    <wsdl:part name="parameters" element="tns:GetNotesResponse"/>
+  </wsdl:message>
+  <wsdl:message name="GetNoteRequestMsg">
+    <wsdl:part name="parameters" element="tns:GetNoteRequest"/>
+  </wsdl:message>
+  <wsdl:message name="GetNoteResponseMsg">
+    <wsdl:part name="parameters" element="tns:GetNoteResponse"/>
+  </wsdl:message>
+  <wsdl:message name="CreateNoteRequestMsg">
+    <wsdl:part name="parameters" element="tns:CreateNoteRequest"/>
+  </wsdl:message>
+  <wsdl:message name="CreateNoteResponseMsg">
+    <wsdl:part name="parameters" element="tns:CreateNoteResponse"/>
+  </wsdl:message>
+  <wsdl:message name="UpdateNoteRequestMsg">
+    <wsdl:part name="parameters" element="tns:UpdateNoteRequest"/>
+  </wsdl:message>
+  <wsdl:message name="UpdateNoteResponseMsg">
+    <wsdl:part name="parameters" element="tns:UpdateNoteResponse"/>
+  </wsdl:message>
+  <wsdl:message name="DeleteNoteRequestMsg">
+    <wsdl:part name="parameters" element="tns:DeleteNoteRequest"/>
+  </wsdl:message>
+  <wsdl:message name="DeleteNoteResponseMsg">
+    <wsdl:part name="parameters" element="tns:DeleteNoteResponse"/>
+  </wsdl:message>
+
+  <!-- Fault -->
+  <wsdl:message name="ServiceFaultMsg">
+    <wsdl:part name="fault" element="tns:ServiceFault"/>
+  </wsdl:message>
+
+  <!-- 
+       Port type
+  -->
+  <wsdl:portType name="UnifiedCrmPortType">
+
+    <!-- Accounts -->
+    <wsdl:operation name="GetAccounts">
+      <wsdl:input  message="tns:GetAccountsRequestMsg"/>
+      <wsdl:output message="tns:GetAccountsResponseMsg"/>
+      <wsdl:fault  name="ServiceFault" message="tns:ServiceFaultMsg"/>
+    </wsdl:operation>
+    <wsdl:operation name="GetAccount">
+      <wsdl:input  message="tns:GetAccountRequestMsg"/>
+      <wsdl:output message="tns:GetAccountResponseMsg"/>
+      <wsdl:fault  name="ServiceFault" message="tns:ServiceFaultMsg"/>
+    </wsdl:operation>
+    <wsdl:operation name="CreateAccount">
+      <wsdl:input  message="tns:CreateAccountRequestMsg"/>
+      <wsdl:output message="tns:CreateAccountResponseMsg"/>
+      <wsdl:fault  name="ServiceFault" message="tns:ServiceFaultMsg"/>
+    </wsdl:operation>
+    <wsdl:operation name="UpdateAccount">
+      <wsdl:input  message="tns:UpdateAccountRequestMsg"/>
+      <wsdl:output message="tns:UpdateAccountResponseMsg"/>
+      <wsdl:fault  name="ServiceFault" message="tns:ServiceFaultMsg"/>
+    </wsdl:operation>
+    <wsdl:operation name="DeleteAccount">
+      <wsdl:input  message="tns:DeleteAccountRequestMsg"/>
+      <wsdl:output message="tns:DeleteAccountResponseMsg"/>
+      <wsdl:fault  name="ServiceFault" message="tns:ServiceFaultMsg"/>
+    </wsdl:operation>
+
+    <!-- Contacts -->
+    <wsdl:operation name="GetContacts">
+      <wsdl:input  message="tns:GetContactsRequestMsg"/>
+      <wsdl:output message="tns:GetContactsResponseMsg"/>
+      <wsdl:fault  name="ServiceFault" message="tns:ServiceFaultMsg"/>
+    </wsdl:operation>
+    <wsdl:operation name="GetContact">
+      <wsdl:input  message="tns:GetContactRequestMsg"/>
+      <wsdl:output message="tns:GetContactResponseMsg"/>
+      <wsdl:fault  name="ServiceFault" message="tns:ServiceFaultMsg"/>
+    </wsdl:operation>
+    <wsdl:operation name="CreateContact">
+      <wsdl:input  message="tns:CreateContactRequestMsg"/>
+      <wsdl:output message="tns:CreateContactResponseMsg"/>
+      <wsdl:fault  name="ServiceFault" message="tns:ServiceFaultMsg"/>
+    </wsdl:operation>
+    <wsdl:operation name="UpdateContact">
+      <wsdl:input  message="tns:UpdateContactRequestMsg"/>
+      <wsdl:output message="tns:UpdateContactResponseMsg"/>
+      <wsdl:fault  name="ServiceFault" message="tns:ServiceFaultMsg"/>
+    </wsdl:operation>
+    <wsdl:operation name="DeleteContact">
+      <wsdl:input  message="tns:DeleteContactRequestMsg"/>
+      <wsdl:output message="tns:DeleteContactResponseMsg"/>
+      <wsdl:fault  name="ServiceFault" message="tns:ServiceFaultMsg"/>
+    </wsdl:operation>
+
+    <!-- Leads -->
+    <wsdl:operation name="GetLeads">
+      <wsdl:input  message="tns:GetLeadsRequestMsg"/>
+      <wsdl:output message="tns:GetLeadsResponseMsg"/>
+      <wsdl:fault  name="ServiceFault" message="tns:ServiceFaultMsg"/>
+    </wsdl:operation>
+    <wsdl:operation name="GetLead">
+      <wsdl:input  message="tns:GetLeadRequestMsg"/>
+      <wsdl:output message="tns:GetLeadResponseMsg"/>
+      <wsdl:fault  name="ServiceFault" message="tns:ServiceFaultMsg"/>
+    </wsdl:operation>
+    <wsdl:operation name="CreateLead">
+      <wsdl:input  message="tns:CreateLeadRequestMsg"/>
+      <wsdl:output message="tns:CreateLeadResponseMsg"/>
+      <wsdl:fault  name="ServiceFault" message="tns:ServiceFaultMsg"/>
+    </wsdl:operation>
+    <wsdl:operation name="UpdateLead">
+      <wsdl:input  message="tns:UpdateLeadRequestMsg"/>
+      <wsdl:output message="tns:UpdateLeadResponseMsg"/>
+      <wsdl:fault  name="ServiceFault" message="tns:ServiceFaultMsg"/>
+    </wsdl:operation>
+    <wsdl:operation name="ConvertLead">
+      <wsdl:input  message="tns:ConvertLeadRequestMsg"/>
+      <wsdl:output message="tns:ConvertLeadResponseMsg"/>
+      <wsdl:fault  name="ServiceFault" message="tns:ServiceFaultMsg"/>
+    </wsdl:operation>
+
+    <!-- Opportunities -->
+    <wsdl:operation name="GetOpportunities">
+      <wsdl:input  message="tns:GetOpportunitiesRequestMsg"/>
+      <wsdl:output message="tns:GetOpportunitiesResponseMsg"/>
+      <wsdl:fault  name="ServiceFault" message="tns:ServiceFaultMsg"/>
+    </wsdl:operation>
+    <wsdl:operation name="GetOpportunity">
+      <wsdl:input  message="tns:GetOpportunityRequestMsg"/>
+      <wsdl:output message="tns:GetOpportunityResponseMsg"/>
+      <wsdl:fault  name="ServiceFault" message="tns:ServiceFaultMsg"/>
+    </wsdl:operation>
+    <wsdl:operation name="CreateOpportunity">
+      <wsdl:input  message="tns:CreateOpportunityRequestMsg"/>
+      <wsdl:output message="tns:CreateOpportunityResponseMsg"/>
+      <wsdl:fault  name="ServiceFault" message="tns:ServiceFaultMsg"/>
+    </wsdl:operation>
+    <wsdl:operation name="UpdateOpportunity">
+      <wsdl:input  message="tns:UpdateOpportunityRequestMsg"/>
+      <wsdl:output message="tns:UpdateOpportunityResponseMsg"/>
+      <wsdl:fault  name="ServiceFault" message="tns:ServiceFaultMsg"/>
+    </wsdl:operation>
+    <wsdl:operation name="DeleteOpportunity">
+      <wsdl:input  message="tns:DeleteOpportunityRequestMsg"/>
+      <wsdl:output message="tns:DeleteOpportunityResponseMsg"/>
+      <wsdl:fault  name="ServiceFault" message="tns:ServiceFaultMsg"/>
+    </wsdl:operation>
+
+    <!-- Activities -->
+    <wsdl:operation name="GetActivities">
+      <wsdl:input  message="tns:GetActivitiesRequestMsg"/>
+      <wsdl:output message="tns:GetActivitiesResponseMsg"/>
+      <wsdl:fault  name="ServiceFault" message="tns:ServiceFaultMsg"/>
+    </wsdl:operation>
+    <wsdl:operation name="GetActivity">
+      <wsdl:input  message="tns:GetActivityRequestMsg"/>
+      <wsdl:output message="tns:GetActivityResponseMsg"/>
+      <wsdl:fault  name="ServiceFault" message="tns:ServiceFaultMsg"/>
+    </wsdl:operation>
+    <wsdl:operation name="CreateActivity">
+      <wsdl:input  message="tns:CreateActivityRequestMsg"/>
+      <wsdl:output message="tns:CreateActivityResponseMsg"/>
+      <wsdl:fault  name="ServiceFault" message="tns:ServiceFaultMsg"/>
+    </wsdl:operation>
+    <wsdl:operation name="UpdateActivity">
+      <wsdl:input  message="tns:UpdateActivityRequestMsg"/>
+      <wsdl:output message="tns:UpdateActivityResponseMsg"/>
+      <wsdl:fault  name="ServiceFault" message="tns:ServiceFaultMsg"/>
+    </wsdl:operation>
+    <wsdl:operation name="DeleteActivity">
+      <wsdl:input  message="tns:DeleteActivityRequestMsg"/>
+      <wsdl:output message="tns:DeleteActivityResponseMsg"/>
+      <wsdl:fault  name="ServiceFault" message="tns:ServiceFaultMsg"/>
+    </wsdl:operation>
+
+    <!-- Notes -->
+    <wsdl:operation name="GetNotes">
+      <wsdl:input  message="tns:GetNotesRequestMsg"/>
+      <wsdl:output message="tns:GetNotesResponseMsg"/>
+      <wsdl:fault  name="ServiceFault" message="tns:ServiceFaultMsg"/>
+    </wsdl:operation>
+    <wsdl:operation name="GetNote">
+      <wsdl:input  message="tns:GetNoteRequestMsg"/>
+      <wsdl:output message="tns:GetNoteResponseMsg"/>
+      <wsdl:fault  name="ServiceFault" message="tns:ServiceFaultMsg"/>
+    </wsdl:operation>
+    <wsdl:operation name="CreateNote">
+      <wsdl:input  message="tns:CreateNoteRequestMsg"/>
+      <wsdl:output message="tns:CreateNoteResponseMsg"/>
+      <wsdl:fault  name="ServiceFault" message="tns:ServiceFaultMsg"/>
+    </wsdl:operation>
+    <wsdl:operation name="UpdateNote">
+      <wsdl:input  message="tns:UpdateNoteRequestMsg"/>
+      <wsdl:output message="tns:UpdateNoteResponseMsg"/>
+      <wsdl:fault  name="ServiceFault" message="tns:ServiceFaultMsg"/>
+    </wsdl:operation>
+    <wsdl:operation name="DeleteNote">
+      <wsdl:input  message="tns:DeleteNoteRequestMsg"/>
+      <wsdl:output message="tns:DeleteNoteResponseMsg"/>
+      <wsdl:fault  name="ServiceFault" message="tns:ServiceFaultMsg"/>
+    </wsdl:operation>
+
+  </wsdl:portType>
+
+  <!-- 
+       Binding (SOAP 1.1, document/literal)
+  -->
+  <wsdl:binding name="UnifiedCrmBinding" type="tns:UnifiedCrmPortType">
+    <soap:binding style="document" transport="http://schemas.xmlsoap.org/soap/http"/>
+
+    <!-- Accounts -->
+    <wsdl:operation name="GetAccounts">
+      <soap:operation soapAction="http://schemas.example.com/crm/2026/01/GetAccounts"/>
+      <wsdl:input><soap:body use="literal"/></wsdl:input>
+      <wsdl:output><soap:body use="literal"/></wsdl:output>
+      <wsdl:fault name="ServiceFault"><soap:fault name="ServiceFault" use="literal"/></wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="GetAccount">
+      <soap:operation soapAction="http://schemas.example.com/crm/2026/01/GetAccount"/>
+      <wsdl:input><soap:body use="literal"/></wsdl:input>
+      <wsdl:output><soap:body use="literal"/></wsdl:output>
+      <wsdl:fault name="ServiceFault"><soap:fault name="ServiceFault" use="literal"/></wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="CreateAccount">
+      <soap:operation soapAction="http://schemas.example.com/crm/2026/01/CreateAccount"/>
+      <wsdl:input><soap:body use="literal"/></wsdl:input>
+      <wsdl:output><soap:body use="literal"/></wsdl:output>
+      <wsdl:fault name="ServiceFault"><soap:fault name="ServiceFault" use="literal"/></wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="UpdateAccount">
+      <soap:operation soapAction="http://schemas.example.com/crm/2026/01/UpdateAccount"/>
+      <wsdl:input><soap:body use="literal"/></wsdl:input>
+      <wsdl:output><soap:body use="literal"/></wsdl:output>
+      <wsdl:fault name="ServiceFault"><soap:fault name="ServiceFault" use="literal"/></wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="DeleteAccount">
+      <soap:operation soapAction="http://schemas.example.com/crm/2026/01/DeleteAccount"/>
+      <wsdl:input><soap:body use="literal"/></wsdl:input>
+      <wsdl:output><soap:body use="literal"/></wsdl:output>
+      <wsdl:fault name="ServiceFault"><soap:fault name="ServiceFault" use="literal"/></wsdl:fault>
+    </wsdl:operation>
+
+    <!-- Contacts -->
+    <wsdl:operation name="GetContacts">
+      <soap:operation soapAction="http://schemas.example.com/crm/2026/01/GetContacts"/>
+      <wsdl:input><soap:body use="literal"/></wsdl:input>
+      <wsdl:output><soap:body use="literal"/></wsdl:output>
+      <wsdl:fault name="ServiceFault"><soap:fault name="ServiceFault" use="literal"/></wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="GetContact">
+      <soap:operation soapAction="http://schemas.example.com/crm/2026/01/GetContact"/>
+      <wsdl:input><soap:body use="literal"/></wsdl:input>
+      <wsdl:output><soap:body use="literal"/></wsdl:output>
+      <wsdl:fault name="ServiceFault"><soap:fault name="ServiceFault" use="literal"/></wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="CreateContact">
+      <soap:operation soapAction="http://schemas.example.com/crm/2026/01/CreateContact"/>
+      <wsdl:input><soap:body use="literal"/></wsdl:input>
+      <wsdl:output><soap:body use="literal"/></wsdl:output>
+      <wsdl:fault name="ServiceFault"><soap:fault name="ServiceFault" use="literal"/></wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="UpdateContact">
+      <soap:operation soapAction="http://schemas.example.com/crm/2026/01/UpdateContact"/>
+      <wsdl:input><soap:body use="literal"/></wsdl:input>
+      <wsdl:output><soap:body use="literal"/></wsdl:output>
+      <wsdl:fault name="ServiceFault"><soap:fault name="ServiceFault" use="literal"/></wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="DeleteContact">
+      <soap:operation soapAction="http://schemas.example.com/crm/2026/01/DeleteContact"/>
+      <wsdl:input><soap:body use="literal"/></wsdl:input>
+      <wsdl:output><soap:body use="literal"/></wsdl:output>
+      <wsdl:fault name="ServiceFault"><soap:fault name="ServiceFault" use="literal"/></wsdl:fault>
+    </wsdl:operation>
+
+    <!-- Leads -->
+    <wsdl:operation name="GetLeads">
+      <soap:operation soapAction="http://schemas.example.com/crm/2026/01/GetLeads"/>
+      <wsdl:input><soap:body use="literal"/></wsdl:input>
+      <wsdl:output><soap:body use="literal"/></wsdl:output>
+      <wsdl:fault name="ServiceFault"><soap:fault name="ServiceFault" use="literal"/></wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="GetLead">
+      <soap:operation soapAction="http://schemas.example.com/crm/2026/01/GetLead"/>
+      <wsdl:input><soap:body use="literal"/></wsdl:input>
+      <wsdl:output><soap:body use="literal"/></wsdl:output>
+      <wsdl:fault name="ServiceFault"><soap:fault name="ServiceFault" use="literal"/></wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="CreateLead">
+      <soap:operation soapAction="http://schemas.example.com/crm/2026/01/CreateLead"/>
+      <wsdl:input><soap:body use="literal"/></wsdl:input>
+      <wsdl:output><soap:body use="literal"/></wsdl:output>
+      <wsdl:fault name="ServiceFault"><soap:fault name="ServiceFault" use="literal"/></wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="UpdateLead">
+      <soap:operation soapAction="http://schemas.example.com/crm/2026/01/UpdateLead"/>
+      <wsdl:input><soap:body use="literal"/></wsdl:input>
+      <wsdl:output><soap:body use="literal"/></wsdl:output>
+      <wsdl:fault name="ServiceFault"><soap:fault name="ServiceFault" use="literal"/></wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="ConvertLead">
+      <soap:operation soapAction="http://schemas.example.com/crm/2026/01/ConvertLead"/>
+      <wsdl:input><soap:body use="literal"/></wsdl:input>
+      <wsdl:output><soap:body use="literal"/></wsdl:output>
+      <wsdl:fault name="ServiceFault"><soap:fault name="ServiceFault" use="literal"/></wsdl:fault>
+    </wsdl:operation>
+
+    <!-- Opportunities -->
+    <wsdl:operation name="GetOpportunities">
+      <soap:operation soapAction="http://schemas.example.com/crm/2026/01/GetOpportunities"/>
+      <wsdl:input><soap:body use="literal"/></wsdl:input>
+      <wsdl:output><soap:body use="literal"/></wsdl:output>
+      <wsdl:fault name="ServiceFault"><soap:fault name="ServiceFault" use="literal"/></wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="GetOpportunity">
+      <soap:operation soapAction="http://schemas.example.com/crm/2026/01/GetOpportunity"/>
+      <wsdl:input><soap:body use="literal"/></wsdl:input>
+      <wsdl:output><soap:body use="literal"/></wsdl:output>
+      <wsdl:fault name="ServiceFault"><soap:fault name="ServiceFault" use="literal"/></wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="CreateOpportunity">
+      <soap:operation soapAction="http://schemas.example.com/crm/2026/01/CreateOpportunity"/>
+      <wsdl:input><soap:body use="literal"/></wsdl:input>
+      <wsdl:output><soap:body use="literal"/></wsdl:output>
+      <wsdl:fault name="ServiceFault"><soap:fault name="ServiceFault" use="literal"/></wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="UpdateOpportunity">
+      <soap:operation soapAction="http://schemas.example.com/crm/2026/01/UpdateOpportunity"/>
+      <wsdl:input><soap:body use="literal"/></wsdl:input>
+      <wsdl:output><soap:body use="literal"/></wsdl:output>
+      <wsdl:fault name="ServiceFault"><soap:fault name="ServiceFault" use="literal"/></wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="DeleteOpportunity">
+      <soap:operation soapAction="http://schemas.example.com/crm/2026/01/DeleteOpportunity"/>
+      <wsdl:input><soap:body use="literal"/></wsdl:input>
+      <wsdl:output><soap:body use="literal"/></wsdl:output>
+      <wsdl:fault name="ServiceFault"><soap:fault name="ServiceFault" use="literal"/></wsdl:fault>
+    </wsdl:operation>
+
+    <!-- Activities -->
+    <wsdl:operation name="GetActivities">
+      <soap:operation soapAction="http://schemas.example.com/crm/2026/01/GetActivities"/>
+      <wsdl:input><soap:body use="literal"/></wsdl:input>
+      <wsdl:output><soap:body use="literal"/></wsdl:output>
+      <wsdl:fault name="ServiceFault"><soap:fault name="ServiceFault" use="literal"/></wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="GetActivity">
+      <soap:operation soapAction="http://schemas.example.com/crm/2026/01/GetActivity"/>
+      <wsdl:input><soap:body use="literal"/></wsdl:input>
+      <wsdl:output><soap:body use="literal"/></wsdl:output>
+      <wsdl:fault name="ServiceFault"><soap:fault name="ServiceFault" use="literal"/></wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="CreateActivity">
+      <soap:operation soapAction="http://schemas.example.com/crm/2026/01/CreateActivity"/>
+      <wsdl:input><soap:body use="literal"/></wsdl:input>
+      <wsdl:output><soap:body use="literal"/></wsdl:output>
+      <wsdl:fault name="ServiceFault"><soap:fault name="ServiceFault" use="literal"/></wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="UpdateActivity">
+      <soap:operation soapAction="http://schemas.example.com/crm/2026/01/UpdateActivity"/>
+      <wsdl:input><soap:body use="literal"/></wsdl:input>
+      <wsdl:output><soap:body use="literal"/></wsdl:output>
+      <wsdl:fault name="ServiceFault"><soap:fault name="ServiceFault" use="literal"/></wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="DeleteActivity">
+      <soap:operation soapAction="http://schemas.example.com/crm/2026/01/DeleteActivity"/>
+      <wsdl:input><soap:body use="literal"/></wsdl:input>
+      <wsdl:output><soap:body use="literal"/></wsdl:output>
+      <wsdl:fault name="ServiceFault"><soap:fault name="ServiceFault" use="literal"/></wsdl:fault>
+    </wsdl:operation>
+
+    <!-- Notes -->
+    <wsdl:operation name="GetNotes">
+      <soap:operation soapAction="http://schemas.example.com/crm/2026/01/GetNotes"/>
+      <wsdl:input><soap:body use="literal"/></wsdl:input>
+      <wsdl:output><soap:body use="literal"/></wsdl:output>
+      <wsdl:fault name="ServiceFault"><soap:fault name="ServiceFault" use="literal"/></wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="GetNote">
+      <soap:operation soapAction="http://schemas.example.com/crm/2026/01/GetNote"/>
+      <wsdl:input><soap:body use="literal"/></wsdl:input>
+      <wsdl:output><soap:body use="literal"/></wsdl:output>
+      <wsdl:fault name="ServiceFault"><soap:fault name="ServiceFault" use="literal"/></wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="CreateNote">
+      <soap:operation soapAction="http://schemas.example.com/crm/2026/01/CreateNote"/>
+      <wsdl:input><soap:body use="literal"/></wsdl:input>
+      <wsdl:output><soap:body use="literal"/></wsdl:output>
+      <wsdl:fault name="ServiceFault"><soap:fault name="ServiceFault" use="literal"/></wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="UpdateNote">
+      <soap:operation soapAction="http://schemas.example.com/crm/2026/01/UpdateNote"/>
+      <wsdl:input><soap:body use="literal"/></wsdl:input>
+      <wsdl:output><soap:body use="literal"/></wsdl:output>
+      <wsdl:fault name="ServiceFault"><soap:fault name="ServiceFault" use="literal"/></wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="DeleteNote">
+      <soap:operation soapAction="http://schemas.example.com/crm/2026/01/DeleteNote"/>
+      <wsdl:input><soap:body use="literal"/></wsdl:input>
+      <wsdl:output><soap:body use="literal"/></wsdl:output>
+      <wsdl:fault name="ServiceFault"><soap:fault name="ServiceFault" use="literal"/></wsdl:fault>
+    </wsdl:operation>
+
+  </wsdl:binding>
+
+  <!-- 
+       Service
+  -->
+  <wsdl:service name="UnifiedCrmService">
+    <wsdl:documentation>
+      Unified CRM SOAP service — facade over Salesforce and Microsoft Dynamics 365.
+      Provides CRUD operations for Accounts, Contacts, Leads, Opportunities, Activities,
+      and Notes, routing requests to the appropriate system of record transparently.
+    </wsdl:documentation>
+    <wsdl:port name="UnifiedCrmPort" binding="tns:UnifiedCrmBinding">
+      <soap:address location="https://api.example.com/crm/soap/v1"/>
+    </wsdl:port>
+  </wsdl:service>
+
+</wsdl:definitions>

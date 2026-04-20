@@ -1,0 +1,1111 @@
+"""
+Unified CRM API — GraphQL SDL
+
+Facade schema that presents a single, system-agnostic interface over
+Salesforce and Microsoft Dynamics 365 CRM. Callers are completely
+insulated from which system of record holds any given resource.
+All mutation operations are routed to the authoritative backend;
+read operations may aggregate results from both platforms.
+"""
+
+schema {
+  query: Query
+  mutation: Mutation
+  subscription: Subscription
+}
+
+# ---------------------------------------------------------------------------
+# Scalars
+# ---------------------------------------------------------------------------
+
+"""ISO-8601 date-time string (e.g. 2026-04-19T12:00:00Z)"""
+scalar DateTime
+
+"""ISO-8601 calendar date string (e.g. 2026-04-19)"""
+scalar Date
+
+"""Monetary decimal value as a string to avoid float rounding"""
+scalar Decimal
+
+"""RFC-4122 UUID"""
+scalar UUID
+
+"""Absolute URI string"""
+scalar URI
+
+# ---------------------------------------------------------------------------
+# Enums
+# ---------------------------------------------------------------------------
+
+"""The backend CRM system that is the system of record for a resource."""
+enum SourceSystem {
+  """Salesforce CRM"""
+  SALESFORCE
+  """Microsoft Dynamics 365"""
+  DYNAMICS
+}
+
+"""Lifecycle status of a CRM account."""
+enum AccountStatus {
+  """Account is active and engaged."""
+  ACTIVE
+  """Account is inactive."""
+  INACTIVE
+  """Account is a prospect not yet converted to a customer."""
+  PROSPECT
+  """Account has churned."""
+  CHURNED
+}
+
+"""Qualification status of a lead."""
+enum LeadStatus {
+  """Lead has just been created."""
+  NEW
+  """Lead has been contacted."""
+  CONTACTED
+  """Lead has been qualified."""
+  QUALIFIED
+  """Lead has been disqualified."""
+  DISQUALIFIED
+  """Lead has been converted to Account + Contact."""
+  CONVERTED
+}
+
+"""Pipeline stage of a sales opportunity."""
+enum OpportunityStage {
+  """Initial prospecting stage."""
+  PROSPECTING
+  """Opportunity is being qualified."""
+  QUALIFICATION
+  """A proposal has been submitted."""
+  PROPOSAL
+  """Active negotiation with the prospect."""
+  NEGOTIATION
+  """Deal was won."""
+  CLOSED_WON
+  """Deal was lost."""
+  CLOSED_LOST
+}
+
+"""Category of a CRM activity."""
+enum ActivityType {
+  """A to-do task."""
+  TASK
+  """A phone call."""
+  CALL
+  """A scheduled meeting."""
+  MEETING
+  """An email communication."""
+  EMAIL
+}
+
+"""Completion status of a CRM activity."""
+enum ActivityStatus {
+  """Activity is scheduled but not started."""
+  PLANNED
+  """Activity is in progress."""
+  IN_PROGRESS
+  """Activity has been completed."""
+  COMPLETED
+  """Activity was cancelled."""
+  CANCELLED
+}
+
+"""Qualification rating for a lead."""
+enum LeadRating {
+  """High-priority lead."""
+  HOT
+  """Medium-priority lead."""
+  WARM
+  """Low-priority lead."""
+  COLD
+}
+
+"""The type of CRM record to which an activity or note is related."""
+enum RelatedToType {
+  ACCOUNT
+  CONTACT
+  LEAD
+  OPPORTUNITY
+}
+
+# ---------------------------------------------------------------------------
+# Interfaces
+# ---------------------------------------------------------------------------
+
+"""Common fields present on every CRM resource."""
+interface CrmNode {
+  """Unified identifier assigned by the facade (UUID)."""
+  id: UUID!
+  """Metadata linking this record to its upstream CRM system."""
+  sourceSystemMeta: SourceSystemMeta!
+  """When the record was created (UTC)."""
+  createdAt: DateTime!
+  """When the record was last updated (UTC)."""
+  updatedAt: DateTime!
+}
+
+# ---------------------------------------------------------------------------
+# Common types
+# ---------------------------------------------------------------------------
+
+"""Metadata about the upstream CRM system that owns a record."""
+type SourceSystemMeta {
+  """The backend CRM system."""
+  sourceSystem: SourceSystem!
+  """The native identifier of this record in the upstream CRM system."""
+  sourceSystemId: String!
+  """Deep-link URL to the record in the upstream CRM console."""
+  sourceSystemUrl: URI
+}
+
+"""A postal address."""
+type Address {
+  """First line of the street address."""
+  line1: String
+  """Second line of the street address (suite, floor, etc.)."""
+  line2: String
+  """City or locality."""
+  city: String
+  """State, province, or region."""
+  stateOrProvince: String
+  """Postal or ZIP code."""
+  postalCode: String
+  """ISO 3166-1 alpha-2 country code."""
+  country: String
+}
+
+"""A currency-denominated monetary value."""
+type MonetaryAmount {
+  """Numeric amount."""
+  amount: Decimal!
+  """ISO 4217 three-letter currency code (e.g. USD)."""
+  currency: String!
+}
+
+"""Standard Relay-compatible pagination metadata."""
+type PageInfo {
+  """Whether more pages exist after this one."""
+  hasNextPage: Boolean!
+  """Whether more pages exist before this one."""
+  hasPreviousPage: Boolean!
+  """Cursor for the first item in this page."""
+  startCursor: String
+  """Cursor for the last item in this page."""
+  endCursor: String
+}
+
+# ---------------------------------------------------------------------------
+# Account types
+# ---------------------------------------------------------------------------
+
+"""A company or organisation tracked in the unified CRM."""
+type Account implements CrmNode {
+  """Unified identifier assigned by the facade (UUID)."""
+  id: UUID!
+  """Legal or trading name of the account."""
+  name: String!
+  """Lifecycle status."""
+  status: AccountStatus!
+  """Industry vertical."""
+  industry: String
+  """Corporate website."""
+  website: URI
+  """Primary phone number."""
+  phone: String
+  """Registered billing address."""
+  billingAddress: Address
+  """Last reported annual revenue."""
+  annualRevenue: MonetaryAmount
+  """Approximate headcount."""
+  numberOfEmployees: Int
+  """Unified ID of the assigned CRM owner."""
+  ownerId: UUID
+  """Display name of the assigned CRM owner."""
+  ownerName: String
+  """Free-text description."""
+  description: String
+  """Metadata linking this record to its upstream CRM system."""
+  sourceSystemMeta: SourceSystemMeta!
+  """When the record was created (UTC)."""
+  createdAt: DateTime!
+  """When the record was last updated (UTC)."""
+  updatedAt: DateTime!
+  """Paginated list of contacts associated with this account."""
+  contacts(
+    """Number of records to return."""
+    first: Int
+    """Cursor after which to start."""
+    after: String
+    """Number of records to return from the end."""
+    last: Int
+    """Cursor before which to start."""
+    before: String
+  ): ContactConnection!
+  """Paginated list of opportunities associated with this account."""
+  opportunities(
+    """Number of records to return."""
+    first: Int
+    """Cursor after which to start."""
+    after: String
+    """Number of records to return from the end."""
+    last: Int
+    """Cursor before which to start."""
+    before: String
+  ): OpportunityConnection!
+  """Paginated list of activities associated with this account."""
+  activities(
+    """Number of records to return."""
+    first: Int
+    """Cursor after which to start."""
+    after: String
+    """Number of records to return from the end."""
+    last: Int
+    """Cursor before which to start."""
+    before: String
+    """Filter by activity type."""
+    type: ActivityType
+  ): ActivityConnection!
+  """Paginated list of notes associated with this account."""
+  notes(
+    """Number of records to return."""
+    first: Int
+    """Cursor after which to start."""
+    after: String
+    """Number of records to return from the end."""
+    last: Int
+    """Cursor before which to start."""
+    before: String
+  ): NoteConnection!
+}
+
+"""Edge wrapper for Account in paginated lists."""
+type AccountEdge {
+  """The account record."""
+  node: Account!
+  """Opaque pagination cursor for this edge."""
+  cursor: String!
+}
+
+"""Paginated collection of accounts."""
+type AccountConnection {
+  """List of account edges in this page."""
+  edges: [AccountEdge!]!
+  """Relay-compatible pagination metadata."""
+  pageInfo: PageInfo!
+  """Total number of accounts matching the current filter."""
+  totalCount: Int!
+}
+
+# ---------------------------------------------------------------------------
+# Contact types
+# ---------------------------------------------------------------------------
+
+"""An individual person tracked in the unified CRM."""
+type Contact implements CrmNode {
+  """Unified identifier assigned by the facade (UUID)."""
+  id: UUID!
+  """Given (first) name."""
+  firstName: String!
+  """Family (last) name."""
+  lastName: String!
+  """Full name (firstName + lastName)."""
+  fullName: String!
+  """Primary email address."""
+  email: String
+  """Business phone number."""
+  phone: String
+  """Mobile phone number."""
+  mobilePhone: String
+  """Job title at the associated account."""
+  jobTitle: String
+  """Department within the associated account."""
+  department: String
+  """The account this contact belongs to."""
+  account: Account
+  """Postal mailing address."""
+  mailingAddress: Address
+  """Unified ID of the assigned CRM owner."""
+  ownerId: UUID
+  """Display name of the assigned CRM owner."""
+  ownerName: String
+  """Whether this contact has opted out of communications."""
+  doNotContact: Boolean!
+  """Metadata linking this record to its upstream CRM system."""
+  sourceSystemMeta: SourceSystemMeta!
+  """When the record was created (UTC)."""
+  createdAt: DateTime!
+  """When the record was last updated (UTC)."""
+  updatedAt: DateTime!
+  """Paginated list of activities associated with this contact."""
+  activities(first: Int, after: String, last: Int, before: String, type: ActivityType): ActivityConnection!
+  """Paginated list of notes associated with this contact."""
+  notes(first: Int, after: String, last: Int, before: String): NoteConnection!
+}
+
+"""Edge wrapper for Contact in paginated lists."""
+type ContactEdge {
+  """The contact record."""
+  node: Contact!
+  """Opaque pagination cursor for this edge."""
+  cursor: String!
+}
+
+"""Paginated collection of contacts."""
+type ContactConnection {
+  """List of contact edges in this page."""
+  edges: [ContactEdge!]!
+  """Relay-compatible pagination metadata."""
+  pageInfo: PageInfo!
+  """Total number of contacts matching the current filter."""
+  totalCount: Int!
+}
+
+# ---------------------------------------------------------------------------
+# Lead types
+# ---------------------------------------------------------------------------
+
+"""An unqualified inbound prospect in the unified CRM."""
+type Lead implements CrmNode {
+  """Unified identifier assigned by the facade (UUID)."""
+  id: UUID!
+  """Given (first) name."""
+  firstName: String!
+  """Family (last) name."""
+  lastName: String!
+  """Full name (firstName + lastName)."""
+  fullName: String!
+  """Primary email address."""
+  email: String
+  """Phone number."""
+  phone: String
+  """Name of the prospect's company."""
+  company: String
+  """Job title at the prospect's company."""
+  jobTitle: String
+  """Qualification status of the lead."""
+  status: LeadStatus!
+  """Channel or campaign that originated the lead."""
+  leadSource: String
+  """Qualification rating."""
+  rating: LeadRating
+  """Unified ID of the assigned CRM owner."""
+  ownerId: UUID
+  """Display name of the assigned CRM owner."""
+  ownerName: String
+  """Free-text description or notes."""
+  description: String
+  """Metadata linking this record to its upstream CRM system."""
+  sourceSystemMeta: SourceSystemMeta!
+  """When the record was created (UTC)."""
+  createdAt: DateTime!
+  """When the record was last updated (UTC)."""
+  updatedAt: DateTime!
+  """Activities logged against this lead."""
+  activities(first: Int, after: String, last: Int, before: String, type: ActivityType): ActivityConnection!
+  """Notes attached to this lead."""
+  notes(first: Int, after: String, last: Int, before: String): NoteConnection!
+}
+
+"""Edge wrapper for Lead in paginated lists."""
+type LeadEdge {
+  """The lead record."""
+  node: Lead!
+  """Opaque pagination cursor for this edge."""
+  cursor: String!
+}
+
+"""Paginated collection of leads."""
+type LeadConnection {
+  """List of lead edges in this page."""
+  edges: [LeadEdge!]!
+  """Relay-compatible pagination metadata."""
+  pageInfo: PageInfo!
+  """Total number of leads matching the current filter."""
+  totalCount: Int!
+}
+
+"""Result of a lead conversion operation."""
+type ConvertLeadResult {
+  """The account created or merged into."""
+  account: Account!
+  """The contact created from the lead."""
+  contact: Contact!
+  """The opportunity created, if requested."""
+  opportunity: Opportunity
+}
+
+# ---------------------------------------------------------------------------
+# Opportunity types
+# ---------------------------------------------------------------------------
+
+"""A qualified sales opportunity tracked in the unified CRM."""
+type Opportunity implements CrmNode {
+  """Unified identifier assigned by the facade (UUID)."""
+  id: UUID!
+  """Name or title of the opportunity."""
+  name: String!
+  """Current pipeline stage."""
+  stage: OpportunityStage!
+  """Projected or actual close date."""
+  closeDate: Date!
+  """The account associated with this opportunity."""
+  account: Account
+  """Deal value."""
+  amount: MonetaryAmount
+  """Win probability as a percentage (0-100)."""
+  probability: Int
+  """Unified ID of the assigned CRM owner."""
+  ownerId: UUID
+  """Display name of the assigned CRM owner."""
+  ownerName: String
+  """Free-text description or notes."""
+  description: String
+  """Channel or campaign that sourced this opportunity."""
+  leadSource: String
+  """Metadata linking this record to its upstream CRM system."""
+  sourceSystemMeta: SourceSystemMeta!
+  """When the record was created (UTC)."""
+  createdAt: DateTime!
+  """When the record was last updated (UTC)."""
+  updatedAt: DateTime!
+  """Activities logged against this opportunity."""
+  activities(first: Int, after: String, last: Int, before: String, type: ActivityType): ActivityConnection!
+  """Notes attached to this opportunity."""
+  notes(first: Int, after: String, last: Int, before: String): NoteConnection!
+}
+
+"""Edge wrapper for Opportunity in paginated lists."""
+type OpportunityEdge {
+  """The opportunity record."""
+  node: Opportunity!
+  """Opaque pagination cursor for this edge."""
+  cursor: String!
+}
+
+"""Paginated collection of opportunities."""
+type OpportunityConnection {
+  """List of opportunity edges in this page."""
+  edges: [OpportunityEdge!]!
+  """Relay-compatible pagination metadata."""
+  pageInfo: PageInfo!
+  """Total number of opportunities matching the current filter."""
+  totalCount: Int!
+}
+
+# ---------------------------------------------------------------------------
+# Activity types
+# ---------------------------------------------------------------------------
+
+"""A task, call, meeting, or email logged against a CRM record."""
+type Activity implements CrmNode {
+  """Unified identifier assigned by the facade (UUID)."""
+  id: UUID!
+  """Category of the activity."""
+  activityType: ActivityType!
+  """Short subject line."""
+  subject: String!
+  """Completion status."""
+  status: ActivityStatus!
+  """Free-text body or notes for the activity."""
+  description: String
+  """When the activity is scheduled to occur."""
+  scheduledAt: DateTime
+  """When the activity was completed."""
+  completedAt: DateTime
+  """Duration in minutes."""
+  durationMinutes: Int
+  """Type of the CRM record this activity is related to."""
+  relatedToType: RelatedToType
+  """Unified ID of the related CRM record."""
+  relatedToId: UUID
+  """Unified ID of the assigned CRM owner."""
+  ownerId: UUID
+  """Display name of the assigned CRM owner."""
+  ownerName: String
+  """Metadata linking this record to its upstream CRM system."""
+  sourceSystemMeta: SourceSystemMeta!
+  """When the record was created (UTC)."""
+  createdAt: DateTime!
+  """When the record was last updated (UTC)."""
+  updatedAt: DateTime!
+}
+
+"""Edge wrapper for Activity in paginated lists."""
+type ActivityEdge {
+  """The activity record."""
+  node: Activity!
+  """Opaque pagination cursor for this edge."""
+  cursor: String!
+}
+
+"""Paginated collection of activities."""
+type ActivityConnection {
+  """List of activity edges in this page."""
+  edges: [ActivityEdge!]!
+  """Relay-compatible pagination metadata."""
+  pageInfo: PageInfo!
+  """Total number of activities matching the current filter."""
+  totalCount: Int!
+}
+
+# ---------------------------------------------------------------------------
+# Note types
+# ---------------------------------------------------------------------------
+
+"""A free-text note attached to any CRM record."""
+type Note implements CrmNode {
+  """Unified identifier assigned by the facade (UUID)."""
+  id: UUID!
+  """Short title of the note."""
+  title: String!
+  """Full note body."""
+  body: String!
+  """Type of the CRM record this note is attached to."""
+  relatedToType: RelatedToType
+  """Unified ID of the related CRM record."""
+  relatedToId: UUID
+  """Unified ID of the note's author."""
+  ownerId: UUID
+  """Display name of the note's author."""
+  ownerName: String
+  """Metadata linking this record to its upstream CRM system."""
+  sourceSystemMeta: SourceSystemMeta!
+  """When the note was created (UTC)."""
+  createdAt: DateTime!
+  """When the note was last updated (UTC)."""
+  updatedAt: DateTime!
+}
+
+"""Edge wrapper for Note in paginated lists."""
+type NoteEdge {
+  """The note record."""
+  node: Note!
+  """Opaque pagination cursor for this edge."""
+  cursor: String!
+}
+
+"""Paginated collection of notes."""
+type NoteConnection {
+  """List of note edges in this page."""
+  edges: [NoteEdge!]!
+  """Relay-compatible pagination metadata."""
+  pageInfo: PageInfo!
+  """Total number of notes matching the current filter."""
+  totalCount: Int!
+}
+
+# ---------------------------------------------------------------------------
+# Input types
+# ---------------------------------------------------------------------------
+
+"""Filter arguments for listing accounts."""
+input AccountFilterInput {
+  """Filter by account status."""
+  status: AccountStatus
+  """Filter by industry vertical."""
+  industry: String
+  """Restrict to a specific backend CRM system."""
+  sourceSystem: SourceSystem
+  """Full-text search against account name."""
+  search: String
+}
+
+"""Filter arguments for listing contacts."""
+input ContactFilterInput {
+  """Filter contacts belonging to a specific account."""
+  accountId: UUID
+  """Restrict to a specific backend CRM system."""
+  sourceSystem: SourceSystem
+  """Full-text search against contact name or email."""
+  search: String
+}
+
+"""Filter arguments for listing leads."""
+input LeadFilterInput {
+  """Filter by lead status."""
+  status: LeadStatus
+  """Filter leads assigned to a specific owner."""
+  ownerId: UUID
+  """Restrict to a specific backend CRM system."""
+  sourceSystem: SourceSystem
+  """Full-text search against lead name or company."""
+  search: String
+}
+
+"""Filter arguments for listing opportunities."""
+input OpportunityFilterInput {
+  """Filter opportunities linked to a specific account."""
+  accountId: UUID
+  """Filter by pipeline stage."""
+  stage: OpportunityStage
+  """Filter opportunities assigned to a specific owner."""
+  ownerId: UUID
+  """Restrict to a specific backend CRM system."""
+  sourceSystem: SourceSystem
+}
+
+"""Filter arguments for listing activities."""
+input ActivityFilterInput {
+  """Filter by the type of the related CRM record."""
+  relatedToType: RelatedToType
+  """Filter activities related to a specific record."""
+  relatedToId: UUID
+  """Filter by activity type."""
+  activityType: ActivityType
+  """Restrict to a specific backend CRM system."""
+  sourceSystem: SourceSystem
+}
+
+"""Filter arguments for listing notes."""
+input NoteFilterInput {
+  """Filter by the type of the related CRM record."""
+  relatedToType: RelatedToType
+  """Filter notes related to a specific record."""
+  relatedToId: UUID
+}
+
+"""Postal address input."""
+input AddressInput {
+  line1: String
+  line2: String
+  city: String
+  stateOrProvince: String
+  postalCode: String
+  country: String
+}
+
+"""Monetary amount input."""
+input MonetaryAmountInput {
+  amount: Decimal!
+  """ISO 4217 three-letter currency code."""
+  currency: String!
+}
+
+# --- Account inputs ---
+
+"""Fields required to create a new CRM account."""
+input CreateAccountInput {
+  name: String!
+  """Backend CRM system that will own this record."""
+  targetSourceSystem: SourceSystem!
+  industry: String
+  website: URI
+  phone: String
+  billingAddress: AddressInput
+  annualRevenue: MonetaryAmountInput
+  numberOfEmployees: Int
+  ownerId: UUID
+  description: String
+}
+
+"""Fields that may be updated on an existing account."""
+input UpdateAccountInput {
+  name: String
+  status: AccountStatus
+  industry: String
+  website: URI
+  phone: String
+  billingAddress: AddressInput
+  annualRevenue: MonetaryAmountInput
+  numberOfEmployees: Int
+  ownerId: UUID
+  description: String
+}
+
+# --- Contact inputs ---
+
+"""Fields required to create a new CRM contact."""
+input CreateContactInput {
+  firstName: String!
+  lastName: String!
+  targetSourceSystem: SourceSystem!
+  email: String
+  phone: String
+  mobilePhone: String
+  jobTitle: String
+  department: String
+  accountId: UUID
+  mailingAddress: AddressInput
+  ownerId: UUID
+}
+
+"""Fields that may be updated on an existing contact."""
+input UpdateContactInput {
+  firstName: String
+  lastName: String
+  email: String
+  phone: String
+  mobilePhone: String
+  jobTitle: String
+  department: String
+  accountId: UUID
+  mailingAddress: AddressInput
+  ownerId: UUID
+  doNotContact: Boolean
+}
+
+# --- Lead inputs ---
+
+"""Fields required to create a new lead."""
+input CreateLeadInput {
+  firstName: String!
+  lastName: String!
+  targetSourceSystem: SourceSystem!
+  email: String
+  phone: String
+  company: String
+  jobTitle: String
+  leadSource: String
+  rating: LeadRating
+  ownerId: UUID
+  description: String
+}
+
+"""Fields that may be updated on an existing lead."""
+input UpdateLeadInput {
+  firstName: String
+  lastName: String
+  email: String
+  phone: String
+  company: String
+  jobTitle: String
+  status: LeadStatus
+  leadSource: String
+  rating: LeadRating
+  ownerId: UUID
+  description: String
+}
+
+"""Parameters governing the lead conversion process."""
+input ConvertLeadInput {
+  """When true, an Opportunity is created as part of the conversion."""
+  createOpportunity: Boolean!
+  """Name for the new opportunity (required when createOpportunity is true)."""
+  opportunityName: String
+  """Projected close date for the new opportunity."""
+  opportunityCloseDate: Date
+  """Merge the lead into an existing account rather than creating a new one."""
+  existingAccountId: UUID
+}
+
+# --- Opportunity inputs ---
+
+"""Fields required to create a new sales opportunity."""
+input CreateOpportunityInput {
+  name: String!
+  stage: OpportunityStage!
+  closeDate: Date!
+  targetSourceSystem: SourceSystem!
+  accountId: UUID
+  amount: MonetaryAmountInput
+  probability: Int
+  ownerId: UUID
+  description: String
+  leadSource: String
+}
+
+"""Fields that may be updated on an existing opportunity."""
+input UpdateOpportunityInput {
+  name: String
+  stage: OpportunityStage
+  closeDate: Date
+  accountId: UUID
+  amount: MonetaryAmountInput
+  probability: Int
+  ownerId: UUID
+  description: String
+  leadSource: String
+}
+
+# --- Activity inputs ---
+
+"""Fields required to log a new activity."""
+input CreateActivityInput {
+  activityType: ActivityType!
+  subject: String!
+  targetSourceSystem: SourceSystem!
+  description: String
+  scheduledAt: DateTime
+  durationMinutes: Int
+  relatedToType: RelatedToType
+  relatedToId: UUID
+  ownerId: UUID
+}
+
+"""Fields that may be updated on an existing activity."""
+input UpdateActivityInput {
+  subject: String
+  description: String
+  status: ActivityStatus
+  scheduledAt: DateTime
+  completedAt: DateTime
+  durationMinutes: Int
+  ownerId: UUID
+}
+
+# --- Note inputs ---
+
+"""Fields required to create a new note."""
+input CreateNoteInput {
+  title: String!
+  body: String!
+  targetSourceSystem: SourceSystem!
+  relatedToType: RelatedToType
+  relatedToId: UUID
+}
+
+"""Fields that may be updated on an existing note."""
+input UpdateNoteInput {
+  title: String
+  body: String
+}
+
+# ---------------------------------------------------------------------------
+# Query
+# ---------------------------------------------------------------------------
+
+"""Root query type for the Unified CRM API."""
+type Query {
+  """Retrieve a paginated list of CRM accounts."""
+  accounts(
+    """Optional filter criteria."""
+    filter: AccountFilterInput
+    """Number of records to return (forward pagination)."""
+    first: Int
+    """Cursor after which to start (forward pagination)."""
+    after: String
+    """Number of records to return from the end (backward pagination)."""
+    last: Int
+    """Cursor before which to start (backward pagination)."""
+    before: String
+  ): AccountConnection!
+
+  """Retrieve a single account by its unified identifier."""
+  account(
+    """Unified account identifier."""
+    id: UUID!
+  ): Account
+
+  """Retrieve a paginated list of CRM contacts."""
+  contacts(
+    """Optional filter criteria."""
+    filter: ContactFilterInput
+    """Number of records to return (forward pagination)."""
+    first: Int
+    """Cursor after which to start (forward pagination)."""
+    after: String
+    """Number of records to return from the end (backward pagination)."""
+    last: Int
+    """Cursor before which to start (backward pagination)."""
+    before: String
+  ): ContactConnection!
+
+  """Retrieve a single contact by its unified identifier."""
+  contact(
+    """Unified contact identifier."""
+    id: UUID!
+  ): Contact
+
+  """Retrieve a paginated list of leads."""
+  leads(
+    """Optional filter criteria."""
+    filter: LeadFilterInput
+    """Number of records to return (forward pagination)."""
+    first: Int
+    """Cursor after which to start (forward pagination)."""
+    after: String
+    """Number of records to return from the end (backward pagination)."""
+    last: Int
+    """Cursor before which to start (backward pagination)."""
+    before: String
+  ): LeadConnection!
+
+  """Retrieve a single lead by its unified identifier."""
+  lead(
+    """Unified lead identifier."""
+    id: UUID!
+  ): Lead
+
+  """Retrieve a paginated list of sales opportunities."""
+  opportunities(
+    """Optional filter criteria."""
+    filter: OpportunityFilterInput
+    """Number of records to return (forward pagination)."""
+    first: Int
+    """Cursor after which to start (forward pagination)."""
+    after: String
+    """Number of records to return from the end (backward pagination)."""
+    last: Int
+    """Cursor before which to start (backward pagination)."""
+    before: String
+  ): OpportunityConnection!
+
+  """Retrieve a single opportunity by its unified identifier."""
+  opportunity(
+    """Unified opportunity identifier."""
+    id: UUID!
+  ): Opportunity
+
+  """Retrieve a paginated list of activities."""
+  activities(
+    """Optional filter criteria."""
+    filter: ActivityFilterInput
+    """Number of records to return (forward pagination)."""
+    first: Int
+    """Cursor after which to start (forward pagination)."""
+    after: String
+    """Number of records to return from the end (backward pagination)."""
+    last: Int
+    """Cursor before which to start (backward pagination)."""
+    before: String
+  ): ActivityConnection!
+
+  """Retrieve a single activity by its unified identifier."""
+  activity(
+    """Unified activity identifier."""
+    id: UUID!
+  ): Activity
+
+  """Retrieve a paginated list of notes."""
+  notes(
+    """Optional filter criteria."""
+    filter: NoteFilterInput
+    """Number of records to return (forward pagination)."""
+    first: Int
+    """Cursor after which to start (forward pagination)."""
+    after: String
+    """Number of records to return from the end (backward pagination)."""
+    last: Int
+    """Cursor before which to start (backward pagination)."""
+    before: String
+  ): NoteConnection!
+
+  """Retrieve a single note by its unified identifier."""
+  note(
+    """Unified note identifier."""
+    id: UUID!
+  ): Note
+
+  """
+  Retrieve any CRM node by its unified ID regardless of type.
+  Returns null when the ID is not found.
+  """
+  node(
+    """Unified node identifier."""
+    id: UUID!
+  ): CrmNode
+}
+
+# ---------------------------------------------------------------------------
+# Mutation
+# ---------------------------------------------------------------------------
+
+"""Root mutation type for the Unified CRM API."""
+type Mutation {
+  # ── Accounts ──────────────────────────────────────────────────────────────
+
+  """Create a new CRM account in the designated system of record."""
+  createAccount(input: CreateAccountInput!): Account!
+
+  """Update the mutable fields of an existing CRM account."""
+  updateAccount(id: UUID!, input: UpdateAccountInput!): Account!
+
+  """Soft-delete a CRM account in the originating system of record."""
+  deleteAccount(id: UUID!): Boolean!
+
+  # ── Contacts ──────────────────────────────────────────────────────────────
+
+  """Create a new CRM contact in the designated system of record."""
+  createContact(input: CreateContactInput!): Contact!
+
+  """Update the mutable fields of an existing CRM contact."""
+  updateContact(id: UUID!, input: UpdateContactInput!): Contact!
+
+  """Soft-delete a CRM contact in the originating system of record."""
+  deleteContact(id: UUID!): Boolean!
+
+  # ── Leads ─────────────────────────────────────────────────────────────────
+
+  """Create a new lead in the designated system of record."""
+  createLead(input: CreateLeadInput!): Lead!
+
+  """Update the mutable fields of an existing lead."""
+  updateLead(id: UUID!, input: UpdateLeadInput!): Lead!
+
+  """
+  Convert a qualified lead into an Account, Contact, and optionally an
+  Opportunity. The original lead is marked as CONVERTED.
+  """
+  convertLead(id: UUID!, input: ConvertLeadInput!): ConvertLeadResult!
+
+  # ── Opportunities ─────────────────────────────────────────────────────────
+
+  """Create a new sales opportunity in the designated system of record."""
+  createOpportunity(input: CreateOpportunityInput!): Opportunity!
+
+  """Update an existing opportunity including stage advancement."""
+  updateOpportunity(id: UUID!, input: UpdateOpportunityInput!): Opportunity!
+
+  """Soft-delete an opportunity in the originating system of record."""
+  deleteOpportunity(id: UUID!): Boolean!
+
+  # ── Activities ────────────────────────────────────────────────────────────
+
+  """Log a new activity against a CRM record."""
+  createActivity(input: CreateActivityInput!): Activity!
+
+  """Update the details of an existing activity."""
+  updateActivity(id: UUID!, input: UpdateActivityInput!): Activity!
+
+  """Remove an activity from the originating system of record."""
+  deleteActivity(id: UUID!): Boolean!
+
+  # ── Notes ─────────────────────────────────────────────────────────────────
+
+  """Create a new note and attach it to a CRM record."""
+  createNote(input: CreateNoteInput!): Note!
+
+  """Update the title and body of an existing note."""
+  updateNote(id: UUID!, input: UpdateNoteInput!): Note!
+
+  """Remove a note from the originating system of record."""
+  deleteNote(id: UUID!): Boolean!
+}
+
+# ---------------------------------------------------------------------------
+# Subscription
+# ---------------------------------------------------------------------------
+
+"""Root subscription type for real-time CRM events."""
+type Subscription {
+  """
+  Emitted whenever an account is created, updated, or deleted.
+  Optionally filtered to a specific source system.
+  """
+  accountChanged(sourceSystem: SourceSystem): Account!
+
+  """
+  Emitted whenever a contact is created, updated, or deleted.
+  Optionally filtered to a specific source system.
+  """
+  contactChanged(sourceSystem: SourceSystem): Contact!
+
+  """
+  Emitted whenever an opportunity stage changes.
+  Optionally filtered to a specific account.
+  """
+  opportunityStageChanged(accountId: UUID): Opportunity!
+
+  """
+  Emitted whenever a lead status changes.
+  Useful for monitoring lead qualification pipelines.
+  """
+  leadStatusChanged: Lead!
+
+  """
+  Emitted whenever a new activity is logged.
+  Optionally filtered by activity type.
+  """
+  activityCreated(activityType: ActivityType): Activity!
+}

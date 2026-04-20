@@ -1,0 +1,1361 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<application
+    xmlns="http://wadl.dev.java.net/2009/02"
+    xmlns:xs="http://www.w3.org/2001/XMLSchema"
+    xmlns:tns="http://schemas.example.com/crm/2026/01"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+
+  <doc title="Unified CRM API">
+    Facade API that presents a single, system-agnostic interface over
+    Salesforce and Microsoft Dynamics 365 CRM. Callers are completely
+    insulated from which system of record holds any given resource.
+    All mutation operations are routed to the authoritative backend;
+    read operations may aggregate results from both platforms.
+    Resources: Accounts, Contacts, Leads, Opportunities, Activities, Notes.
+  </doc>
+
+  <grammars>
+    <xs:schema
+        targetNamespace="http://schemas.example.com/crm/2026/01"
+        elementFormDefault="qualified"
+        attributeFormDefault="unqualified">
+
+      <!-- ================================================================
+           Simple types / enumerations
+      ================================================================ -->
+
+      <xs:simpleType name="SourceSystem">
+        <xs:restriction base="xs:string">
+          <xs:enumeration value="salesforce"/>
+          <xs:enumeration value="dynamics"/>
+        </xs:restriction>
+      </xs:simpleType>
+
+      <xs:simpleType name="AccountStatus">
+        <xs:restriction base="xs:string">
+          <xs:enumeration value="active"/>
+          <xs:enumeration value="inactive"/>
+          <xs:enumeration value="prospect"/>
+          <xs:enumeration value="churned"/>
+        </xs:restriction>
+      </xs:simpleType>
+
+      <xs:simpleType name="LeadStatus">
+        <xs:restriction base="xs:string">
+          <xs:enumeration value="new"/>
+          <xs:enumeration value="contacted"/>
+          <xs:enumeration value="qualified"/>
+          <xs:enumeration value="disqualified"/>
+          <xs:enumeration value="converted"/>
+        </xs:restriction>
+      </xs:simpleType>
+
+      <xs:simpleType name="OpportunityStage">
+        <xs:restriction base="xs:string">
+          <xs:enumeration value="prospecting"/>
+          <xs:enumeration value="qualification"/>
+          <xs:enumeration value="proposal"/>
+          <xs:enumeration value="negotiation"/>
+          <xs:enumeration value="closed_won"/>
+          <xs:enumeration value="closed_lost"/>
+        </xs:restriction>
+      </xs:simpleType>
+
+      <xs:simpleType name="ActivityType">
+        <xs:restriction base="xs:string">
+          <xs:enumeration value="task"/>
+          <xs:enumeration value="call"/>
+          <xs:enumeration value="meeting"/>
+          <xs:enumeration value="email"/>
+        </xs:restriction>
+      </xs:simpleType>
+
+      <xs:simpleType name="ActivityStatus">
+        <xs:restriction base="xs:string">
+          <xs:enumeration value="planned"/>
+          <xs:enumeration value="in_progress"/>
+          <xs:enumeration value="completed"/>
+          <xs:enumeration value="cancelled"/>
+        </xs:restriction>
+      </xs:simpleType>
+
+      <xs:simpleType name="RelatedToType">
+        <xs:restriction base="xs:string">
+          <xs:enumeration value="account"/>
+          <xs:enumeration value="contact"/>
+          <xs:enumeration value="lead"/>
+          <xs:enumeration value="opportunity"/>
+        </xs:restriction>
+      </xs:simpleType>
+
+      <xs:simpleType name="LeadRating">
+        <xs:restriction base="xs:string">
+          <xs:enumeration value="hot"/>
+          <xs:enumeration value="warm"/>
+          <xs:enumeration value="cold"/>
+        </xs:restriction>
+      </xs:simpleType>
+
+      <!-- ================================================================
+           Common complex types
+      ================================================================ -->
+
+      <xs:complexType name="Address">
+        <xs:sequence>
+          <xs:element name="line1" type="xs:string" minOccurs="0"/>
+          <xs:element name="line2" type="xs:string" minOccurs="0"/>
+          <xs:element name="city" type="xs:string" minOccurs="0"/>
+          <xs:element name="stateOrProvince" type="xs:string" minOccurs="0"/>
+          <xs:element name="postalCode" type="xs:string" minOccurs="0"/>
+          <xs:element name="country" type="xs:string" minOccurs="0"/>
+        </xs:sequence>
+      </xs:complexType>
+
+      <xs:complexType name="MonetaryAmount">
+        <xs:sequence>
+          <xs:element name="amount" type="xs:decimal"/>
+          <xs:element name="currency" type="xs:string"/>
+        </xs:sequence>
+      </xs:complexType>
+
+      <xs:complexType name="SourceSystemMeta">
+        <xs:sequence>
+          <xs:element name="sourceSystem" type="tns:SourceSystem"/>
+          <xs:element name="sourceSystemId" type="xs:string"/>
+          <xs:element name="sourceSystemUrl" type="xs:anyURI" minOccurs="0"/>
+        </xs:sequence>
+      </xs:complexType>
+
+      <xs:complexType name="PaginationMeta">
+        <xs:sequence>
+          <xs:element name="page" type="xs:positiveInteger"/>
+          <xs:element name="pageSize" type="xs:positiveInteger"/>
+          <xs:element name="totalItems" type="xs:nonNegativeInteger"/>
+          <xs:element name="totalPages" type="xs:nonNegativeInteger"/>
+        </xs:sequence>
+      </xs:complexType>
+
+      <xs:complexType name="ErrorDetail">
+        <xs:sequence>
+          <xs:element name="field" type="xs:string"/>
+          <xs:element name="message" type="xs:string"/>
+        </xs:sequence>
+      </xs:complexType>
+
+      <xs:complexType name="ErrorDetailList">
+        <xs:sequence>
+          <xs:element name="detail" type="tns:ErrorDetail" minOccurs="0" maxOccurs="unbounded"/>
+        </xs:sequence>
+      </xs:complexType>
+
+      <xs:complexType name="ErrorResponse">
+        <xs:sequence>
+          <xs:element name="code" type="xs:string"/>
+          <xs:element name="message" type="xs:string"/>
+          <xs:element name="details" type="tns:ErrorDetailList" minOccurs="0"/>
+          <xs:element name="traceId" type="xs:string" minOccurs="0"/>
+        </xs:sequence>
+      </xs:complexType>
+
+      <!-- ================================================================
+           Account types
+      ================================================================ -->
+
+      <xs:complexType name="Account">
+        <xs:sequence>
+          <xs:element name="id" type="xs:string"/>
+          <xs:element name="name" type="xs:string"/>
+          <xs:element name="status" type="tns:AccountStatus"/>
+          <xs:element name="industry" type="xs:string" minOccurs="0"/>
+          <xs:element name="website" type="xs:anyURI" minOccurs="0"/>
+          <xs:element name="phone" type="xs:string" minOccurs="0"/>
+          <xs:element name="billingAddress" type="tns:Address" minOccurs="0"/>
+          <xs:element name="annualRevenue" type="tns:MonetaryAmount" minOccurs="0"/>
+          <xs:element name="numberOfEmployees" type="xs:nonNegativeInteger" minOccurs="0"/>
+          <xs:element name="ownerId" type="xs:string" minOccurs="0"/>
+          <xs:element name="ownerName" type="xs:string" minOccurs="0"/>
+          <xs:element name="description" type="xs:string" minOccurs="0"/>
+          <xs:element name="sourceSystemMeta" type="tns:SourceSystemMeta"/>
+          <xs:element name="createdAt" type="xs:dateTime"/>
+          <xs:element name="updatedAt" type="xs:dateTime"/>
+        </xs:sequence>
+      </xs:complexType>
+
+      <xs:complexType name="AccountSummary">
+        <xs:sequence>
+          <xs:element name="id" type="xs:string"/>
+          <xs:element name="name" type="xs:string"/>
+          <xs:element name="status" type="tns:AccountStatus"/>
+          <xs:element name="industry" type="xs:string" minOccurs="0"/>
+          <xs:element name="sourceSystem" type="tns:SourceSystem"/>
+        </xs:sequence>
+      </xs:complexType>
+
+      <xs:complexType name="AccountSummaryList">
+        <xs:sequence>
+          <xs:element name="account" type="tns:AccountSummary" minOccurs="0" maxOccurs="unbounded"/>
+        </xs:sequence>
+      </xs:complexType>
+
+      <xs:complexType name="AccountListResponse">
+        <xs:sequence>
+          <xs:element name="data" type="tns:AccountSummaryList"/>
+          <xs:element name="pagination" type="tns:PaginationMeta"/>
+        </xs:sequence>
+      </xs:complexType>
+
+      <xs:complexType name="CreateAccountRequest">
+        <xs:sequence>
+          <xs:element name="name" type="xs:string"/>
+          <xs:element name="targetSourceSystem" type="tns:SourceSystem"/>
+          <xs:element name="industry" type="xs:string" minOccurs="0"/>
+          <xs:element name="website" type="xs:anyURI" minOccurs="0"/>
+          <xs:element name="phone" type="xs:string" minOccurs="0"/>
+          <xs:element name="billingAddress" type="tns:Address" minOccurs="0"/>
+          <xs:element name="annualRevenue" type="tns:MonetaryAmount" minOccurs="0"/>
+          <xs:element name="numberOfEmployees" type="xs:nonNegativeInteger" minOccurs="0"/>
+          <xs:element name="ownerId" type="xs:string" minOccurs="0"/>
+          <xs:element name="description" type="xs:string" minOccurs="0"/>
+        </xs:sequence>
+      </xs:complexType>
+
+      <xs:complexType name="UpdateAccountRequest">
+        <xs:sequence>
+          <xs:element name="name" type="xs:string" minOccurs="0"/>
+          <xs:element name="status" type="tns:AccountStatus" minOccurs="0"/>
+          <xs:element name="industry" type="xs:string" minOccurs="0"/>
+          <xs:element name="website" type="xs:anyURI" minOccurs="0"/>
+          <xs:element name="phone" type="xs:string" minOccurs="0"/>
+          <xs:element name="billingAddress" type="tns:Address" minOccurs="0"/>
+          <xs:element name="annualRevenue" type="tns:MonetaryAmount" minOccurs="0"/>
+          <xs:element name="numberOfEmployees" type="xs:nonNegativeInteger" minOccurs="0"/>
+          <xs:element name="ownerId" type="xs:string" minOccurs="0"/>
+          <xs:element name="description" type="xs:string" minOccurs="0"/>
+        </xs:sequence>
+      </xs:complexType>
+
+      <!-- ================================================================
+           Contact types
+      ================================================================ -->
+
+      <xs:complexType name="Contact">
+        <xs:sequence>
+          <xs:element name="id" type="xs:string"/>
+          <xs:element name="firstName" type="xs:string"/>
+          <xs:element name="lastName" type="xs:string"/>
+          <xs:element name="email" type="xs:string" minOccurs="0"/>
+          <xs:element name="phone" type="xs:string" minOccurs="0"/>
+          <xs:element name="mobilePhone" type="xs:string" minOccurs="0"/>
+          <xs:element name="jobTitle" type="xs:string" minOccurs="0"/>
+          <xs:element name="department" type="xs:string" minOccurs="0"/>
+          <xs:element name="accountId" type="xs:string" minOccurs="0"/>
+          <xs:element name="accountName" type="xs:string" minOccurs="0"/>
+          <xs:element name="mailingAddress" type="tns:Address" minOccurs="0"/>
+          <xs:element name="ownerId" type="xs:string" minOccurs="0"/>
+          <xs:element name="ownerName" type="xs:string" minOccurs="0"/>
+          <xs:element name="doNotContact" type="xs:boolean" minOccurs="0"/>
+          <xs:element name="sourceSystemMeta" type="tns:SourceSystemMeta"/>
+          <xs:element name="createdAt" type="xs:dateTime"/>
+          <xs:element name="updatedAt" type="xs:dateTime"/>
+        </xs:sequence>
+      </xs:complexType>
+
+      <xs:complexType name="ContactSummary">
+        <xs:sequence>
+          <xs:element name="id" type="xs:string"/>
+          <xs:element name="firstName" type="xs:string"/>
+          <xs:element name="lastName" type="xs:string"/>
+          <xs:element name="email" type="xs:string" minOccurs="0"/>
+          <xs:element name="jobTitle" type="xs:string" minOccurs="0"/>
+          <xs:element name="accountName" type="xs:string" minOccurs="0"/>
+          <xs:element name="sourceSystem" type="tns:SourceSystem"/>
+        </xs:sequence>
+      </xs:complexType>
+
+      <xs:complexType name="ContactSummaryList">
+        <xs:sequence>
+          <xs:element name="contact" type="tns:ContactSummary" minOccurs="0" maxOccurs="unbounded"/>
+        </xs:sequence>
+      </xs:complexType>
+
+      <xs:complexType name="ContactListResponse">
+        <xs:sequence>
+          <xs:element name="data" type="tns:ContactSummaryList"/>
+          <xs:element name="pagination" type="tns:PaginationMeta"/>
+        </xs:sequence>
+      </xs:complexType>
+
+      <xs:complexType name="CreateContactRequest">
+        <xs:sequence>
+          <xs:element name="firstName" type="xs:string"/>
+          <xs:element name="lastName" type="xs:string"/>
+          <xs:element name="targetSourceSystem" type="tns:SourceSystem"/>
+          <xs:element name="email" type="xs:string" minOccurs="0"/>
+          <xs:element name="phone" type="xs:string" minOccurs="0"/>
+          <xs:element name="mobilePhone" type="xs:string" minOccurs="0"/>
+          <xs:element name="jobTitle" type="xs:string" minOccurs="0"/>
+          <xs:element name="department" type="xs:string" minOccurs="0"/>
+          <xs:element name="accountId" type="xs:string" minOccurs="0"/>
+          <xs:element name="mailingAddress" type="tns:Address" minOccurs="0"/>
+          <xs:element name="ownerId" type="xs:string" minOccurs="0"/>
+        </xs:sequence>
+      </xs:complexType>
+
+      <xs:complexType name="UpdateContactRequest">
+        <xs:sequence>
+          <xs:element name="firstName" type="xs:string" minOccurs="0"/>
+          <xs:element name="lastName" type="xs:string" minOccurs="0"/>
+          <xs:element name="email" type="xs:string" minOccurs="0"/>
+          <xs:element name="phone" type="xs:string" minOccurs="0"/>
+          <xs:element name="mobilePhone" type="xs:string" minOccurs="0"/>
+          <xs:element name="jobTitle" type="xs:string" minOccurs="0"/>
+          <xs:element name="department" type="xs:string" minOccurs="0"/>
+          <xs:element name="accountId" type="xs:string" minOccurs="0"/>
+          <xs:element name="mailingAddress" type="tns:Address" minOccurs="0"/>
+          <xs:element name="ownerId" type="xs:string" minOccurs="0"/>
+          <xs:element name="doNotContact" type="xs:boolean" minOccurs="0"/>
+        </xs:sequence>
+      </xs:complexType>
+
+      <!-- ================================================================
+           Lead types
+      ================================================================ -->
+
+      <xs:complexType name="Lead">
+        <xs:sequence>
+          <xs:element name="id" type="xs:string"/>
+          <xs:element name="firstName" type="xs:string"/>
+          <xs:element name="lastName" type="xs:string"/>
+          <xs:element name="status" type="tns:LeadStatus"/>
+          <xs:element name="email" type="xs:string" minOccurs="0"/>
+          <xs:element name="phone" type="xs:string" minOccurs="0"/>
+          <xs:element name="company" type="xs:string" minOccurs="0"/>
+          <xs:element name="jobTitle" type="xs:string" minOccurs="0"/>
+          <xs:element name="leadSource" type="xs:string" minOccurs="0"/>
+          <xs:element name="rating" type="tns:LeadRating" minOccurs="0"/>
+          <xs:element name="ownerId" type="xs:string" minOccurs="0"/>
+          <xs:element name="ownerName" type="xs:string" minOccurs="0"/>
+          <xs:element name="description" type="xs:string" minOccurs="0"/>
+          <xs:element name="sourceSystemMeta" type="tns:SourceSystemMeta"/>
+          <xs:element name="createdAt" type="xs:dateTime"/>
+          <xs:element name="updatedAt" type="xs:dateTime"/>
+        </xs:sequence>
+      </xs:complexType>
+
+      <xs:complexType name="LeadSummary">
+        <xs:sequence>
+          <xs:element name="id" type="xs:string"/>
+          <xs:element name="firstName" type="xs:string"/>
+          <xs:element name="lastName" type="xs:string"/>
+          <xs:element name="status" type="tns:LeadStatus"/>
+          <xs:element name="company" type="xs:string" minOccurs="0"/>
+          <xs:element name="sourceSystem" type="tns:SourceSystem"/>
+        </xs:sequence>
+      </xs:complexType>
+
+      <xs:complexType name="LeadSummaryList">
+        <xs:sequence>
+          <xs:element name="lead" type="tns:LeadSummary" minOccurs="0" maxOccurs="unbounded"/>
+        </xs:sequence>
+      </xs:complexType>
+
+      <xs:complexType name="LeadListResponse">
+        <xs:sequence>
+          <xs:element name="data" type="tns:LeadSummaryList"/>
+          <xs:element name="pagination" type="tns:PaginationMeta"/>
+        </xs:sequence>
+      </xs:complexType>
+
+      <xs:complexType name="CreateLeadRequest">
+        <xs:sequence>
+          <xs:element name="firstName" type="xs:string"/>
+          <xs:element name="lastName" type="xs:string"/>
+          <xs:element name="targetSourceSystem" type="tns:SourceSystem"/>
+          <xs:element name="email" type="xs:string" minOccurs="0"/>
+          <xs:element name="phone" type="xs:string" minOccurs="0"/>
+          <xs:element name="company" type="xs:string" minOccurs="0"/>
+          <xs:element name="jobTitle" type="xs:string" minOccurs="0"/>
+          <xs:element name="leadSource" type="xs:string" minOccurs="0"/>
+          <xs:element name="rating" type="tns:LeadRating" minOccurs="0"/>
+          <xs:element name="ownerId" type="xs:string" minOccurs="0"/>
+          <xs:element name="description" type="xs:string" minOccurs="0"/>
+        </xs:sequence>
+      </xs:complexType>
+
+      <xs:complexType name="UpdateLeadRequest">
+        <xs:sequence>
+          <xs:element name="firstName" type="xs:string" minOccurs="0"/>
+          <xs:element name="lastName" type="xs:string" minOccurs="0"/>
+          <xs:element name="email" type="xs:string" minOccurs="0"/>
+          <xs:element name="phone" type="xs:string" minOccurs="0"/>
+          <xs:element name="company" type="xs:string" minOccurs="0"/>
+          <xs:element name="jobTitle" type="xs:string" minOccurs="0"/>
+          <xs:element name="status" type="tns:LeadStatus" minOccurs="0"/>
+          <xs:element name="leadSource" type="xs:string" minOccurs="0"/>
+          <xs:element name="rating" type="tns:LeadRating" minOccurs="0"/>
+          <xs:element name="ownerId" type="xs:string" minOccurs="0"/>
+          <xs:element name="description" type="xs:string" minOccurs="0"/>
+        </xs:sequence>
+      </xs:complexType>
+
+      <xs:complexType name="ConvertLeadRequest">
+        <xs:sequence>
+          <xs:element name="createOpportunity" type="xs:boolean"/>
+          <xs:element name="opportunityName" type="xs:string" minOccurs="0"/>
+          <xs:element name="opportunityCloseDate" type="xs:date" minOccurs="0"/>
+          <xs:element name="existingAccountId" type="xs:string" minOccurs="0"/>
+        </xs:sequence>
+      </xs:complexType>
+
+      <xs:complexType name="ConvertLeadResponse">
+        <xs:sequence>
+          <xs:element name="accountId" type="xs:string"/>
+          <xs:element name="contactId" type="xs:string"/>
+          <xs:element name="opportunityId" type="xs:string" minOccurs="0"/>
+        </xs:sequence>
+      </xs:complexType>
+
+      <!-- ================================================================
+           Opportunity types
+      ================================================================ -->
+
+      <xs:complexType name="Opportunity">
+        <xs:sequence>
+          <xs:element name="id" type="xs:string"/>
+          <xs:element name="name" type="xs:string"/>
+          <xs:element name="stage" type="tns:OpportunityStage"/>
+          <xs:element name="closeDate" type="xs:date"/>
+          <xs:element name="accountId" type="xs:string" minOccurs="0"/>
+          <xs:element name="accountName" type="xs:string" minOccurs="0"/>
+          <xs:element name="amount" type="tns:MonetaryAmount" minOccurs="0"/>
+          <xs:element name="probability" type="xs:nonNegativeInteger" minOccurs="0"/>
+          <xs:element name="ownerId" type="xs:string" minOccurs="0"/>
+          <xs:element name="ownerName" type="xs:string" minOccurs="0"/>
+          <xs:element name="description" type="xs:string" minOccurs="0"/>
+          <xs:element name="leadSource" type="xs:string" minOccurs="0"/>
+          <xs:element name="sourceSystemMeta" type="tns:SourceSystemMeta"/>
+          <xs:element name="createdAt" type="xs:dateTime"/>
+          <xs:element name="updatedAt" type="xs:dateTime"/>
+        </xs:sequence>
+      </xs:complexType>
+
+      <xs:complexType name="OpportunitySummary">
+        <xs:sequence>
+          <xs:element name="id" type="xs:string"/>
+          <xs:element name="name" type="xs:string"/>
+          <xs:element name="stage" type="tns:OpportunityStage"/>
+          <xs:element name="closeDate" type="xs:date"/>
+          <xs:element name="accountName" type="xs:string" minOccurs="0"/>
+          <xs:element name="amount" type="tns:MonetaryAmount" minOccurs="0"/>
+          <xs:element name="sourceSystem" type="tns:SourceSystem"/>
+        </xs:sequence>
+      </xs:complexType>
+
+      <xs:complexType name="OpportunitySummaryList">
+        <xs:sequence>
+          <xs:element name="opportunity" type="tns:OpportunitySummary" minOccurs="0" maxOccurs="unbounded"/>
+        </xs:sequence>
+      </xs:complexType>
+
+      <xs:complexType name="OpportunityListResponse">
+        <xs:sequence>
+          <xs:element name="data" type="tns:OpportunitySummaryList"/>
+          <xs:element name="pagination" type="tns:PaginationMeta"/>
+        </xs:sequence>
+      </xs:complexType>
+
+      <xs:complexType name="CreateOpportunityRequest">
+        <xs:sequence>
+          <xs:element name="name" type="xs:string"/>
+          <xs:element name="stage" type="tns:OpportunityStage"/>
+          <xs:element name="closeDate" type="xs:date"/>
+          <xs:element name="targetSourceSystem" type="tns:SourceSystem"/>
+          <xs:element name="accountId" type="xs:string" minOccurs="0"/>
+          <xs:element name="amount" type="tns:MonetaryAmount" minOccurs="0"/>
+          <xs:element name="probability" type="xs:nonNegativeInteger" minOccurs="0"/>
+          <xs:element name="ownerId" type="xs:string" minOccurs="0"/>
+          <xs:element name="description" type="xs:string" minOccurs="0"/>
+          <xs:element name="leadSource" type="xs:string" minOccurs="0"/>
+        </xs:sequence>
+      </xs:complexType>
+
+      <xs:complexType name="UpdateOpportunityRequest">
+        <xs:sequence>
+          <xs:element name="name" type="xs:string" minOccurs="0"/>
+          <xs:element name="stage" type="tns:OpportunityStage" minOccurs="0"/>
+          <xs:element name="closeDate" type="xs:date" minOccurs="0"/>
+          <xs:element name="accountId" type="xs:string" minOccurs="0"/>
+          <xs:element name="amount" type="tns:MonetaryAmount" minOccurs="0"/>
+          <xs:element name="probability" type="xs:nonNegativeInteger" minOccurs="0"/>
+          <xs:element name="ownerId" type="xs:string" minOccurs="0"/>
+          <xs:element name="description" type="xs:string" minOccurs="0"/>
+          <xs:element name="leadSource" type="xs:string" minOccurs="0"/>
+        </xs:sequence>
+      </xs:complexType>
+
+      <!-- ================================================================
+           Activity types
+      ================================================================ -->
+
+      <xs:complexType name="Activity">
+        <xs:sequence>
+          <xs:element name="id" type="xs:string"/>
+          <xs:element name="activityType" type="tns:ActivityType"/>
+          <xs:element name="subject" type="xs:string"/>
+          <xs:element name="status" type="tns:ActivityStatus"/>
+          <xs:element name="description" type="xs:string" minOccurs="0"/>
+          <xs:element name="scheduledAt" type="xs:dateTime" minOccurs="0"/>
+          <xs:element name="completedAt" type="xs:dateTime" minOccurs="0"/>
+          <xs:element name="durationMinutes" type="xs:nonNegativeInteger" minOccurs="0"/>
+          <xs:element name="relatedToType" type="tns:RelatedToType" minOccurs="0"/>
+          <xs:element name="relatedToId" type="xs:string" minOccurs="0"/>
+          <xs:element name="ownerId" type="xs:string" minOccurs="0"/>
+          <xs:element name="ownerName" type="xs:string" minOccurs="0"/>
+          <xs:element name="sourceSystemMeta" type="tns:SourceSystemMeta"/>
+          <xs:element name="createdAt" type="xs:dateTime"/>
+          <xs:element name="updatedAt" type="xs:dateTime"/>
+        </xs:sequence>
+      </xs:complexType>
+
+      <xs:complexType name="ActivitySummary">
+        <xs:sequence>
+          <xs:element name="id" type="xs:string"/>
+          <xs:element name="activityType" type="tns:ActivityType"/>
+          <xs:element name="subject" type="xs:string"/>
+          <xs:element name="status" type="tns:ActivityStatus"/>
+          <xs:element name="scheduledAt" type="xs:dateTime" minOccurs="0"/>
+          <xs:element name="sourceSystem" type="tns:SourceSystem"/>
+        </xs:sequence>
+      </xs:complexType>
+
+      <xs:complexType name="ActivitySummaryList">
+        <xs:sequence>
+          <xs:element name="activity" type="tns:ActivitySummary" minOccurs="0" maxOccurs="unbounded"/>
+        </xs:sequence>
+      </xs:complexType>
+
+      <xs:complexType name="ActivityListResponse">
+        <xs:sequence>
+          <xs:element name="data" type="tns:ActivitySummaryList"/>
+          <xs:element name="pagination" type="tns:PaginationMeta"/>
+        </xs:sequence>
+      </xs:complexType>
+
+      <xs:complexType name="CreateActivityRequest">
+        <xs:sequence>
+          <xs:element name="activityType" type="tns:ActivityType"/>
+          <xs:element name="subject" type="xs:string"/>
+          <xs:element name="targetSourceSystem" type="tns:SourceSystem"/>
+          <xs:element name="description" type="xs:string" minOccurs="0"/>
+          <xs:element name="scheduledAt" type="xs:dateTime" minOccurs="0"/>
+          <xs:element name="durationMinutes" type="xs:nonNegativeInteger" minOccurs="0"/>
+          <xs:element name="relatedToType" type="tns:RelatedToType" minOccurs="0"/>
+          <xs:element name="relatedToId" type="xs:string" minOccurs="0"/>
+          <xs:element name="ownerId" type="xs:string" minOccurs="0"/>
+        </xs:sequence>
+      </xs:complexType>
+
+      <xs:complexType name="UpdateActivityRequest">
+        <xs:sequence>
+          <xs:element name="subject" type="xs:string" minOccurs="0"/>
+          <xs:element name="description" type="xs:string" minOccurs="0"/>
+          <xs:element name="status" type="tns:ActivityStatus" minOccurs="0"/>
+          <xs:element name="scheduledAt" type="xs:dateTime" minOccurs="0"/>
+          <xs:element name="completedAt" type="xs:dateTime" minOccurs="0"/>
+          <xs:element name="durationMinutes" type="xs:nonNegativeInteger" minOccurs="0"/>
+          <xs:element name="ownerId" type="xs:string" minOccurs="0"/>
+        </xs:sequence>
+      </xs:complexType>
+
+      <!-- ================================================================
+           Note types
+      ================================================================ -->
+
+      <xs:complexType name="Note">
+        <xs:sequence>
+          <xs:element name="id" type="xs:string"/>
+          <xs:element name="title" type="xs:string"/>
+          <xs:element name="body" type="xs:string"/>
+          <xs:element name="relatedToType" type="tns:RelatedToType" minOccurs="0"/>
+          <xs:element name="relatedToId" type="xs:string" minOccurs="0"/>
+          <xs:element name="ownerId" type="xs:string" minOccurs="0"/>
+          <xs:element name="ownerName" type="xs:string" minOccurs="0"/>
+          <xs:element name="sourceSystemMeta" type="tns:SourceSystemMeta"/>
+          <xs:element name="createdAt" type="xs:dateTime"/>
+          <xs:element name="updatedAt" type="xs:dateTime"/>
+        </xs:sequence>
+      </xs:complexType>
+
+      <xs:complexType name="NoteSummary">
+        <xs:sequence>
+          <xs:element name="id" type="xs:string"/>
+          <xs:element name="title" type="xs:string"/>
+          <xs:element name="relatedToType" type="tns:RelatedToType" minOccurs="0"/>
+          <xs:element name="relatedToId" type="xs:string" minOccurs="0"/>
+          <xs:element name="createdAt" type="xs:dateTime" minOccurs="0"/>
+          <xs:element name="sourceSystem" type="tns:SourceSystem"/>
+        </xs:sequence>
+      </xs:complexType>
+
+      <xs:complexType name="NoteSummaryList">
+        <xs:sequence>
+          <xs:element name="note" type="tns:NoteSummary" minOccurs="0" maxOccurs="unbounded"/>
+        </xs:sequence>
+      </xs:complexType>
+
+      <xs:complexType name="NoteListResponse">
+        <xs:sequence>
+          <xs:element name="data" type="tns:NoteSummaryList"/>
+          <xs:element name="pagination" type="tns:PaginationMeta"/>
+        </xs:sequence>
+      </xs:complexType>
+
+      <xs:complexType name="CreateNoteRequest">
+        <xs:sequence>
+          <xs:element name="title" type="xs:string"/>
+          <xs:element name="body" type="xs:string"/>
+          <xs:element name="targetSourceSystem" type="tns:SourceSystem"/>
+          <xs:element name="relatedToType" type="tns:RelatedToType" minOccurs="0"/>
+          <xs:element name="relatedToId" type="xs:string" minOccurs="0"/>
+        </xs:sequence>
+      </xs:complexType>
+
+      <xs:complexType name="UpdateNoteRequest">
+        <xs:sequence>
+          <xs:element name="title" type="xs:string" minOccurs="0"/>
+          <xs:element name="body" type="xs:string" minOccurs="0"/>
+        </xs:sequence>
+      </xs:complexType>
+
+      <!-- Root elements used by WADL request/response representations -->
+      <xs:element name="account"               type="tns:Account"/>
+      <xs:element name="accountListResponse"   type="tns:AccountListResponse"/>
+      <xs:element name="createAccountRequest"  type="tns:CreateAccountRequest"/>
+      <xs:element name="updateAccountRequest"  type="tns:UpdateAccountRequest"/>
+
+      <xs:element name="contact"               type="tns:Contact"/>
+      <xs:element name="contactListResponse"   type="tns:ContactListResponse"/>
+      <xs:element name="createContactRequest"  type="tns:CreateContactRequest"/>
+      <xs:element name="updateContactRequest"  type="tns:UpdateContactRequest"/>
+
+      <xs:element name="lead"                  type="tns:Lead"/>
+      <xs:element name="leadListResponse"      type="tns:LeadListResponse"/>
+      <xs:element name="createLeadRequest"     type="tns:CreateLeadRequest"/>
+      <xs:element name="updateLeadRequest"     type="tns:UpdateLeadRequest"/>
+      <xs:element name="convertLeadRequest"    type="tns:ConvertLeadRequest"/>
+      <xs:element name="convertLeadResponse"   type="tns:ConvertLeadResponse"/>
+
+      <xs:element name="opportunity"               type="tns:Opportunity"/>
+      <xs:element name="opportunityListResponse"   type="tns:OpportunityListResponse"/>
+      <xs:element name="createOpportunityRequest"  type="tns:CreateOpportunityRequest"/>
+      <xs:element name="updateOpportunityRequest"  type="tns:UpdateOpportunityRequest"/>
+
+      <xs:element name="activity"               type="tns:Activity"/>
+      <xs:element name="activityListResponse"   type="tns:ActivityListResponse"/>
+      <xs:element name="createActivityRequest"  type="tns:CreateActivityRequest"/>
+      <xs:element name="updateActivityRequest"  type="tns:UpdateActivityRequest"/>
+
+      <xs:element name="note"                   type="tns:Note"/>
+      <xs:element name="noteListResponse"       type="tns:NoteListResponse"/>
+      <xs:element name="createNoteRequest"      type="tns:CreateNoteRequest"/>
+      <xs:element name="updateNoteRequest"      type="tns:UpdateNoteRequest"/>
+
+      <xs:element name="errorResponse"          type="tns:ErrorResponse"/>
+
+    </xs:schema>
+  </grammars>
+
+  <!-- ==================================================================
+       Resources
+  ================================================================== -->
+
+  <resources base="https://api.example.com/crm/v1">
+
+    <!-- 
+         Accounts
+    -->
+    <resource path="accounts">
+      <doc>Companies and organisations tracked in the unified CRM.</doc>
+
+      <method name="GET" id="listAccounts">
+        <doc>Returns a paginated list of CRM accounts from all connected systems.</doc>
+        <request>
+          <param name="page"         style="query" type="xs:positiveInteger" default="1" required="false"/>
+          <param name="pageSize"     style="query" type="xs:positiveInteger" default="25" required="false"/>
+          <param name="status"       style="query" type="xs:string" required="false"/>
+          <param name="industry"     style="query" type="xs:string" required="false"/>
+          <param name="sourceSystem" style="query" type="xs:string" required="false"/>
+          <param name="Authorization" style="header" type="xs:string" required="true"/>
+        </request>
+        <response status="200">
+          <representation mediaType="application/json" element="tns:accountListResponse"/>
+        </response>
+        <response status="401">
+          <representation mediaType="application/json" element="tns:errorResponse"/>
+        </response>
+        <response status="500">
+          <representation mediaType="application/json" element="tns:errorResponse"/>
+        </response>
+      </method>
+
+      <method name="POST" id="createAccount">
+        <doc>Creates a new account in the designated system of record.</doc>
+        <request>
+          <param name="Authorization" style="header" type="xs:string" required="true"/>
+          <representation mediaType="application/json" element="tns:createAccountRequest"/>
+        </request>
+        <response status="201">
+          <representation mediaType="application/json" element="tns:account"/>
+        </response>
+        <response status="400">
+          <representation mediaType="application/json" element="tns:errorResponse"/>
+        </response>
+        <response status="401">
+          <representation mediaType="application/json" element="tns:errorResponse"/>
+        </response>
+        <response status="500">
+          <representation mediaType="application/json" element="tns:errorResponse"/>
+        </response>
+      </method>
+
+      <resource path="{accountId}">
+        <doc>Operations on a single account by its unified identifier.</doc>
+        <param name="accountId" style="template" type="xs:string" required="true"/>
+
+        <method name="GET" id="getAccount">
+          <doc>Retrieves a single account by its unified identifier.</doc>
+          <request>
+            <param name="Authorization" style="header" type="xs:string" required="true"/>
+          </request>
+          <response status="200">
+            <representation mediaType="application/json" element="tns:account"/>
+          </response>
+          <response status="401">
+            <representation mediaType="application/json" element="tns:errorResponse"/>
+          </response>
+          <response status="404">
+            <representation mediaType="application/json" element="tns:errorResponse"/>
+          </response>
+          <response status="500">
+            <representation mediaType="application/json" element="tns:errorResponse"/>
+          </response>
+        </method>
+
+        <method name="PUT" id="updateAccount">
+          <doc>Replaces all mutable fields on an existing account.</doc>
+          <request>
+            <param name="Authorization" style="header" type="xs:string" required="true"/>
+            <representation mediaType="application/json" element="tns:updateAccountRequest"/>
+          </request>
+          <response status="200">
+            <representation mediaType="application/json" element="tns:account"/>
+          </response>
+          <response status="400">
+            <representation mediaType="application/json" element="tns:errorResponse"/>
+          </response>
+          <response status="401">
+            <representation mediaType="application/json" element="tns:errorResponse"/>
+          </response>
+          <response status="404">
+            <representation mediaType="application/json" element="tns:errorResponse"/>
+          </response>
+          <response status="500">
+            <representation mediaType="application/json" element="tns:errorResponse"/>
+          </response>
+        </method>
+
+        <method name="DELETE" id="deleteAccount">
+          <doc>Soft-deletes an account in the originating system of record.</doc>
+          <request>
+            <param name="Authorization" style="header" type="xs:string" required="true"/>
+          </request>
+          <response status="204"/>
+          <response status="401">
+            <representation mediaType="application/json" element="tns:errorResponse"/>
+          </response>
+          <response status="404">
+            <representation mediaType="application/json" element="tns:errorResponse"/>
+          </response>
+          <response status="500">
+            <representation mediaType="application/json" element="tns:errorResponse"/>
+          </response>
+        </method>
+      </resource>
+    </resource>
+
+    <!-- 
+         Contacts
+    -->
+    <resource path="contacts">
+      <doc>Individual people associated with CRM accounts.</doc>
+
+      <method name="GET" id="listContacts">
+        <doc>Returns a paginated list of contacts across all connected CRM systems.</doc>
+        <request>
+          <param name="page"         style="query" type="xs:positiveInteger" default="1" required="false"/>
+          <param name="pageSize"     style="query" type="xs:positiveInteger" default="25" required="false"/>
+          <param name="accountId"    style="query" type="xs:string" required="false"/>
+          <param name="sourceSystem" style="query" type="xs:string" required="false"/>
+          <param name="Authorization" style="header" type="xs:string" required="true"/>
+        </request>
+        <response status="200">
+          <representation mediaType="application/json" element="tns:contactListResponse"/>
+        </response>
+        <response status="401">
+          <representation mediaType="application/json" element="tns:errorResponse"/>
+        </response>
+        <response status="500">
+          <representation mediaType="application/json" element="tns:errorResponse"/>
+        </response>
+      </method>
+
+      <method name="POST" id="createContact">
+        <doc>Creates a new contact record in the designated system of record.</doc>
+        <request>
+          <param name="Authorization" style="header" type="xs:string" required="true"/>
+          <representation mediaType="application/json" element="tns:createContactRequest"/>
+        </request>
+        <response status="201">
+          <representation mediaType="application/json" element="tns:contact"/>
+        </response>
+        <response status="400">
+          <representation mediaType="application/json" element="tns:errorResponse"/>
+        </response>
+        <response status="401">
+          <representation mediaType="application/json" element="tns:errorResponse"/>
+        </response>
+        <response status="500">
+          <representation mediaType="application/json" element="tns:errorResponse"/>
+        </response>
+      </method>
+
+      <resource path="{contactId}">
+        <doc>Operations on a single contact by its unified identifier.</doc>
+        <param name="contactId" style="template" type="xs:string" required="true"/>
+
+        <method name="GET" id="getContact">
+          <doc>Retrieves a single contact by its unified identifier.</doc>
+          <request>
+            <param name="Authorization" style="header" type="xs:string" required="true"/>
+          </request>
+          <response status="200">
+            <representation mediaType="application/json" element="tns:contact"/>
+          </response>
+          <response status="401">
+            <representation mediaType="application/json" element="tns:errorResponse"/>
+          </response>
+          <response status="404">
+            <representation mediaType="application/json" element="tns:errorResponse"/>
+          </response>
+          <response status="500">
+            <representation mediaType="application/json" element="tns:errorResponse"/>
+          </response>
+        </method>
+
+        <method name="PUT" id="updateContact">
+          <doc>Replaces all mutable fields on an existing contact.</doc>
+          <request>
+            <param name="Authorization" style="header" type="xs:string" required="true"/>
+            <representation mediaType="application/json" element="tns:updateContactRequest"/>
+          </request>
+          <response status="200">
+            <representation mediaType="application/json" element="tns:contact"/>
+          </response>
+          <response status="400">
+            <representation mediaType="application/json" element="tns:errorResponse"/>
+          </response>
+          <response status="401">
+            <representation mediaType="application/json" element="tns:errorResponse"/>
+          </response>
+          <response status="404">
+            <representation mediaType="application/json" element="tns:errorResponse"/>
+          </response>
+          <response status="500">
+            <representation mediaType="application/json" element="tns:errorResponse"/>
+          </response>
+        </method>
+
+        <method name="DELETE" id="deleteContact">
+          <doc>Soft-deletes a contact in the originating system of record.</doc>
+          <request>
+            <param name="Authorization" style="header" type="xs:string" required="true"/>
+          </request>
+          <response status="204"/>
+          <response status="401">
+            <representation mediaType="application/json" element="tns:errorResponse"/>
+          </response>
+          <response status="404">
+            <representation mediaType="application/json" element="tns:errorResponse"/>
+          </response>
+          <response status="500">
+            <representation mediaType="application/json" element="tns:errorResponse"/>
+          </response>
+        </method>
+      </resource>
+    </resource>
+
+    <!-- 
+         Leads
+    -->
+    <resource path="leads">
+      <doc>Unqualified inbound prospects before CRM qualification.</doc>
+
+      <method name="GET" id="listLeads">
+        <doc>Returns a paginated list of unqualified prospect leads.</doc>
+        <request>
+          <param name="page"         style="query" type="xs:positiveInteger" default="1" required="false"/>
+          <param name="pageSize"     style="query" type="xs:positiveInteger" default="25" required="false"/>
+          <param name="status"       style="query" type="xs:string" required="false"/>
+          <param name="ownerId"      style="query" type="xs:string" required="false"/>
+          <param name="sourceSystem" style="query" type="xs:string" required="false"/>
+          <param name="Authorization" style="header" type="xs:string" required="true"/>
+        </request>
+        <response status="200">
+          <representation mediaType="application/json" element="tns:leadListResponse"/>
+        </response>
+        <response status="401">
+          <representation mediaType="application/json" element="tns:errorResponse"/>
+        </response>
+        <response status="500">
+          <representation mediaType="application/json" element="tns:errorResponse"/>
+        </response>
+      </method>
+
+      <method name="POST" id="createLead">
+        <doc>Creates a new lead record in the designated system of record.</doc>
+        <request>
+          <param name="Authorization" style="header" type="xs:string" required="true"/>
+          <representation mediaType="application/json" element="tns:createLeadRequest"/>
+        </request>
+        <response status="201">
+          <representation mediaType="application/json" element="tns:lead"/>
+        </response>
+        <response status="400">
+          <representation mediaType="application/json" element="tns:errorResponse"/>
+        </response>
+        <response status="401">
+          <representation mediaType="application/json" element="tns:errorResponse"/>
+        </response>
+        <response status="500">
+          <representation mediaType="application/json" element="tns:errorResponse"/>
+        </response>
+      </method>
+
+      <resource path="{leadId}">
+        <doc>Operations on a single lead by its unified identifier.</doc>
+        <param name="leadId" style="template" type="xs:string" required="true"/>
+
+        <method name="GET" id="getLead">
+          <doc>Retrieves a single lead by its unified identifier.</doc>
+          <request>
+            <param name="Authorization" style="header" type="xs:string" required="true"/>
+          </request>
+          <response status="200">
+            <representation mediaType="application/json" element="tns:lead"/>
+          </response>
+          <response status="401">
+            <representation mediaType="application/json" element="tns:errorResponse"/>
+          </response>
+          <response status="404">
+            <representation mediaType="application/json" element="tns:errorResponse"/>
+          </response>
+          <response status="500">
+            <representation mediaType="application/json" element="tns:errorResponse"/>
+          </response>
+        </method>
+
+        <method name="PUT" id="updateLead">
+          <doc>Updates the mutable fields of an existing lead.</doc>
+          <request>
+            <param name="Authorization" style="header" type="xs:string" required="true"/>
+            <representation mediaType="application/json" element="tns:updateLeadRequest"/>
+          </request>
+          <response status="200">
+            <representation mediaType="application/json" element="tns:lead"/>
+          </response>
+          <response status="400">
+            <representation mediaType="application/json" element="tns:errorResponse"/>
+          </response>
+          <response status="401">
+            <representation mediaType="application/json" element="tns:errorResponse"/>
+          </response>
+          <response status="404">
+            <representation mediaType="application/json" element="tns:errorResponse"/>
+          </response>
+          <response status="500">
+            <representation mediaType="application/json" element="tns:errorResponse"/>
+          </response>
+        </method>
+
+        <resource path="convert">
+          <doc>Lead conversion: creates Account, Contact, and optionally Opportunity.</doc>
+
+          <method name="POST" id="convertLead">
+            <doc>Converts a qualified lead into an Account, Contact, and optionally an Opportunity.</doc>
+            <request>
+              <param name="Authorization" style="header" type="xs:string" required="true"/>
+              <representation mediaType="application/json" element="tns:convertLeadRequest"/>
+            </request>
+            <response status="200">
+              <representation mediaType="application/json" element="tns:convertLeadResponse"/>
+            </response>
+            <response status="400">
+              <representation mediaType="application/json" element="tns:errorResponse"/>
+            </response>
+            <response status="401">
+              <representation mediaType="application/json" element="tns:errorResponse"/>
+            </response>
+            <response status="404">
+              <representation mediaType="application/json" element="tns:errorResponse"/>
+            </response>
+            <response status="409">
+              <representation mediaType="application/json" element="tns:errorResponse"/>
+            </response>
+            <response status="500">
+              <representation mediaType="application/json" element="tns:errorResponse"/>
+            </response>
+          </method>
+        </resource>
+      </resource>
+    </resource>
+
+    <!-- 
+         Opportunities
+    -->
+    <resource path="opportunities">
+      <doc>Qualified sales opportunities and deals tracked in the unified CRM.</doc>
+
+      <method name="GET" id="listOpportunities">
+        <doc>Returns a paginated list of sales opportunities across all connected systems.</doc>
+        <request>
+          <param name="page"         style="query" type="xs:positiveInteger" default="1" required="false"/>
+          <param name="pageSize"     style="query" type="xs:positiveInteger" default="25" required="false"/>
+          <param name="accountId"    style="query" type="xs:string" required="false"/>
+          <param name="stage"        style="query" type="xs:string" required="false"/>
+          <param name="ownerId"      style="query" type="xs:string" required="false"/>
+          <param name="sourceSystem" style="query" type="xs:string" required="false"/>
+          <param name="Authorization" style="header" type="xs:string" required="true"/>
+        </request>
+        <response status="200">
+          <representation mediaType="application/json" element="tns:opportunityListResponse"/>
+        </response>
+        <response status="401">
+          <representation mediaType="application/json" element="tns:errorResponse"/>
+        </response>
+        <response status="500">
+          <representation mediaType="application/json" element="tns:errorResponse"/>
+        </response>
+      </method>
+
+      <method name="POST" id="createOpportunity">
+        <doc>Creates a new sales opportunity in the designated system of record.</doc>
+        <request>
+          <param name="Authorization" style="header" type="xs:string" required="true"/>
+          <representation mediaType="application/json" element="tns:createOpportunityRequest"/>
+        </request>
+        <response status="201">
+          <representation mediaType="application/json" element="tns:opportunity"/>
+        </response>
+        <response status="400">
+          <representation mediaType="application/json" element="tns:errorResponse"/>
+        </response>
+        <response status="401">
+          <representation mediaType="application/json" element="tns:errorResponse"/>
+        </response>
+        <response status="500">
+          <representation mediaType="application/json" element="tns:errorResponse"/>
+        </response>
+      </method>
+
+      <resource path="{opportunityId}">
+        <doc>Operations on a single opportunity by its unified identifier.</doc>
+        <param name="opportunityId" style="template" type="xs:string" required="true"/>
+
+        <method name="GET" id="getOpportunity">
+          <doc>Retrieves a single opportunity by its unified identifier.</doc>
+          <request>
+            <param name="Authorization" style="header" type="xs:string" required="true"/>
+          </request>
+          <response status="200">
+            <representation mediaType="application/json" element="tns:opportunity"/>
+          </response>
+          <response status="401">
+            <representation mediaType="application/json" element="tns:errorResponse"/>
+          </response>
+          <response status="404">
+            <representation mediaType="application/json" element="tns:errorResponse"/>
+          </response>
+          <response status="500">
+            <representation mediaType="application/json" element="tns:errorResponse"/>
+          </response>
+        </method>
+
+        <method name="PUT" id="updateOpportunity">
+          <doc>Updates an existing opportunity including stage advancement.</doc>
+          <request>
+            <param name="Authorization" style="header" type="xs:string" required="true"/>
+            <representation mediaType="application/json" element="tns:updateOpportunityRequest"/>
+          </request>
+          <response status="200">
+            <representation mediaType="application/json" element="tns:opportunity"/>
+          </response>
+          <response status="400">
+            <representation mediaType="application/json" element="tns:errorResponse"/>
+          </response>
+          <response status="401">
+            <representation mediaType="application/json" element="tns:errorResponse"/>
+          </response>
+          <response status="404">
+            <representation mediaType="application/json" element="tns:errorResponse"/>
+          </response>
+          <response status="500">
+            <representation mediaType="application/json" element="tns:errorResponse"/>
+          </response>
+        </method>
+
+        <method name="DELETE" id="deleteOpportunity">
+          <doc>Soft-deletes an opportunity in the originating system of record.</doc>
+          <request>
+            <param name="Authorization" style="header" type="xs:string" required="true"/>
+          </request>
+          <response status="204"/>
+          <response status="401">
+            <representation mediaType="application/json" element="tns:errorResponse"/>
+          </response>
+          <response status="404">
+            <representation mediaType="application/json" element="tns:errorResponse"/>
+          </response>
+          <response status="500">
+            <representation mediaType="application/json" element="tns:errorResponse"/>
+          </response>
+        </method>
+      </resource>
+    </resource>
+
+    <!-- 
+         Activities
+    -->
+    <resource path="activities">
+      <doc>Tasks, calls, meetings, and emails logged against CRM records.</doc>
+
+      <method name="GET" id="listActivities">
+        <doc>Returns a paginated list of activities.</doc>
+        <request>
+          <param name="page"          style="query" type="xs:positiveInteger" default="1" required="false"/>
+          <param name="pageSize"      style="query" type="xs:positiveInteger" default="25" required="false"/>
+          <param name="relatedToType" style="query" type="xs:string" required="false"/>
+          <param name="relatedToId"   style="query" type="xs:string" required="false"/>
+          <param name="activityType"  style="query" type="xs:string" required="false"/>
+          <param name="sourceSystem"  style="query" type="xs:string" required="false"/>
+          <param name="Authorization" style="header" type="xs:string" required="true"/>
+        </request>
+        <response status="200">
+          <representation mediaType="application/json" element="tns:activityListResponse"/>
+        </response>
+        <response status="401">
+          <representation mediaType="application/json" element="tns:errorResponse"/>
+        </response>
+        <response status="500">
+          <representation mediaType="application/json" element="tns:errorResponse"/>
+        </response>
+      </method>
+
+      <method name="POST" id="createActivity">
+        <doc>Logs a new activity against a CRM record.</doc>
+        <request>
+          <param name="Authorization" style="header" type="xs:string" required="true"/>
+          <representation mediaType="application/json" element="tns:createActivityRequest"/>
+        </request>
+        <response status="201">
+          <representation mediaType="application/json" element="tns:activity"/>
+        </response>
+        <response status="400">
+          <representation mediaType="application/json" element="tns:errorResponse"/>
+        </response>
+        <response status="401">
+          <representation mediaType="application/json" element="tns:errorResponse"/>
+        </response>
+        <response status="500">
+          <representation mediaType="application/json" element="tns:errorResponse"/>
+        </response>
+      </method>
+
+      <resource path="{activityId}">
+        <doc>Operations on a single activity by its unified identifier.</doc>
+        <param name="activityId" style="template" type="xs:string" required="true"/>
+
+        <method name="GET" id="getActivity">
+          <doc>Retrieves a single activity by its unified identifier.</doc>
+          <request>
+            <param name="Authorization" style="header" type="xs:string" required="true"/>
+          </request>
+          <response status="200">
+            <representation mediaType="application/json" element="tns:activity"/>
+          </response>
+          <response status="401">
+            <representation mediaType="application/json" element="tns:errorResponse"/>
+          </response>
+          <response status="404">
+            <representation mediaType="application/json" element="tns:errorResponse"/>
+          </response>
+          <response status="500">
+            <representation mediaType="application/json" element="tns:errorResponse"/>
+          </response>
+        </method>
+
+        <method name="PUT" id="updateActivity">
+          <doc>Updates the details of an existing activity record.</doc>
+          <request>
+            <param name="Authorization" style="header" type="xs:string" required="true"/>
+            <representation mediaType="application/json" element="tns:updateActivityRequest"/>
+          </request>
+          <response status="200">
+            <representation mediaType="application/json" element="tns:activity"/>
+          </response>
+          <response status="400">
+            <representation mediaType="application/json" element="tns:errorResponse"/>
+          </response>
+          <response status="401">
+            <representation mediaType="application/json" element="tns:errorResponse"/>
+          </response>
+          <response status="404">
+            <representation mediaType="application/json" element="tns:errorResponse"/>
+          </response>
+          <response status="500">
+            <representation mediaType="application/json" element="tns:errorResponse"/>
+          </response>
+        </method>
+
+        <method name="DELETE" id="deleteActivity">
+          <doc>Removes an activity from the originating system of record.</doc>
+          <request>
+            <param name="Authorization" style="header" type="xs:string" required="true"/>
+          </request>
+          <response status="204"/>
+          <response status="401">
+            <representation mediaType="application/json" element="tns:errorResponse"/>
+          </response>
+          <response status="404">
+            <representation mediaType="application/json" element="tns:errorResponse"/>
+          </response>
+          <response status="500">
+            <representation mediaType="application/json" element="tns:errorResponse"/>
+          </response>
+        </method>
+      </resource>
+    </resource>
+
+    <!-- 
+         Notes
+    -->
+    <resource path="notes">
+      <doc>Free-text notes attached to any CRM record.</doc>
+
+      <method name="GET" id="listNotes">
+        <doc>Returns a paginated list of notes attached to CRM records.</doc>
+        <request>
+          <param name="page"          style="query" type="xs:positiveInteger" default="1" required="false"/>
+          <param name="pageSize"      style="query" type="xs:positiveInteger" default="25" required="false"/>
+          <param name="relatedToType" style="query" type="xs:string" required="false"/>
+          <param name="relatedToId"   style="query" type="xs:string" required="false"/>
+          <param name="Authorization" style="header" type="xs:string" required="true"/>
+        </request>
+        <response status="200">
+          <representation mediaType="application/json" element="tns:noteListResponse"/>
+        </response>
+        <response status="401">
+          <representation mediaType="application/json" element="tns:errorResponse"/>
+        </response>
+        <response status="500">
+          <representation mediaType="application/json" element="tns:errorResponse"/>
+        </response>
+      </method>
+
+      <method name="POST" id="createNote">
+        <doc>Creates a new note and attaches it to a CRM record.</doc>
+        <request>
+          <param name="Authorization" style="header" type="xs:string" required="true"/>
+          <representation mediaType="application/json" element="tns:createNoteRequest"/>
+        </request>
+        <response status="201">
+          <representation mediaType="application/json" element="tns:note"/>
+        </response>
+        <response status="400">
+          <representation mediaType="application/json" element="tns:errorResponse"/>
+        </response>
+        <response status="401">
+          <representation mediaType="application/json" element="tns:errorResponse"/>
+        </response>
+        <response status="500">
+          <representation mediaType="application/json" element="tns:errorResponse"/>
+        </response>
+      </method>
+
+      <resource path="{noteId}">
+        <doc>Operations on a single note by its unified identifier.</doc>
+        <param name="noteId" style="template" type="xs:string" required="true"/>
+
+        <method name="GET" id="getNote">
+          <doc>Retrieves a single note by its unified identifier.</doc>
+          <request>
+            <param name="Authorization" style="header" type="xs:string" required="true"/>
+          </request>
+          <response status="200">
+            <representation mediaType="application/json" element="tns:note"/>
+          </response>
+          <response status="401">
+            <representation mediaType="application/json" element="tns:errorResponse"/>
+          </response>
+          <response status="404">
+            <representation mediaType="application/json" element="tns:errorResponse"/>
+          </response>
+          <response status="500">
+            <representation mediaType="application/json" element="tns:errorResponse"/>
+          </response>
+        </method>
+
+        <method name="PUT" id="updateNote">
+          <doc>Updates the title and body of an existing note.</doc>
+          <request>
+            <param name="Authorization" style="header" type="xs:string" required="true"/>
+            <representation mediaType="application/json" element="tns:updateNoteRequest"/>
+          </request>
+          <response status="200">
+            <representation mediaType="application/json" element="tns:note"/>
+          </response>
+          <response status="400">
+            <representation mediaType="application/json" element="tns:errorResponse"/>
+          </response>
+          <response status="401">
+            <representation mediaType="application/json" element="tns:errorResponse"/>
+          </response>
+          <response status="404">
+            <representation mediaType="application/json" element="tns:errorResponse"/>
+          </response>
+          <response status="500">
+            <representation mediaType="application/json" element="tns:errorResponse"/>
+          </response>
+        </method>
+
+        <method name="DELETE" id="deleteNote">
+          <doc>Removes a note from the originating system of record.</doc>
+          <request>
+            <param name="Authorization" style="header" type="xs:string" required="true"/>
+          </request>
+          <response status="204"/>
+          <response status="401">
+            <representation mediaType="application/json" element="tns:errorResponse"/>
+          </response>
+          <response status="404">
+            <representation mediaType="application/json" element="tns:errorResponse"/>
+          </response>
+          <response status="500">
+            <representation mediaType="application/json" element="tns:errorResponse"/>
+          </response>
+        </method>
+      </resource>
+    </resource>
+
+  </resources>
+
+</application>
