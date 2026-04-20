@@ -1,0 +1,1513 @@
+openapi: 3.0.0
+info:
+  title: Enterprise Asset Management API
+  version: 1.0.0
+  description: >
+    API for managing enterprise assets throughout their full lifecycle,
+    including procurement, tracking, maintenance, depreciation, and
+    disposition. Covers assets, categories, locations, work orders,
+    and asset audits.
+
+servers:
+  - url: https://api.contoso.com/assets/v1
+    description: Production
+  - url: https://sandbox.contoso.com/assets/v1
+    description: Sandbox
+
+tags:
+  - name: Assets
+    description: Physical and logical assets tracked by the organisation
+  - name: Categories
+    description: Hierarchical classification of assets
+  - name: Locations
+    description: Physical locations where assets reside
+  - name: WorkOrders
+    description: Maintenance and repair work orders linked to assets
+  - name: Audits
+    description: Periodic physical audits and condition assessments
+
+security:
+  - bearerAuth: []
+
+paths:
+  # ---------------------------------------------------------------------------
+  # Assets
+  # ---------------------------------------------------------------------------
+  /assets:
+    get:
+      tags: [Assets]
+      summary: List assets
+      description: Returns a paginated list of assets with optional filters.
+      operationId: listAssets
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+        - name: status
+          in: query
+          description: Filter by asset status.
+          schema:
+            type: string
+            enum: [Active, InRepair, Reserved, Decommissioned, Disposed]
+        - name: condition
+          in: query
+          description: Filter by asset condition.
+          schema:
+            type: string
+            enum: [New, Good, Fair, Poor, NonFunctional]
+        - name: categoryId
+          in: query
+          description: Filter by category identifier.
+          schema:
+            type: string
+            format: uuid
+        - name: locationId
+          in: query
+          description: Filter by location identifier.
+          schema:
+            type: string
+            format: uuid
+        - name: assignedTo
+          in: query
+          description: Filter by the person or team the asset is assigned to.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Assets retrieved successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AssetListResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    post:
+      tags: [Assets]
+      summary: Create asset
+      description: Registers a new asset in the system.
+      operationId: createAsset
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateAssetRequest'
+      responses:
+        '201':
+          description: Asset created successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Asset'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /assets/{assetId}:
+    parameters:
+      - $ref: '#/components/parameters/AssetId'
+    get:
+      tags: [Assets]
+      summary: Get asset by ID
+      description: Retrieves a single asset by its unique identifier.
+      operationId: getAssetById
+      responses:
+        '200':
+          description: Asset retrieved successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Asset'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    put:
+      tags: [Assets]
+      summary: Update asset
+      description: Updates an existing asset's mutable fields.
+      operationId: updateAsset
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateAssetRequest'
+      responses:
+        '200':
+          description: Asset updated successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Asset'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    delete:
+      tags: [Assets]
+      summary: Delete asset
+      description: Permanently removes an asset record. Use decommission for soft removal.
+      operationId: deleteAsset
+      responses:
+        '204':
+          description: Asset deleted.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /assets/{assetId}/decommission:
+    parameters:
+      - $ref: '#/components/parameters/AssetId'
+    post:
+      tags: [Assets]
+      summary: Decommission asset
+      description: >
+        Transitions an asset to the Decommissioned status. Requires a reason
+        and optionally a disposal method.
+      operationId: decommissionAsset
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DecommissionAssetRequest'
+      responses:
+        '200':
+          description: Asset decommissioned successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Asset'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  # ---------------------------------------------------------------------------
+  # Categories
+  # ---------------------------------------------------------------------------
+  /categories:
+    get:
+      tags: [Categories]
+      summary: List categories
+      description: Returns a paginated list of asset categories.
+      operationId: listCategories
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+        - name: active
+          in: query
+          description: Filter by active flag.
+          schema:
+            type: boolean
+        - name: parentCategoryId
+          in: query
+          description: Filter by parent category.
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Categories retrieved successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CategoryListResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    post:
+      tags: [Categories]
+      summary: Create category
+      description: Creates a new asset category.
+      operationId: createCategory
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCategoryRequest'
+      responses:
+        '201':
+          description: Category created successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Category'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /categories/{categoryId}:
+    parameters:
+      - $ref: '#/components/parameters/CategoryId'
+    get:
+      tags: [Categories]
+      summary: Get category by ID
+      description: Retrieves a single category by its unique identifier.
+      operationId: getCategoryById
+      responses:
+        '200':
+          description: Category retrieved successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Category'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    put:
+      tags: [Categories]
+      summary: Update category
+      description: Updates an existing category.
+      operationId: updateCategory
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateCategoryRequest'
+      responses:
+        '200':
+          description: Category updated successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Category'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    delete:
+      tags: [Categories]
+      summary: Delete category
+      description: Deletes an asset category. Fails if assets still reference it.
+      operationId: deleteCategory
+      responses:
+        '204':
+          description: Category deleted.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  # ---------------------------------------------------------------------------
+  # Locations
+  # ---------------------------------------------------------------------------
+  /locations:
+    get:
+      tags: [Locations]
+      summary: List locations
+      description: Returns a paginated list of locations.
+      operationId: listLocations
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+        - name: active
+          in: query
+          description: Filter by active flag.
+          schema:
+            type: boolean
+        - name: locationType
+          in: query
+          description: Filter by location type.
+          schema:
+            type: string
+            enum: [Building, Floor, Room, Warehouse, Yard, Remote]
+        - name: parentLocationId
+          in: query
+          description: Filter by parent location.
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Locations retrieved successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LocationListResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    post:
+      tags: [Locations]
+      summary: Create location
+      description: Creates a new location record.
+      operationId: createLocation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateLocationRequest'
+      responses:
+        '201':
+          description: Location created successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Location'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /locations/{locationId}:
+    parameters:
+      - $ref: '#/components/parameters/LocationId'
+    get:
+      tags: [Locations]
+      summary: Get location by ID
+      description: Retrieves a single location by its unique identifier.
+      operationId: getLocationById
+      responses:
+        '200':
+          description: Location retrieved successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Location'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    put:
+      tags: [Locations]
+      summary: Update location
+      description: Updates an existing location.
+      operationId: updateLocation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateLocationRequest'
+      responses:
+        '200':
+          description: Location updated successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Location'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    delete:
+      tags: [Locations]
+      summary: Delete location
+      description: Deletes a location. Fails if assets still reference it.
+      operationId: deleteLocation
+      responses:
+        '204':
+          description: Location deleted.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  # ---------------------------------------------------------------------------
+  # Work Orders
+  # ---------------------------------------------------------------------------
+  /work-orders:
+    get:
+      tags: [WorkOrders]
+      summary: List work orders
+      description: Returns a paginated list of work orders with optional filters.
+      operationId: listWorkOrders
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+        - name: assetId
+          in: query
+          description: Filter by asset identifier.
+          schema:
+            type: string
+            format: uuid
+        - name: status
+          in: query
+          description: Filter by work order status.
+          schema:
+            type: string
+            enum: [Open, Assigned, InProgress, OnHold, Completed, Cancelled]
+        - name: type
+          in: query
+          description: Filter by work order type.
+          schema:
+            type: string
+            enum: [Preventive, Corrective, Emergency, Inspection]
+        - name: priority
+          in: query
+          description: Filter by priority.
+          schema:
+            type: string
+            enum: [Critical, High, Medium, Low]
+        - name: assignedTo
+          in: query
+          description: Filter by assignee.
+          schema:
+            type: string
+        - name: scheduledDateFrom
+          in: query
+          description: Start of scheduled-date range filter.
+          schema:
+            type: string
+            format: date
+        - name: scheduledDateTo
+          in: query
+          description: End of scheduled-date range filter.
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Work orders retrieved successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkOrderListResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    post:
+      tags: [WorkOrders]
+      summary: Create work order
+      description: Creates a new work order for an asset.
+      operationId: createWorkOrder
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateWorkOrderRequest'
+      responses:
+        '201':
+          description: Work order created successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkOrder'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /work-orders/{workOrderId}:
+    parameters:
+      - $ref: '#/components/parameters/WorkOrderId'
+    get:
+      tags: [WorkOrders]
+      summary: Get work order by ID
+      description: Retrieves a single work order by its unique identifier.
+      operationId: getWorkOrderById
+      responses:
+        '200':
+          description: Work order retrieved successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkOrder'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    put:
+      tags: [WorkOrders]
+      summary: Update work order
+      description: Updates mutable fields of an existing work order.
+      operationId: updateWorkOrder
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateWorkOrderRequest'
+      responses:
+        '200':
+          description: Work order updated successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkOrder'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /work-orders/{workOrderId}/complete:
+    parameters:
+      - $ref: '#/components/parameters/WorkOrderId'
+    post:
+      tags: [WorkOrders]
+      summary: Complete work order
+      description: Marks a work order as completed with cost and notes.
+      operationId: completeWorkOrder
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CompleteWorkOrderRequest'
+      responses:
+        '200':
+          description: Work order completed successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkOrder'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  # ---------------------------------------------------------------------------
+  # Audits
+  # ---------------------------------------------------------------------------
+  /audits:
+    get:
+      tags: [Audits]
+      summary: List audits
+      description: Returns a paginated list of asset audits.
+      operationId: listAudits
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+        - name: assetId
+          in: query
+          description: Filter by asset identifier.
+          schema:
+            type: string
+            format: uuid
+        - name: discrepancyFound
+          in: query
+          description: Filter by whether a discrepancy was found.
+          schema:
+            type: boolean
+        - name: auditDateFrom
+          in: query
+          description: Start of audit-date range filter.
+          schema:
+            type: string
+            format: date
+        - name: auditDateTo
+          in: query
+          description: End of audit-date range filter.
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Audits retrieved successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuditListResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    post:
+      tags: [Audits]
+      summary: Create audit
+      description: Records a new asset audit entry.
+      operationId: createAudit
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateAuditRequest'
+      responses:
+        '201':
+          description: Audit created successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Audit'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /audits/{auditId}:
+    parameters:
+      - $ref: '#/components/parameters/AuditId'
+    get:
+      tags: [Audits]
+      summary: Get audit by ID
+      description: Retrieves a single audit by its unique identifier.
+      operationId: getAuditById
+      responses:
+        '200':
+          description: Audit retrieved successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Audit'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+components:
+  parameters:
+    AssetId:
+      name: assetId
+      in: path
+      required: true
+      description: Unique asset identifier.
+      schema:
+        type: string
+        format: uuid
+
+    CategoryId:
+      name: categoryId
+      in: path
+      required: true
+      description: Unique category identifier.
+      schema:
+        type: string
+        format: uuid
+
+    LocationId:
+      name: locationId
+      in: path
+      required: true
+      description: Unique location identifier.
+      schema:
+        type: string
+        format: uuid
+
+    WorkOrderId:
+      name: workOrderId
+      in: path
+      required: true
+      description: Unique work order identifier.
+      schema:
+        type: string
+        format: uuid
+
+    AuditId:
+      name: auditId
+      in: path
+      required: true
+      description: Unique audit identifier.
+      schema:
+        type: string
+        format: uuid
+
+    Page:
+      name: page
+      in: query
+      description: Page number (1-based).
+      schema:
+        type: integer
+        minimum: 1
+        default: 1
+
+    PageSize:
+      name: pageSize
+      in: query
+      description: Number of items per page.
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 25
+
+  responses:
+    BadRequest:
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    Unauthorized:
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    InternalServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    # -----------------------------------------------------------------------
+    # Asset
+    # -----------------------------------------------------------------------
+    Asset:
+      type: object
+      required:
+        - assetId
+        - assetTag
+        - name
+        - categoryId
+        - locationId
+        - status
+        - condition
+        - acquisitionDate
+        - acquisitionCost
+      properties:
+        assetId:
+          type: string
+          format: uuid
+        assetTag:
+          type: string
+          description: Organisation-wide unique tag affixed to the physical asset.
+          example: AST-00042
+        serialNumber:
+          type: string
+          example: SN-7829301A
+        name:
+          type: string
+          example: Dell PowerEdge R750
+        description:
+          type: string
+          example: Rack-mounted server for production workloads.
+        categoryId:
+          type: string
+          format: uuid
+        locationId:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [Active, InRepair, Reserved, Decommissioned, Disposed]
+        condition:
+          type: string
+          enum: [New, Good, Fair, Poor, NonFunctional]
+        acquisitionDate:
+          type: string
+          format: date
+        acquisitionCost:
+          type: number
+          format: double
+          minimum: 0
+          example: 12500.00
+        currentValue:
+          type: number
+          format: double
+          minimum: 0
+          example: 8750.00
+        depreciationMethod:
+          type: string
+          enum: [StraightLine, DecliningBalance, SumOfYears]
+        usefulLifeMonths:
+          type: integer
+          minimum: 1
+          example: 60
+        warrantyExpiry:
+          type: string
+          format: date
+        assignedTo:
+          type: string
+          example: jsmith@contoso.com
+        manufacturer:
+          type: string
+          example: Dell Technologies
+        model:
+          type: string
+          example: PowerEdge R750
+        notes:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    CreateAssetRequest:
+      type: object
+      required:
+        - assetTag
+        - name
+        - categoryId
+        - locationId
+        - status
+        - condition
+        - acquisitionDate
+        - acquisitionCost
+      properties:
+        assetTag:
+          type: string
+          example: AST-00042
+        serialNumber:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        categoryId:
+          type: string
+          format: uuid
+        locationId:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [Active, InRepair, Reserved, Decommissioned, Disposed]
+        condition:
+          type: string
+          enum: [New, Good, Fair, Poor, NonFunctional]
+        acquisitionDate:
+          type: string
+          format: date
+        acquisitionCost:
+          type: number
+          format: double
+          minimum: 0
+        currentValue:
+          type: number
+          format: double
+          minimum: 0
+        depreciationMethod:
+          type: string
+          enum: [StraightLine, DecliningBalance, SumOfYears]
+        usefulLifeMonths:
+          type: integer
+          minimum: 1
+        warrantyExpiry:
+          type: string
+          format: date
+        assignedTo:
+          type: string
+        manufacturer:
+          type: string
+        model:
+          type: string
+        notes:
+          type: string
+
+    UpdateAssetRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        categoryId:
+          type: string
+          format: uuid
+        locationId:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [Active, InRepair, Reserved, Decommissioned, Disposed]
+        condition:
+          type: string
+          enum: [New, Good, Fair, Poor, NonFunctional]
+        currentValue:
+          type: number
+          format: double
+          minimum: 0
+        depreciationMethod:
+          type: string
+          enum: [StraightLine, DecliningBalance, SumOfYears]
+        usefulLifeMonths:
+          type: integer
+          minimum: 1
+        warrantyExpiry:
+          type: string
+          format: date
+        assignedTo:
+          type: string
+        manufacturer:
+          type: string
+        model:
+          type: string
+        notes:
+          type: string
+
+    DecommissionAssetRequest:
+      type: object
+      required:
+        - reason
+      properties:
+        reason:
+          type: string
+          example: End of useful life — replaced by newer hardware.
+        disposalMethod:
+          type: string
+          enum: [Recycled, Donated, Sold, Scrapped]
+          example: Recycled
+
+    # -----------------------------------------------------------------------
+    # Category
+    # -----------------------------------------------------------------------
+    Category:
+      type: object
+      required:
+        - categoryId
+        - name
+        - active
+      properties:
+        categoryId:
+          type: string
+          format: uuid
+        name:
+          type: string
+          example: IT Equipment
+        description:
+          type: string
+          example: Servers, laptops, networking gear, and peripherals.
+        parentCategoryId:
+          type: string
+          format: uuid
+        depreciationMethod:
+          type: string
+          enum: [StraightLine, DecliningBalance, SumOfYears]
+        defaultUsefulLifeMonths:
+          type: integer
+          minimum: 1
+          example: 60
+        active:
+          type: boolean
+
+    CreateCategoryRequest:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        parentCategoryId:
+          type: string
+          format: uuid
+        depreciationMethod:
+          type: string
+          enum: [StraightLine, DecliningBalance, SumOfYears]
+        defaultUsefulLifeMonths:
+          type: integer
+          minimum: 1
+        active:
+          type: boolean
+          default: true
+
+    UpdateCategoryRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        parentCategoryId:
+          type: string
+          format: uuid
+        depreciationMethod:
+          type: string
+          enum: [StraightLine, DecliningBalance, SumOfYears]
+        defaultUsefulLifeMonths:
+          type: integer
+          minimum: 1
+        active:
+          type: boolean
+
+    # -----------------------------------------------------------------------
+    # Location
+    # -----------------------------------------------------------------------
+    Location:
+      type: object
+      required:
+        - locationId
+        - name
+        - locationType
+        - active
+      properties:
+        locationId:
+          type: string
+          format: uuid
+        name:
+          type: string
+          example: Headquarters — Building A
+        address:
+          $ref: '#/components/schemas/Address'
+        building:
+          type: string
+          example: Building A
+        floor:
+          type: string
+          example: "3"
+        room:
+          type: string
+          example: "301"
+        parentLocationId:
+          type: string
+          format: uuid
+        locationType:
+          type: string
+          enum: [Building, Floor, Room, Warehouse, Yard, Remote]
+        active:
+          type: boolean
+
+    Address:
+      type: object
+      properties:
+        street:
+          type: string
+          example: 1 Microsoft Way
+        city:
+          type: string
+          example: Redmond
+        state:
+          type: string
+          example: WA
+        zipCode:
+          type: string
+          example: "98052"
+        country:
+          type: string
+          example: US
+
+    CreateLocationRequest:
+      type: object
+      required:
+        - name
+        - locationType
+      properties:
+        name:
+          type: string
+        address:
+          $ref: '#/components/schemas/Address'
+        building:
+          type: string
+        floor:
+          type: string
+        room:
+          type: string
+        parentLocationId:
+          type: string
+          format: uuid
+        locationType:
+          type: string
+          enum: [Building, Floor, Room, Warehouse, Yard, Remote]
+        active:
+          type: boolean
+          default: true
+
+    UpdateLocationRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        address:
+          $ref: '#/components/schemas/Address'
+        building:
+          type: string
+        floor:
+          type: string
+        room:
+          type: string
+        parentLocationId:
+          type: string
+          format: uuid
+        locationType:
+          type: string
+          enum: [Building, Floor, Room, Warehouse, Yard, Remote]
+        active:
+          type: boolean
+
+    # -----------------------------------------------------------------------
+    # Work Order
+    # -----------------------------------------------------------------------
+    WorkOrder:
+      type: object
+      required:
+        - workOrderId
+        - assetId
+        - type
+        - priority
+        - status
+        - title
+      properties:
+        workOrderId:
+          type: string
+          format: uuid
+        assetId:
+          type: string
+          format: uuid
+        type:
+          type: string
+          enum: [Preventive, Corrective, Emergency, Inspection]
+        priority:
+          type: string
+          enum: [Critical, High, Medium, Low]
+        status:
+          type: string
+          enum: [Open, Assigned, InProgress, OnHold, Completed, Cancelled]
+        title:
+          type: string
+          example: Quarterly HVAC filter replacement
+        description:
+          type: string
+          example: Replace all filters in rooftop HVAC units per maintenance schedule.
+        assignedTo:
+          type: string
+          example: maintenance-team-b@contoso.com
+        estimatedCost:
+          type: number
+          format: double
+          minimum: 0
+          example: 450.00
+        actualCost:
+          type: number
+          format: double
+          minimum: 0
+        scheduledDate:
+          type: string
+          format: date
+        completedDate:
+          type: string
+          format: date
+        completionNotes:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    CreateWorkOrderRequest:
+      type: object
+      required:
+        - assetId
+        - type
+        - priority
+        - title
+      properties:
+        assetId:
+          type: string
+          format: uuid
+        type:
+          type: string
+          enum: [Preventive, Corrective, Emergency, Inspection]
+        priority:
+          type: string
+          enum: [Critical, High, Medium, Low]
+        title:
+          type: string
+        description:
+          type: string
+        assignedTo:
+          type: string
+        estimatedCost:
+          type: number
+          format: double
+          minimum: 0
+        scheduledDate:
+          type: string
+          format: date
+
+    UpdateWorkOrderRequest:
+      type: object
+      properties:
+        type:
+          type: string
+          enum: [Preventive, Corrective, Emergency, Inspection]
+        priority:
+          type: string
+          enum: [Critical, High, Medium, Low]
+        status:
+          type: string
+          enum: [Open, Assigned, InProgress, OnHold, Completed, Cancelled]
+        title:
+          type: string
+        description:
+          type: string
+        assignedTo:
+          type: string
+        estimatedCost:
+          type: number
+          format: double
+          minimum: 0
+        scheduledDate:
+          type: string
+          format: date
+
+    CompleteWorkOrderRequest:
+      type: object
+      required:
+        - completionNotes
+      properties:
+        actualCost:
+          type: number
+          format: double
+          minimum: 0
+        completionNotes:
+          type: string
+          example: All filters replaced; system tested and operational.
+
+    # -----------------------------------------------------------------------
+    # Audit
+    # -----------------------------------------------------------------------
+    Audit:
+      type: object
+      required:
+        - auditId
+        - assetId
+        - auditorName
+        - auditDate
+        - currentCondition
+        - currentLocationId
+        - discrepancyFound
+      properties:
+        auditId:
+          type: string
+          format: uuid
+        assetId:
+          type: string
+          format: uuid
+        auditorName:
+          type: string
+          example: Jane Rivera
+        auditDate:
+          type: string
+          format: date
+        previousCondition:
+          type: string
+          enum: [New, Good, Fair, Poor, NonFunctional]
+        currentCondition:
+          type: string
+          enum: [New, Good, Fair, Poor, NonFunctional]
+        previousLocationId:
+          type: string
+          format: uuid
+        currentLocationId:
+          type: string
+          format: uuid
+        notes:
+          type: string
+          example: Asset relocated from Building A to Warehouse 2.
+        discrepancyFound:
+          type: boolean
+        discrepancyDetails:
+          type: string
+          example: Serial number on asset does not match system record.
+        createdAt:
+          type: string
+          format: date-time
+
+    CreateAuditRequest:
+      type: object
+      required:
+        - assetId
+        - auditorName
+        - auditDate
+        - currentCondition
+        - currentLocationId
+        - discrepancyFound
+      properties:
+        assetId:
+          type: string
+          format: uuid
+        auditorName:
+          type: string
+        auditDate:
+          type: string
+          format: date
+        previousCondition:
+          type: string
+          enum: [New, Good, Fair, Poor, NonFunctional]
+        currentCondition:
+          type: string
+          enum: [New, Good, Fair, Poor, NonFunctional]
+        previousLocationId:
+          type: string
+          format: uuid
+        currentLocationId:
+          type: string
+          format: uuid
+        notes:
+          type: string
+        discrepancyFound:
+          type: boolean
+        discrepancyDetails:
+          type: string
+
+    # -----------------------------------------------------------------------
+    # Pagination & list wrappers
+    # -----------------------------------------------------------------------
+    Pagination:
+      type: object
+      required:
+        - page
+        - pageSize
+        - totalItems
+        - totalPages
+      properties:
+        page:
+          type: integer
+        pageSize:
+          type: integer
+        totalItems:
+          type: integer
+        totalPages:
+          type: integer
+
+    AssetListResponse:
+      type: object
+      required:
+        - data
+        - pagination
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Asset'
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+
+    CategoryListResponse:
+      type: object
+      required:
+        - data
+        - pagination
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Category'
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+
+    LocationListResponse:
+      type: object
+      required:
+        - data
+        - pagination
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Location'
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+
+    WorkOrderListResponse:
+      type: object
+      required:
+        - data
+        - pagination
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/WorkOrder'
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+
+    AuditListResponse:
+      type: object
+      required:
+        - data
+        - pagination
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Audit'
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+
+    # -----------------------------------------------------------------------
+    # Error
+    # -----------------------------------------------------------------------
+    ErrorResponse:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+        details:
+          type: array
+          items:
+            type: string
+        correlationId:
+          type: string
