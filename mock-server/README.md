@@ -9,6 +9,7 @@ A comprehensive mock API server that serves all API specifications in the Api-Sp
 - **Mock data generation**: Returns realistic random data using Faker.js
 - **Parameter validation**: Enforces required parameters
 - **Beautiful catalog UI**: Browse and explore all available APIs
+- **Server config file**: Optional JSON config for CORS, TLS/HTTPS, response delay, body limits, and more
 - **Interactive test consoles**:
   - **Swagger UI** for OpenAPI specs
   - **GraphiQL** for GraphQL APIs
@@ -38,7 +39,78 @@ npm run build
 npm start
 ```
 
-The server will start on port 3000 (or the port specified in the PORT environment variable).
+### With a config file
+
+```bash
+npm start -- --config ./mock-server.config.json
+# or in dev mode
+npm run dev -- --config ./mock-server.config.json
+```
+
+The server will start on port 3000 (or the port specified in the config file or `PORT` environment variable).
+
+## Configuration
+
+The server accepts an optional JSON config file via the `--config` CLI flag. Any settings not provided in the file fall back to sensible defaults.
+
+A sample config file is included at [`mock-server.config.json`](./mock-server.config.json).
+
+| Section | Key | Default | Description |
+|---------|-----|---------|-------------|
+| *(root)* | `port` | `3000` | Port to listen on (overridden by `PORT` env var) |
+| *(root)* | `host` | `"0.0.0.0"` | Host/IP address to bind to |
+| *(root)* | `bodyLimit` | `"1mb"` | Maximum request body size (e.g. `"1mb"`, `"500kb"`) |
+| `cors` | `origin` | `"*"` | Allowed origin(s). Use `"*"` for all, or provide a specific origin string or array of strings |
+| `cors` | `methods` | `["GET","POST","PUT","PATCH","DELETE","OPTIONS"]` | Allowed HTTP methods |
+| `cors` | `allowedHeaders` | `["Content-Type","Authorization"]` | Allowed request headers |
+| `cors` | `credentials` | `false` | Whether to include credentials (cookies, auth headers) |
+| `cors` | `maxAge` | `86400` | Preflight cache duration in seconds |
+| `tls` | `enabled` | `false` | Enable HTTPS. When `true`, `keyFile` and `certFile` are required |
+| `tls` | `keyFile` | `""` | Path to PEM-encoded private key (resolved relative to config file) |
+| `tls` | `certFile` | `""` | Path to PEM-encoded certificate (resolved relative to config file) |
+| `responseDelay` | `enabled` | `false` | Enable artificial response delay to simulate latency |
+| `responseDelay` | `minMs` | `0` | Minimum delay in milliseconds |
+| `responseDelay` | `maxMs` | `0` | Maximum delay in milliseconds |
+
+### Example: CORS restricted to specific origins
+
+```json
+{
+  "cors": {
+    "origin": ["http://localhost:5173", "https://myapp.example.com"],
+    "credentials": true
+  }
+}
+```
+
+### Example: HTTPS with self-signed certificates
+
+```bash
+# Generate a self-signed cert for local development
+openssl req -x509 -newkey rsa:2048 -keyout certs/server.key -out certs/server.crt -days 365 -nodes -subj '/CN=localhost'
+```
+
+```json
+{
+  "tls": {
+    "enabled": true,
+    "keyFile": "./certs/server.key",
+    "certFile": "./certs/server.crt"
+  }
+}
+```
+
+### Example: Simulating network latency
+
+```json
+{
+  "responseDelay": {
+    "enabled": true,
+    "minMs": 200,
+    "maxMs": 800
+  }
+}
+```
 
 ## Accessing the APIs
 
@@ -128,6 +200,7 @@ curl -X POST http://localhost:3000/api/hr/hr \
 mock-server/
 ├── src/
 │   ├── server.ts                    # Main server and Express app
+│   ├── config.ts                    # Server config types and loader
 │   ├── discovery.ts                 # Spec file discovery
 │   └── generators/
 │       ├── openapi-generator.ts     # OpenAPI mock generator
@@ -135,6 +208,7 @@ mock-server/
 │       ├── raml-generator.ts        # RAML mock generator
 │       ├── wadl-generator.ts        # WADL mock generator
 │       └── soap-generator.ts        # SOAP/WSDL mock generator
+├── mock-server.config.json          # Sample config file
 ├── package.json
 └── tsconfig.json
 ```
@@ -144,7 +218,7 @@ mock-server/
 - All responses are randomly generated and reset on server restart
 - No data persistence - this is a stateless mock server
 - Authentication is disabled for easy testing
-- CORS is enabled for all origins
+- CORS is enabled for all origins by default (configurable via config file)
 - Parameter validation only checks for presence of required parameters, not types
 
 ## Troubleshooting
