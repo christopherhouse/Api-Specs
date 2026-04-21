@@ -1,20 +1,61 @@
 import SwaggerParser from '@apidevtools/swagger-parser';
 import { faker } from '@faker-js/faker';
 
+interface OpenApiParameter {
+  name: string;
+  in: string;
+  required?: boolean;
+}
+
+interface SchemaObject {
+  type?: string;
+  format?: string;
+  enum?: string[];
+  properties?: Record<string, SchemaObject>;
+  items?: SchemaObject;
+  minimum?: number;
+  maximum?: number;
+}
+
+interface OpenApiResponseSpec {
+  description?: string;
+  content?: Record<string, { schema?: SchemaObject }>;
+}
+
+interface ParsedOpenApiDoc {
+  info?: {
+    title?: string;
+    description?: string;
+    version?: string;
+  };
+  paths?: Record<string, Record<string, {
+    operationId?: string;
+    summary?: string;
+    description?: string;
+    parameters?: OpenApiParameter[];
+    responses?: Record<string, OpenApiResponseSpec>;
+  }>>;
+}
+
 export interface MockEndpoint {
   path: string;
   method: string;
   operationId?: string;
   description?: string;
-  parameters: any[];
-  responses: any;
+  parameters: OpenApiParameter[];
+  responses: Record<string, OpenApiResponseSpec>;
+}
+
+export interface MockResponse {
+  statusCode: number;
+  data: unknown;
 }
 
 export class OpenAPIMockGenerator {
-  private api?: any;
+  private api?: ParsedOpenApiDoc;
 
   async loadSpec(filePath: string): Promise<void> {
-    this.api = await SwaggerParser.dereference(filePath) as any;
+    this.api = await SwaggerParser.dereference(filePath) as ParsedOpenApiDoc;
   }
 
   getEndpoints(): MockEndpoint[] {
@@ -30,7 +71,7 @@ export class OpenAPIMockGenerator {
       const methods = ['get', 'post', 'put', 'patch', 'delete', 'options', 'head'] as const;
 
       for (const method of methods) {
-        const operation = (pathItem as any)[method];
+        const operation = pathItem[method];
         if (operation) {
           endpoints.push({
             path,
@@ -38,7 +79,7 @@ export class OpenAPIMockGenerator {
             operationId: operation.operationId,
             description: operation.summary || operation.description,
             parameters: operation.parameters || [],
-            responses: operation.responses
+            responses: operation.responses || {}
           });
         }
       }
@@ -47,12 +88,12 @@ export class OpenAPIMockGenerator {
     return endpoints;
   }
 
-  generateMockResponse(endpoint: MockEndpoint): any {
+  generateMockResponse(endpoint: MockEndpoint): MockResponse {
     const responses = endpoint.responses;
 
     // Try to find a success response (200, 201, etc.)
     const successCodes = ['200', '201', '202', '204'];
-    let responseSpec: any;
+    let responseSpec: OpenApiResponseSpec | undefined;
     let statusCode = 200;
 
     for (const code of successCodes) {
@@ -87,18 +128,18 @@ export class OpenAPIMockGenerator {
     return { statusCode, data: mockData };
   }
 
-  private generateFromSchema(schema: any, depth: number = 0): any {
+  private generateFromSchema(schema: SchemaObject, depth: number = 0): unknown {
     // Prevent infinite recursion
     if (depth > 5) {
       return null;
     }
 
     if (schema.type === 'object') {
-      const obj: any = {};
+      const obj: Record<string, unknown> = {};
 
       if (schema.properties) {
         for (const [key, prop] of Object.entries(schema.properties)) {
-          obj[key] = this.generateFromSchema(prop as any, depth + 1);
+          obj[key] = this.generateFromSchema(prop, depth + 1);
         }
       }
 
@@ -108,7 +149,7 @@ export class OpenAPIMockGenerator {
     if (schema.type === 'array') {
       const itemCount = faker.number.int({ min: 1, max: 5 });
       const items = schema.items;
-      return Array.from({ length: itemCount }, () => this.generateFromSchema(items, depth + 1));
+      return Array.from({ length: itemCount }, () => this.generateFromSchema(items!, depth + 1));
     }
 
     if (schema.type === 'string') {

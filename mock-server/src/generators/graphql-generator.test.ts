@@ -253,7 +253,7 @@ describe('GraphQLMockGenerator', () => {
 
       const result = resolvers.Query.test();
       expect(Array.isArray(result)).toBe(true);
-      expect(result.length).toBeGreaterThan(0);
+      expect((result as unknown[]).length).toBeGreaterThan(0);
     });
 
     it('should handle custom scalar types', () => {

@@ -8,8 +8,28 @@ export interface WadlEndpoint {
   description?: string;
 }
 
+interface WadlMethod {
+  '@_name'?: string;
+  doc?: string;
+}
+
+interface WadlResource {
+  '@_path'?: string;
+  method?: WadlMethod | WadlMethod[];
+  resource?: WadlResource | WadlResource[];
+}
+
+interface WadlParsedData {
+  application?: {
+    resources?: {
+      resource?: WadlResource | WadlResource[];
+    };
+    doc?: string | { '@_title'?: string };
+  };
+}
+
 export class WadlMockGenerator {
-  private wadlData?: any;
+  private wadlData?: WadlParsedData;
   private endpoints: WadlEndpoint[] = [];
 
   loadSpec(filePath: string): void {
@@ -34,7 +54,7 @@ export class WadlMockGenerator {
     }
   }
 
-  private parseResource(resource: any, basePath: string): void {
+  private parseResource(resource: WadlResource, basePath: string): void {
     const path = basePath + (resource['@_path'] || '');
 
     if (resource.method) {
@@ -67,7 +87,7 @@ export class WadlMockGenerator {
     return this.endpoints;
   }
 
-  generateMockResponse(): any {
+  generateMockResponse(): { statusCode: number; data: Record<string, unknown> } {
     return {
       statusCode: 200,
       data: {
