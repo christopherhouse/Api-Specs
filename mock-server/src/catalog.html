@@ -1023,10 +1023,6 @@
             setupSidebarListeners();
         }
 
-        function getFormatBadgeClass(format) {
-            return 'format-' + format;
-        }
-
         function renderCards() {
             const grid = document.getElementById('apiGrid');
 
@@ -1039,7 +1035,7 @@
                     <div class="api-card-header">
                         <div class="api-card-title">${api.title}</div>
                         <div class="api-card-meta">
-                            <span class="badge ${getFormatBadgeClass(api.format)}">${api.format.toUpperCase()}</span>
+                            <span class="badge format-${api.format}">${api.format.toUpperCase()}</span>
                             <span class="badge">${api.domain}</span>
                             ${api.version ? `<span class="badge">v${api.version}</span>` : ''}
                         </div>
