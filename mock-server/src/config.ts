@@ -135,14 +135,15 @@ export function loadConfigFile(configPath: string): ServerConfig {
   const config = mergeConfig(parsed);
   const configDir = path.dirname(absolutePath);
 
-  // Resolve TLS file paths relative to config file location
+  // Resolve and validate TLS file paths relative to config file location
   if (config.tls.enabled) {
-    if (config.tls.keyFile) {
-      config.tls.keyFile = path.resolve(configDir, config.tls.keyFile);
+    if (!config.tls.keyFile || !config.tls.certFile) {
+      throw new Error(
+        `TLS is enabled but keyFile and certFile are required. Check config: ${absolutePath}`
+      );
     }
-    if (config.tls.certFile) {
-      config.tls.certFile = path.resolve(configDir, config.tls.certFile);
-    }
+    config.tls.keyFile = path.resolve(configDir, config.tls.keyFile);
+    config.tls.certFile = path.resolve(configDir, config.tls.certFile);
   }
 
   return config;

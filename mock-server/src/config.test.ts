@@ -141,6 +141,26 @@ describe('Config Module', () => {
       // Paths are raw strings since tls is disabled
       expect(result.tls.keyFile).toBe('./certs/key.pem');
     });
+
+    it('should throw when TLS is enabled but keyFile is missing', () => {
+      const configPath = path.join(tmpDir, 'config.json');
+      fs.writeFileSync(
+        configPath,
+        JSON.stringify({ tls: { enabled: true, certFile: './certs/cert.pem' } })
+      );
+
+      expect(() => loadConfigFile(configPath)).toThrow('keyFile and certFile are required');
+    });
+
+    it('should throw when TLS is enabled but certFile is missing', () => {
+      const configPath = path.join(tmpDir, 'config.json');
+      fs.writeFileSync(
+        configPath,
+        JSON.stringify({ tls: { enabled: true, keyFile: './certs/key.pem' } })
+      );
+
+      expect(() => loadConfigFile(configPath)).toThrow('keyFile and certFile are required');
+    });
   });
 
   describe('resolveConfig', () => {

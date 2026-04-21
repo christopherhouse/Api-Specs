@@ -1073,11 +1073,19 @@ async function start() {
   };
 
   if (config.tls.enabled) {
-    const tlsOptions = {
-      key: fs.readFileSync(config.tls.keyFile),
-      cert: fs.readFileSync(config.tls.certFile),
-    };
-    https.createServer(tlsOptions, app).listen(PORT, config.host, onListening);
+    let key: Buffer;
+    let cert: Buffer;
+    try {
+      key = fs.readFileSync(config.tls.keyFile);
+    } catch (err) {
+      throw new Error(`Failed to read TLS key file: ${config.tls.keyFile} — ${(err as Error).message}`);
+    }
+    try {
+      cert = fs.readFileSync(config.tls.certFile);
+    } catch (err) {
+      throw new Error(`Failed to read TLS cert file: ${config.tls.certFile} — ${(err as Error).message}`);
+    }
+    https.createServer({ key, cert }, app).listen(PORT, config.host, onListening);
   } else {
     app.listen(PORT, config.host, onListening);
   }
