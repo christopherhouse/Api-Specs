@@ -7,7 +7,7 @@ import { GraphQLMockGenerator } from './generators/graphql-generator';
 import { RamlMockGenerator } from './generators/raml-generator';
 import { WadlMockGenerator } from './generators/wadl-generator';
 import { SoapMockGenerator } from './generators/soap-generator';
-import { graphqlHTTP } from 'express-graphql';
+import { createHandler } from 'graphql-http/lib/use/express';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -124,14 +124,40 @@ async function setupGraphQLMock(spec: SpecFile, basePath: string) {
       ...resolvers.Mutation
     };
 
-    app.use(
+    // GraphQL endpoint
+    app.all(
       basePath,
-      graphqlHTTP({
+      createHandler({
         schema,
-        rootValue,
-        graphiql: true
+        rootValue
       })
     );
+
+    // GraphiQL UI
+    app.get(basePath + '/graphiql', (req: Request, res: Response) => {
+      res.send(`
+<!DOCTYPE html>
+<html>
+<head>
+  <title>GraphiQL</title>
+  <link rel="stylesheet" href="https://unpkg.com/graphiql/graphiql.min.css" />
+</head>
+<body style="margin: 0;">
+  <div id="graphiql" style="height: 100vh;"></div>
+  <script crossorigin src="https://unpkg.com/react/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom/umd/react-dom.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/graphiql/graphiql.min.js"></script>
+  <script>
+    const fetcher = GraphiQL.createFetcher({ url: '${basePath}' });
+    ReactDOM.render(
+      React.createElement(GraphiQL, { fetcher: fetcher }),
+      document.getElementById('graphiql')
+    );
+  </script>
+</body>
+</html>
+      `);
+    });
 
     apiEndpoints.push({
       spec,
@@ -556,7 +582,7 @@ app.get('/catalog', (req: Request, res: Response) => {
                         ` : ''}
 
                         ${api.spec.format === 'graphql' ? `
-                            <a href="${api.basePath}" class="try-button" target="_blank">Open GraphiQL</a>
+                            <a href="${api.basePath}/graphiql" class="try-button" target="_blank">Open GraphiQL</a>
                         ` : ''}
                     </div>
                 </div>

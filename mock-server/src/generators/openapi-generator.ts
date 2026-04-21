@@ -1,5 +1,4 @@
-import SwaggerParser from 'swagger-parser';
-import { OpenAPIV3 } from 'swagger-parser';
+import SwaggerParser from '@apidevtools/swagger-parser';
 import { faker } from '@faker-js/faker';
 
 export interface MockEndpoint {
@@ -12,10 +11,10 @@ export interface MockEndpoint {
 }
 
 export class OpenAPIMockGenerator {
-  private api?: OpenAPIV3.Document;
+  private api?: any;
 
   async loadSpec(filePath: string): Promise<void> {
-    this.api = await SwaggerParser.dereference(filePath) as OpenAPIV3.Document;
+    this.api = await SwaggerParser.dereference(filePath) as any;
   }
 
   getEndpoints(): MockEndpoint[] {
@@ -31,7 +30,7 @@ export class OpenAPIMockGenerator {
       const methods = ['get', 'post', 'put', 'patch', 'delete', 'options', 'head'] as const;
 
       for (const method of methods) {
-        const operation = pathItem[method] as OpenAPIV3.OperationObject | undefined;
+        const operation = (pathItem as any)[method];
         if (operation) {
           endpoints.push({
             path,
@@ -53,12 +52,12 @@ export class OpenAPIMockGenerator {
 
     // Try to find a success response (200, 201, etc.)
     const successCodes = ['200', '201', '202', '204'];
-    let responseSpec: OpenAPIV3.ResponseObject | undefined;
+    let responseSpec: any;
     let statusCode = 200;
 
     for (const code of successCodes) {
       if (responses[code]) {
-        responseSpec = responses[code] as OpenAPIV3.ResponseObject;
+        responseSpec = responses[code];
         statusCode = parseInt(code);
         break;
       }
@@ -68,7 +67,7 @@ export class OpenAPIMockGenerator {
       // Fall back to first response
       const firstCode = Object.keys(responses)[0];
       if (firstCode) {
-        responseSpec = responses[firstCode] as OpenAPIV3.ResponseObject;
+        responseSpec = responses[firstCode];
         statusCode = parseInt(firstCode) || 200;
       }
     }
@@ -82,70 +81,67 @@ export class OpenAPIMockGenerator {
       return { statusCode, data: { message: 'Success' } };
     }
 
-    const schema = jsonContent.schema as OpenAPIV3.SchemaObject;
+    const schema = jsonContent.schema;
     const mockData = this.generateFromSchema(schema);
 
     return { statusCode, data: mockData };
   }
 
-  private generateFromSchema(schema: OpenAPIV3.SchemaObject | OpenAPIV3.ReferenceObject, depth: number = 0): any {
+  private generateFromSchema(schema: any, depth: number = 0): any {
     // Prevent infinite recursion
     if (depth > 5) {
       return null;
     }
 
-    // Handle schema object (should already be dereferenced)
-    const s = schema as OpenAPIV3.SchemaObject;
-
-    if (s.type === 'object') {
+    if (schema.type === 'object') {
       const obj: any = {};
 
-      if (s.properties) {
-        for (const [key, prop] of Object.entries(s.properties)) {
-          obj[key] = this.generateFromSchema(prop as OpenAPIV3.SchemaObject, depth + 1);
+      if (schema.properties) {
+        for (const [key, prop] of Object.entries(schema.properties)) {
+          obj[key] = this.generateFromSchema(prop as any, depth + 1);
         }
       }
 
       return obj;
     }
 
-    if (s.type === 'array') {
+    if (schema.type === 'array') {
       const itemCount = faker.number.int({ min: 1, max: 5 });
-      const items = s.items as OpenAPIV3.SchemaObject;
+      const items = schema.items;
       return Array.from({ length: itemCount }, () => this.generateFromSchema(items, depth + 1));
     }
 
-    if (s.type === 'string') {
-      if (s.enum) {
-        return faker.helpers.arrayElement(s.enum);
+    if (schema.type === 'string') {
+      if (schema.enum) {
+        return faker.helpers.arrayElement(schema.enum);
       }
-      if (s.format === 'date-time') {
+      if (schema.format === 'date-time') {
         return faker.date.recent().toISOString();
       }
-      if (s.format === 'date') {
+      if (schema.format === 'date') {
         return faker.date.recent().toISOString().split('T')[0];
       }
-      if (s.format === 'email') {
+      if (schema.format === 'email') {
         return faker.internet.email();
       }
-      if (s.format === 'uri' || s.format === 'url') {
+      if (schema.format === 'uri' || schema.format === 'url') {
         return faker.internet.url();
       }
-      if (s.format === 'uuid') {
+      if (schema.format === 'uuid') {
         return faker.string.uuid();
       }
       return faker.lorem.words(3);
     }
 
-    if (s.type === 'number' || s.type === 'integer') {
-      const min = s.minimum ?? 0;
-      const max = s.maximum ?? 1000;
-      return s.type === 'integer'
+    if (schema.type === 'number' || schema.type === 'integer') {
+      const min = schema.minimum ?? 0;
+      const max = schema.maximum ?? 1000;
+      return schema.type === 'integer'
         ? faker.number.int({ min, max })
         : faker.number.float({ min, max, fractionDigits: 2 });
     }
 
-    if (s.type === 'boolean') {
+    if (schema.type === 'boolean') {
       return faker.datatype.boolean();
     }
 
