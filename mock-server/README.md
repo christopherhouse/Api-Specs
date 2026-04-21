@@ -9,7 +9,11 @@ A comprehensive mock API server that serves all API specifications in the Api-Sp
 - **Mock data generation**: Returns realistic random data using Faker.js
 - **Parameter validation**: Enforces required parameters
 - **Beautiful catalog UI**: Browse and explore all available APIs
-- **GraphiQL interface**: Interactive GraphQL playground for GraphQL APIs
+- **Interactive test consoles**:
+  - **Swagger UI** for OpenAPI specs
+  - **GraphiQL** for GraphQL APIs
+  - **RAML Console** for RAML APIs
+  - **SOAP Console** for SOAP/WSDL services
 - **No authentication required**: All endpoints are publicly accessible
 
 ## Installation
@@ -45,6 +49,15 @@ Once the server is running:
 3. **GraphQL APIs**: Access at `http://localhost:3000/api/{domain}/{api-name}` (includes GraphiQL interface)
 4. **SOAP APIs**: Access at `http://localhost:3000/api/{domain}/{api-name}` (POST requests)
 
+### Interactive Test Consoles
+
+Each API format has its own interactive test console accessible from the catalog UI:
+
+- **OpenAPI**: `http://localhost:3000/api/{domain}/{api-name}/docs` - Swagger UI interface
+- **GraphQL**: `http://localhost:3000/api/{domain}/{api-name}/graphiql` - GraphiQL playground
+- **RAML**: `http://localhost:3000/api/{domain}/{api-name}/console` - RAML API Console
+- **SOAP**: `http://localhost:3000/api/{domain}/{api-name}/console` - SOAP testing console with WSDL viewer
+
 ## Examples
 
 ### OpenAPI (REST)
@@ -54,12 +67,15 @@ curl http://localhost:3000/api/banking/banking/customers
 
 # Get a specific customer
 curl http://localhost:3000/api/banking/banking/customers/123
+
+# Open Swagger UI test console
+open http://localhost:3000/api/banking/banking/docs
 ```
 
 ### GraphQL
 ```bash
 # Open GraphiQL in your browser
-open http://localhost:3000/api/banking/banking
+open http://localhost:3000/api/banking/banking/graphiql
 
 # Or make a POST request with a query
 curl -X POST http://localhost:3000/api/banking/banking \
@@ -67,13 +83,25 @@ curl -X POST http://localhost:3000/api/banking/banking \
   -d '{"query": "{ customers { id name email } }"}'
 ```
 
-### RAML/WADL
+### RAML
+```bash
+# Access RAML API endpoints
+curl http://localhost:3000/api/supply-chain/supply-chain/suppliers
+
+# Open RAML API Console
+open http://localhost:3000/api/supply-chain/supply-chain/console
+```
+
+### WADL
 These work similarly to OpenAPI endpoints, using the same URL structure.
 
 ### SOAP
 ```bash
 # Get WSDL
 curl http://localhost:3000/api/hr/hr/wsdl
+
+# Open SOAP test console
+open http://localhost:3000/api/hr/hr/console
 
 # Call SOAP operation
 curl -X POST http://localhost:3000/api/hr/hr \
