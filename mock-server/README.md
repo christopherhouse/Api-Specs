@@ -47,6 +47,54 @@ npm start -- --config ./mock-server.config.json
 npm run dev -- --config ./mock-server.config.json
 ```
 
+### Docker
+
+The mock server is published as a container image to GitHub Container Registry on every merge to `main`.
+
+#### Pull the image
+
+```bash
+docker pull ghcr.io/christopherhouse/api-specs-mock-server:latest
+```
+
+#### Run with the built-in specs
+
+The image ships with all the API specs from this repository:
+
+```bash
+docker run -p 3000:3000 ghcr.io/christopherhouse/api-specs-mock-server:latest
+```
+
+Then open `http://localhost:3000/catalog` to browse the APIs.
+
+#### Run with your own specs
+
+Mount a local directory of specs into the container using `SPECS_DIR`:
+
+```bash
+docker run -p 3000:3000 \
+  -v /path/to/your/scenarios:/specs \
+  -e SPECS_DIR=/specs \
+  ghcr.io/christopherhouse/api-specs-mock-server:latest
+```
+
+The mounted directory should follow the standard [scenarios layout](../README.md) (e.g. `<domain>/rest/openapi/json/*.json`).
+
+#### Custom port
+
+```bash
+docker run -p 8080:8080 -e PORT=8080 ghcr.io/christopherhouse/api-specs-mock-server:latest
+```
+
+#### With a config file
+
+```bash
+docker run -p 3000:3000 \
+  -v $(pwd)/mock-server.config.json:/app/mock-server/config.json:ro \
+  ghcr.io/christopherhouse/api-specs-mock-server:latest \
+  node dist/server.js --config /app/mock-server/config.json
+```
+
 The server will start on port 3000 (or the port specified in the config file or `PORT` environment variable).
 
 ## Configuration
@@ -60,6 +108,7 @@ A sample config file is included at [`mock-server.config.json`](./mock-server.co
 | *(root)* | `port` | `3000` | Port to listen on (overridden by `PORT` env var) |
 | *(root)* | `host` | `"0.0.0.0"` | Host/IP address to bind to |
 | *(root)* | `bodyLimit` | `"1mb"` | Maximum request body size (e.g. `"1mb"`, `"500kb"`) |
+| *(root)* | `specsDir` | *(auto-detected)* | Path to the scenarios directory containing API specs (overridden by `--specs-dir` flag or `SPECS_DIR` env var) |
 | `cors` | `origin` | `"*"` | Allowed origin(s). Use `"*"` for all, or provide a specific origin string or array of strings |
 | `cors` | `methods` | `["GET","POST","PUT","PATCH","DELETE","OPTIONS"]` | Allowed HTTP methods |
 | `cors` | `allowedHeaders` | `["Content-Type","Authorization"]` | Allowed request headers |

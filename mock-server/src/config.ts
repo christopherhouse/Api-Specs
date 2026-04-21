@@ -45,6 +45,8 @@ export interface ServerConfig {
   responseDelay: ResponseDelayConfig;
   /** Maximum request body size (e.g. '1mb', '500kb'). */
   bodyLimit: string;
+  /** Path to the scenarios directory containing API specs. */
+  specsDir: string;
 }
 
 export const DEFAULT_CONFIG: ServerConfig = {
@@ -68,6 +70,7 @@ export const DEFAULT_CONFIG: ServerConfig = {
     maxMs: 0,
   },
   bodyLimit: '1mb',
+  specsDir: '',
 };
 
 /**
@@ -80,6 +83,7 @@ export function mergeConfig(partial: Record<string, unknown>): ServerConfig {
   if (typeof partial.port === 'number') merged.port = partial.port;
   if (typeof partial.host === 'string') merged.host = partial.host;
   if (typeof partial.bodyLimit === 'string') merged.bodyLimit = partial.bodyLimit;
+  if (typeof partial.specsDir === 'string') merged.specsDir = partial.specsDir;
 
   if (partial.cors && typeof partial.cors === 'object') {
     const c = partial.cors as Record<string, unknown>;
@@ -152,7 +156,8 @@ export function loadConfigFile(configPath: string): ServerConfig {
 /**
  * Parse CLI arguments to find a --config flag and load the config.
  * Falls back to DEFAULT_CONFIG when no --config is provided.
- * Also respects the PORT environment variable as an override.
+ * Also respects the PORT and SPECS_DIR environment variables as overrides.
+ * Supports --specs-dir CLI flag for specifying the scenarios directory.
  */
 export function resolveConfig(argv: string[] = process.argv): ServerConfig {
   const configIndex = argv.indexOf('--config');
@@ -172,6 +177,17 @@ export function resolveConfig(argv: string[] = process.argv): ServerConfig {
     if (!isNaN(envPort)) {
       config.port = envPort;
     }
+  }
+
+  // --specs-dir CLI flag
+  const specsDirIndex = argv.indexOf('--specs-dir');
+  if (specsDirIndex !== -1 && argv[specsDirIndex + 1]) {
+    config.specsDir = path.resolve(argv[specsDirIndex + 1]);
+  }
+
+  // Environment variable override for specs directory
+  if (process.env.SPECS_DIR) {
+    config.specsDir = path.resolve(process.env.SPECS_DIR);
   }
 
   return config;
