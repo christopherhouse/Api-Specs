@@ -201,8 +201,7 @@ async function setupRamlMock(spec: SpecFile, basePath: string) {
   const router = Router();
 
   // Add RAML API Console route
-  router.get('/console', (req: Request, res: Response) => {
-    const ramlContent = fs.readFileSync(spec.filePath, 'utf-8');
+  router.get('/console', (_req: Request, res: Response) => {
     res.send(`
 <!DOCTYPE html>
 <html lang="en">
@@ -646,9 +645,8 @@ async function setupSoapMock(spec: SpecFile, basePath: string) {
   });
 
   // SOAP endpoint
-  router.post('/', (req: Request, res: Response) => {
+  router.post('/', (_req: Request, res: Response) => {
     // Extract operation name from SOAP request (simplified)
-    const body = req.body;
     let operationName = 'UnknownOperation';
 
     if (operations.length > 0) {
