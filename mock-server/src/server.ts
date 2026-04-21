@@ -1,6 +1,8 @@
 import express, { Request, Response, Router } from 'express';
 import * as path from 'path';
 import cors from 'cors';
+import swaggerUi from 'swagger-ui-express';
+import * as fs from 'fs';
 import { SpecDiscovery, SpecFile } from './discovery';
 import { OpenAPIMockGenerator } from './generators/openapi-generator';
 import { GraphQLMockGenerator } from './generators/graphql-generator';
@@ -64,6 +66,24 @@ async function setupOpenApiMock(spec: SpecFile, basePath: string) {
   const endpoints = generator.getEndpoints();
 
   const router = Router();
+
+  // Add Swagger UI documentation route
+  const specContent = JSON.parse(fs.readFileSync(spec.filePath, 'utf-8'));
+  // Update server URL in spec to point to the mock server
+  if (!specContent.servers || specContent.servers.length === 0) {
+    specContent.servers = [{ url: basePath, description: 'Mock Server' }];
+  } else {
+    specContent.servers = [
+      { url: basePath, description: 'Mock Server' },
+      ...specContent.servers
+    ];
+  }
+
+  router.use('/docs', swaggerUi.serve);
+  router.get('/docs', swaggerUi.setup(specContent, {
+    customSiteTitle: info.title || spec.apiName,
+    customCss: '.swagger-ui .topbar { display: none }'
+  }));
 
   for (const endpoint of endpoints) {
     const method = endpoint.method.toLowerCase() as 'get' | 'post' | 'put' | 'patch' | 'delete';
@@ -179,6 +199,197 @@ async function setupRamlMock(spec: SpecFile, basePath: string) {
 
   const router = Router();
 
+  // Add RAML API Console route
+  router.get('/console', (req: Request, res: Response) => {
+    const ramlContent = fs.readFileSync(spec.filePath, 'utf-8');
+    res.send(`
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${info.title || spec.apiName} - RAML Console</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f5f5;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 2rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .header h1 { font-size: 2rem; margin-bottom: 0.5rem; }
+        .header p { opacity: 0.9; }
+        .container { max-width: 1400px; margin: 0 auto; padding: 2rem; }
+        .endpoint-section {
+            background: white;
+            border-radius: 8px;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        .endpoint-header {
+            background: #f8f9fa;
+            padding: 1rem 1.5rem;
+            border-bottom: 2px solid #e9ecef;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        .method {
+            font-weight: bold;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            min-width: 80px;
+            text-align: center;
+        }
+        .method.get { background: #61affe; color: white; }
+        .method.post { background: #49cc90; color: white; }
+        .method.put { background: #fca130; color: white; }
+        .method.patch { background: #50e3c2; color: white; }
+        .method.delete { background: #f93e3e; color: white; }
+        .endpoint-path {
+            font-family: 'Courier New', monospace;
+            font-size: 1.1rem;
+            color: #333;
+        }
+        .endpoint-body {
+            padding: 1.5rem;
+        }
+        .try-section {
+            background: #f8f9fa;
+            padding: 1rem;
+            border-radius: 4px;
+            margin-top: 1rem;
+        }
+        .try-button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 4px;
+            font-size: 1rem;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        .try-button:hover { background: #764ba2; }
+        .response-section {
+            margin-top: 1rem;
+            padding: 1rem;
+            background: #f8f9fa;
+            border-radius: 4px;
+            display: none;
+        }
+        .response-section.active { display: block; }
+        pre {
+            background: #2d2d2d;
+            color: #f8f8f2;
+            padding: 1rem;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+        .param-input {
+            width: 100%;
+            padding: 0.5rem;
+            margin: 0.5rem 0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .param-label {
+            font-weight: 600;
+            margin-top: 0.5rem;
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>${info.title || spec.apiName}</h1>
+        <p>${info.description || 'RAML API Console'}</p>
+        <p style="margin-top: 0.5rem; opacity: 0.8;">Base URL: ${basePath}</p>
+    </div>
+    <div class="container">
+        ${endpoints.map((endpoint, idx) => `
+            <div class="endpoint-section">
+                <div class="endpoint-header">
+                    <span class="method ${endpoint.method.toLowerCase()}">${endpoint.method}</span>
+                    <span class="endpoint-path">${endpoint.path}</span>
+                </div>
+                <div class="endpoint-body">
+                    <p>${endpoint.description || 'No description available'}</p>
+                    <div class="try-section">
+                        <h3>Try it out</h3>
+                        <div id="params-${idx}"></div>
+                        <button class="try-button" onclick="tryEndpoint('${endpoint.method}', '${endpoint.path}', ${idx})">
+                            Send Request
+                        </button>
+                        <div id="response-${idx}" class="response-section">
+                            <h4>Response:</h4>
+                            <pre id="response-body-${idx}"></pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `).join('')}
+    </div>
+    <script>
+        async function tryEndpoint(method, path, idx) {
+            const responseSection = document.getElementById('response-' + idx);
+            const responseBody = document.getElementById('response-body-' + idx);
+
+            try {
+                // Replace path parameters
+                let url = '${basePath}' + path;
+                const pathParams = path.match(/{([^}]+)}/g);
+                if (pathParams) {
+                    pathParams.forEach(param => {
+                        const paramName = param.slice(1, -1);
+                        const input = document.querySelector(\`input[name="param-\${idx}-\${paramName}"]\`);
+                        if (input) {
+                            url = url.replace(param, input.value || '123');
+                        }
+                    });
+                }
+
+                const response = await fetch(url, {
+                    method: method,
+                    headers: { 'Content-Type': 'application/json' }
+                });
+
+                const data = await response.json();
+                responseBody.textContent = JSON.stringify(data, null, 2);
+                responseSection.classList.add('active');
+            } catch (error) {
+                responseBody.textContent = 'Error: ' + error.message;
+                responseSection.classList.add('active');
+            }
+        }
+
+        // Setup parameter inputs
+        ${endpoints.map((endpoint, idx) => {
+          const pathParams = endpoint.path.match(/{([^}]+)}/g) || [];
+          return pathParams.length > 0 ? `
+            document.getElementById('params-${idx}').innerHTML = \`
+              ${pathParams.map(param => {
+                const paramName = param.slice(1, -1);
+                return `
+                  <label class="param-label">${paramName}:</label>
+                  <input class="param-input" name="param-${idx}-${paramName}" placeholder="Enter ${paramName}" />
+                `;
+              }).join('')}
+            \`;
+          ` : '';
+        }).join('')}
+    </script>
+</body>
+</html>
+    `);
+  });
+
   for (const endpoint of endpoints) {
     const method = endpoint.method.toLowerCase() as 'get' | 'post' | 'put' | 'patch' | 'delete';
     const expressPath = endpoint.path.replace(/{([^}]+)}/g, ':$1');
@@ -253,6 +464,184 @@ async function setupSoapMock(spec: SpecFile, basePath: string) {
   router.get('/wsdl', (req: Request, res: Response) => {
     res.set('Content-Type', 'text/xml');
     res.send(generator.getWsdlContent());
+  });
+
+  // SOAP Console endpoint
+  router.get('/console', (req: Request, res: Response) => {
+    res.send(`
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${info.title || spec.apiName} - SOAP Console</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f5f5;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 2rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .header h1 { font-size: 2rem; margin-bottom: 0.5rem; }
+        .header p { opacity: 0.9; }
+        .container { max-width: 1400px; margin: 0 auto; padding: 2rem; }
+        .info-section {
+            background: white;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .info-section h2 { margin-bottom: 1rem; color: #333; }
+        .wsdl-link {
+            display: inline-block;
+            background: #667eea;
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 4px;
+            text-decoration: none;
+            font-weight: 600;
+            margin-top: 0.5rem;
+        }
+        .wsdl-link:hover { background: #764ba2; }
+        .operation-section {
+            background: white;
+            border-radius: 8px;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        .operation-header {
+            background: #f8f9fa;
+            padding: 1rem 1.5rem;
+            border-bottom: 2px solid #e9ecef;
+        }
+        .operation-name {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #333;
+            font-family: 'Courier New', monospace;
+        }
+        .operation-body {
+            padding: 1.5rem;
+        }
+        .soap-envelope {
+            background: #2d2d2d;
+            color: #f8f8f2;
+            padding: 1rem;
+            border-radius: 4px;
+            overflow-x: auto;
+            margin: 1rem 0;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+        }
+        .try-button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 4px;
+            font-size: 1rem;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        .try-button:hover { background: #764ba2; }
+        .response-section {
+            margin-top: 1rem;
+            padding: 1rem;
+            background: #f8f9fa;
+            border-radius: 4px;
+            display: none;
+        }
+        .response-section.active { display: block; }
+        textarea {
+            width: 100%;
+            min-height: 200px;
+            padding: 1rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            resize: vertical;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>${info.title || spec.apiName}</h1>
+        <p>${info.description || 'SOAP API Console'}</p>
+        <p style="margin-top: 0.5rem; opacity: 0.8;">Endpoint: ${basePath}</p>
+    </div>
+    <div class="container">
+        <div class="info-section">
+            <h2>WSDL</h2>
+            <p>Download or view the WSDL definition for this SOAP service:</p>
+            <a href="${basePath}/wsdl" class="wsdl-link" target="_blank">View WSDL</a>
+        </div>
+
+        ${operations.map((operation, idx) => `
+            <div class="operation-section">
+                <div class="operation-header">
+                    <div class="operation-name">${operation.name}</div>
+                </div>
+                <div class="operation-body">
+                    <h3>SOAP Request</h3>
+                    <p>Edit the SOAP envelope below and click "Send Request" to test:</p>
+                    <textarea id="request-${idx}">
+<?xml version="1.0" encoding="UTF-8"?>
+<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/"
+               xmlns:tns="http://example.com/${spec.apiName}">
+  <soap:Header/>
+  <soap:Body>
+    <tns:${operation.name}>
+      <!-- Add your parameters here -->
+    </tns:${operation.name}>
+  </soap:Body>
+</soap:Envelope></textarea>
+                    <button class="try-button" onclick="sendSoapRequest(${idx})">
+                        Send Request
+                    </button>
+                    <div id="response-${idx}" class="response-section">
+                        <h4>Response:</h4>
+                        <div class="soap-envelope" id="response-body-${idx}"></div>
+                    </div>
+                </div>
+            </div>
+        `).join('')}
+    </div>
+    <script>
+        async function sendSoapRequest(idx) {
+            const requestTextarea = document.getElementById('request-' + idx);
+            const responseSection = document.getElementById('response-' + idx);
+            const responseBody = document.getElementById('response-body-' + idx);
+
+            try {
+                const response = await fetch('${basePath}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'text/xml',
+                        'SOAPAction': ''
+                    },
+                    body: requestTextarea.value
+                });
+
+                const data = await response.text();
+                responseBody.textContent = data;
+                responseSection.classList.add('active');
+            } catch (error) {
+                responseBody.textContent = 'Error: ' + error.message;
+                responseSection.classList.add('active');
+            }
+        }
+    </script>
+</body>
+</html>
+    `);
   });
 
   // SOAP endpoint
@@ -583,6 +972,15 @@ app.get('/catalog', (req: Request, res: Response) => {
 
                         ${api.spec.format === 'graphql' ? `
                             <a href="${api.basePath}/graphiql" class="try-button" target="_blank">Open GraphiQL</a>
+                        ` : ''}
+                        ${api.spec.format === 'openapi' ? `
+                            <a href="${api.basePath}/docs" class="try-button" target="_blank">Open Swagger UI</a>
+                        ` : ''}
+                        ${api.spec.format === 'raml' ? `
+                            <a href="${api.basePath}/console" class="try-button" target="_blank">Open API Console</a>
+                        ` : ''}
+                        ${api.spec.format === 'soap' ? `
+                            <a href="${api.basePath}/console" class="try-button" target="_blank">Open SOAP Console</a>
                         ` : ''}
                     </div>
                 </div>
