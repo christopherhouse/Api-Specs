@@ -41,7 +41,7 @@ if (config.responseDelay.enabled) {
 }
 
 // Discover all specs
-const scenariosPath = path.join(__dirname, '../../scenarios');
+const scenariosPath = config.specsDir || path.join(__dirname, '../../scenarios');
 const discovery = new SpecDiscovery(scenariosPath);
 const specs = discovery.discoverSpecs();
 

@@ -90,6 +90,11 @@ describe('Config Module', () => {
       const result = mergeConfig({ port: 'not-a-number' } as Record<string, unknown>);
       expect(result.port).toBe(DEFAULT_CONFIG.port);
     });
+
+    it('should override specsDir', () => {
+      const result = mergeConfig({ specsDir: '/custom/specs' });
+      expect(result.specsDir).toBe('/custom/specs');
+    });
   });
 
   describe('loadConfigFile', () => {
@@ -165,6 +170,7 @@ describe('Config Module', () => {
 
   describe('resolveConfig', () => {
     const origEnv = process.env.PORT;
+    const origSpecsDir = process.env.SPECS_DIR;
 
     afterEach(() => {
       if (origEnv !== undefined) {
@@ -172,10 +178,16 @@ describe('Config Module', () => {
       } else {
         delete process.env.PORT;
       }
+      if (origSpecsDir !== undefined) {
+        process.env.SPECS_DIR = origSpecsDir;
+      } else {
+        delete process.env.SPECS_DIR;
+      }
     });
 
     it('should return defaults when no --config flag', () => {
       delete process.env.PORT;
+      delete process.env.SPECS_DIR;
       const result = resolveConfig(['node', 'server.js']);
       expect(result.port).toBe(DEFAULT_CONFIG.port);
       expect(result.cors.origin).toBe('*');
@@ -185,6 +197,7 @@ describe('Config Module', () => {
       const configPath = path.join(tmpDir, 'config.json');
       fs.writeFileSync(configPath, JSON.stringify({ port: 9090 }));
       delete process.env.PORT;
+      delete process.env.SPECS_DIR;
 
       const result = resolveConfig(['node', 'server.js', '--config', configPath]);
       expect(result.port).toBe(9090);
@@ -194,6 +207,7 @@ describe('Config Module', () => {
       const configPath = path.join(tmpDir, 'config.json');
       fs.writeFileSync(configPath, JSON.stringify({ port: 9090 }));
       process.env.PORT = '7777';
+      delete process.env.SPECS_DIR;
 
       const result = resolveConfig(['node', 'server.js', '--config', configPath]);
       expect(result.port).toBe(7777);
@@ -201,8 +215,29 @@ describe('Config Module', () => {
 
     it('should let PORT env var override default port', () => {
       process.env.PORT = '5555';
+      delete process.env.SPECS_DIR;
       const result = resolveConfig(['node', 'server.js']);
       expect(result.port).toBe(5555);
+    });
+
+    it('should accept --specs-dir flag', () => {
+      delete process.env.PORT;
+      delete process.env.SPECS_DIR;
+      const result = resolveConfig(['node', 'server.js', '--specs-dir', '/my/specs']);
+      expect(result.specsDir).toBe(path.resolve('/my/specs'));
+    });
+
+    it('should let SPECS_DIR env var override --specs-dir flag', () => {
+      process.env.SPECS_DIR = '/env/specs';
+      const result = resolveConfig(['node', 'server.js', '--specs-dir', '/cli/specs']);
+      expect(result.specsDir).toBe(path.resolve('/env/specs'));
+    });
+
+    it('should accept SPECS_DIR env var', () => {
+      delete process.env.PORT;
+      process.env.SPECS_DIR = '/env/specs';
+      const result = resolveConfig(['node', 'server.js']);
+      expect(result.specsDir).toBe(path.resolve('/env/specs'));
     });
   });
 });
