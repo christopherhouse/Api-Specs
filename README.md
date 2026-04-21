@@ -122,6 +122,32 @@ Browse the domains in the `scenarios/` directory. Each domain folder contains a 
 
 For detailed API features and file paths, check the README.md in each domain folder.
 
+## 🧪 Mock API Server
+
+Want to try out these APIs without building anything? We've got you covered!
+
+The **Mock API Server** is a Node.js/TypeScript server that automatically serves all API specs in this repository as live, working mock endpoints.
+
+### Features
+- ✨ Automatically discovers and serves all 35+ API specs
+- 🎲 Generates realistic random data using Faker.js
+- 🔧 Supports OpenAPI, GraphQL (with GraphiQL), RAML, WADL, and SOAP/WSDL
+- ✅ Validates required parameters
+- 🎨 Beautiful catalog UI to browse all APIs
+- 🚫 No authentication required
+
+### Quick Start
+
+```bash
+cd mock-server
+npm install
+npm run dev
+```
+
+Then visit `http://localhost:3000/catalog` to see all available APIs!
+
+For more details, see the [mock-server README](mock-server/README.md).
+
 ## 📄 License
 
 [MIT](LICENSE)
