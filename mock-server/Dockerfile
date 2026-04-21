@@ -1,5 +1,5 @@
 # --- Build stage ---
-FROM node:20-alpine AS build
+FROM node:22-alpine AS build
 
 WORKDIR /app/mock-server
 
@@ -13,7 +13,7 @@ COPY mock-server/src/ ./src/
 RUN npm run build
 
 # --- Production stage ---
-FROM node:20-alpine
+FROM node:22-alpine
 
 LABEL org.opencontainers.image.source="https://github.com/christopherhouse/Api-Specs"
 LABEL org.opencontainers.image.description="Mock API server for Api-Specs — serves realistic mock data for OpenAPI, GraphQL, RAML, WADL, and SOAP specs"
