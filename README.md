@@ -129,12 +129,12 @@ Want to try out these APIs without building anything? We've got you covered!
 The **Mock API Server** is a Node.js/TypeScript server that automatically serves all API specs in this repository as live, working mock endpoints.
 
 ### Features
-- ✨ Automatically discovers and serves all 35+ API specs
-- 🎲 Generates realistic random data using Faker.js
-- 🔧 Supports OpenAPI, GraphQL (with GraphiQL), RAML, WADL, and SOAP/WSDL
-- ✅ Validates required parameters
-- 🎨 Beautiful catalog UI to browse all APIs
-- 🚫 No authentication required
+- ✨ **Automatic discovery**: Scans and loads all specs from the scenarios directory
+- 🎲 **Mock data generation**: Returns realistic random data using Faker.js
+- 🔧 **Multi-format support**: OpenAPI, GraphQL (with GraphiQL), RAML, WADL, and SOAP/WSDL
+- ✅ **Parameter validation**: Enforces required parameters
+- 🎨 **Beautiful catalog UI**: Browse and explore all available APIs
+- 🚫 **No authentication required**: All endpoints are publicly accessible
 
 ### Quick Start
 
@@ -145,6 +145,62 @@ npm run dev
 ```
 
 Then visit `http://localhost:3000/catalog` to see all available APIs!
+
+### Usage Examples
+
+**REST APIs (OpenAPI/RAML/WADL)**:
+```bash
+# List customers from the banking API
+curl http://localhost:3000/api/banking/banking/customers
+
+# Get a specific customer
+curl http://localhost:3000/api/banking/banking/customers/123
+```
+
+**GraphQL APIs**:
+```bash
+# Open GraphiQL in your browser
+open http://localhost:3000/api/banking/banking
+
+# Or make a POST request with a query
+curl -X POST http://localhost:3000/api/banking/banking \
+  -H "Content-Type: application/json" \
+  -d '{"query": "{ customers { id name email } }"}'
+```
+
+**SOAP APIs**:
+```bash
+# Get WSDL
+curl http://localhost:3000/api/hr/hr/wsdl
+
+# Call SOAP operation
+curl -X POST http://localhost:3000/api/hr/hr \
+  -H "Content-Type: text/xml" \
+  -d '<soap:Envelope>...</soap:Envelope>'
+```
+
+### How It Works
+
+1. **Discovery**: On startup, scans the `scenarios/` directory for all API spec files
+2. **Parsing**: Each spec is parsed using format-specific parsers (swagger-parser, graphql, fast-xml-parser)
+3. **Mock generation**: Uses @faker-js/faker to generate realistic random data
+4. **Routing**: Creates Express routes for each endpoint
+5. **Validation**: Validates required parameters before returning responses
+
+### Build & Deploy
+
+```bash
+# Build for production
+npm run build
+
+# Run production build
+npm start
+
+# Custom port
+PORT=4000 npm start
+```
+
+**Note**: All responses are randomly generated and reset on server restart. This is a stateless mock server with no data persistence.
 
 For more details, see the [mock-server README](mock-server/README.md).
 
