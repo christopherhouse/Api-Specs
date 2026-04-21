@@ -4,7 +4,7 @@
   "description": "Mock API server for all API specs in the Api-Specs repository",
   "main": "dist/server.js",
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && cp src/catalog.html dist/catalog.html",
     "start": "node dist/server.js",
     "dev": "tsx src/server.ts",
     "clean": "rm -rf dist",
