@@ -26,7 +26,7 @@ export class RamlMockGenerator {
       const line = lines[i];
 
       // Match resource paths (starts with /)
-      const pathMatch = line.match(/^(\/[\w\-\/{}]*):$/);
+      const pathMatch = line.match(/^(\/[\w\-/{}]*):$/);
       if (pathMatch) {
         currentPath = pathMatch[1];
         continue;

@@ -125,6 +125,18 @@ jobs:
           done
           exit $EXIT_CODE
 
+      - name: Install mock server dependencies
+        working-directory: mock-server
+        run: npm ci
+
+      - name: Lint mock server
+        working-directory: mock-server
+        run: npm run lint
+
+      - name: Run mock server tests
+        working-directory: mock-server
+        run: npm test -- --coverage
+
   release:
     name: Release
     needs: lint
