@@ -675,8 +675,41 @@ async function setupSoapMock(spec: SpecFile, basePath: string) {
   console.log(`✅ SOAP: ${info.title} -> ${basePath}`);
 }
 
+// Catalog data endpoint for JavaScript to fetch
+app.get('/catalog/data', (req: Request, res: Response) => {
+  const catalogData = apiEndpoints.map(api => {
+    const consoleUrl =
+      api.spec.format === 'graphql' ? `${api.basePath}/graphiql` :
+      api.spec.format === 'openapi' ? `${api.basePath}/docs` :
+      api.spec.format === 'raml' ? `${api.basePath}/console` :
+      api.spec.format === 'soap' ? `${api.basePath}/console` :
+      api.basePath;
+
+    return {
+      id: `${api.spec.domain}-${api.spec.format}-${api.spec.apiName}`,
+      domain: api.spec.domain,
+      format: api.spec.format,
+      apiName: api.spec.apiName,
+      title: api.info.title || api.spec.apiName,
+      description: api.info.description || '',
+      version: api.info.version || '',
+      basePath: api.basePath,
+      consoleUrl: consoleUrl,
+      endpoints: api.endpoints || []
+    };
+  });
+
+  res.json(catalogData);
+});
+
 // Catalog UI endpoint
 app.get('/catalog', (req: Request, res: Response) => {
+  const catalogHtml = fs.readFileSync(path.join(__dirname, 'catalog.html'), 'utf-8');
+  res.send(catalogHtml);
+});
+
+// Keep legacy catalog endpoint for backward compatibility
+app.get('/catalog-old', (req: Request, res: Response) => {
   const html = `
 <!DOCTYPE html>
 <html lang="en">

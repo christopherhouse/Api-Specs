@@ -1,0 +1,819 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Mock Server - Catalog</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: #f5f7fa;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .app-container {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* Sidebar Styles */
+        .sidebar {
+            width: 320px;
+            background: white;
+            border-right: 1px solid #e1e4e8;
+            display: flex;
+            flex-direction: column;
+            position: fixed;
+            height: 100vh;
+            overflow-y: auto;
+            z-index: 100;
+        }
+
+        .sidebar-header {
+            padding: 1.5rem;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .sidebar-header h1 {
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .sidebar-header p {
+            font-size: 0.85rem;
+            opacity: 0.9;
+        }
+
+        .search-filter-section {
+            padding: 1rem;
+            border-bottom: 1px solid #e1e4e8;
+        }
+
+        .search-box {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            margin-bottom: 0.75rem;
+            transition: border-color 0.2s;
+        }
+
+        .search-box:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .filter-section {
+            margin-top: 0.75rem;
+        }
+
+        .filter-label {
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            color: #6b7280;
+            margin-bottom: 0.5rem;
+            display: block;
+        }
+
+        .filter-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .filter-btn {
+            padding: 0.4rem 0.75rem;
+            border: 1px solid #d1d5db;
+            background: white;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-transform: uppercase;
+        }
+
+        .filter-btn:hover {
+            border-color: #667eea;
+            background: #f3f4f6;
+        }
+
+        .filter-btn.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .scenarios-tree {
+            flex: 1;
+            overflow-y: auto;
+            padding: 0.5rem 0;
+        }
+
+        .scenario-item {
+            margin-bottom: 0.25rem;
+        }
+
+        .scenario-header {
+            padding: 0.75rem 1rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: background 0.2s;
+            user-select: none;
+        }
+
+        .scenario-header:hover {
+            background: #f3f4f6;
+        }
+
+        .scenario-toggle {
+            font-size: 0.75rem;
+            color: #6b7280;
+            transition: transform 0.2s;
+        }
+
+        .scenario-item.expanded .scenario-toggle {
+            transform: rotate(90deg);
+        }
+
+        .scenario-name {
+            font-weight: 600;
+            color: #1f2937;
+            text-transform: capitalize;
+            flex: 1;
+        }
+
+        .scenario-count {
+            font-size: 0.75rem;
+            color: #6b7280;
+            background: #f3f4f6;
+            padding: 0.2rem 0.5rem;
+            border-radius: 10px;
+        }
+
+        .scenario-children {
+            display: none;
+            padding-left: 1rem;
+        }
+
+        .scenario-item.expanded .scenario-children {
+            display: block;
+        }
+
+        .format-group {
+            margin-bottom: 0.5rem;
+        }
+
+        .format-header {
+            padding: 0.5rem 1rem;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #4b5563;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .format-header:hover {
+            background: #f9fafb;
+        }
+
+        .format-toggle {
+            font-size: 0.7rem;
+            color: #9ca3af;
+            transition: transform 0.2s;
+        }
+
+        .format-group.expanded .format-toggle {
+            transform: rotate(90deg);
+        }
+
+        .format-apis {
+            display: none;
+        }
+
+        .format-group.expanded .format-apis {
+            display: block;
+        }
+
+        .api-tree-item {
+            padding: 0.5rem 1rem 0.5rem 2.5rem;
+            cursor: pointer;
+            transition: background 0.2s;
+            font-size: 0.85rem;
+            color: #4b5563;
+        }
+
+        .api-tree-item:hover {
+            background: #f3f4f6;
+            color: #667eea;
+        }
+
+        .api-tree-item.selected {
+            background: #ede9fe;
+            color: #667eea;
+            font-weight: 500;
+        }
+
+        /* Main Content Styles */
+        .main-content {
+            flex: 1;
+            margin-left: 320px;
+        }
+
+        .content-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 2rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .content-header h2 {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .content-header p {
+            opacity: 0.9;
+        }
+
+        .stats {
+            display: flex;
+            gap: 1rem;
+            padding: 1.5rem;
+            background: white;
+            border-bottom: 1px solid #e1e4e8;
+            flex-wrap: wrap;
+        }
+
+        .stat-card {
+            background: #f9fafb;
+            padding: 1rem 1.5rem;
+            border-radius: 8px;
+            border: 1px solid #e5e7eb;
+            text-align: center;
+        }
+
+        .stat-card .number {
+            font-size: 1.75rem;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .stat-card .label {
+            color: #6b7280;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .api-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+            gap: 1.5rem;
+            padding: 1.5rem;
+        }
+
+        .api-card {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            overflow: hidden;
+            transition: all 0.2s;
+            cursor: pointer;
+            border: 2px solid transparent;
+        }
+
+        .api-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+            border-color: #667eea;
+        }
+
+        .api-card-header {
+            padding: 1.25rem;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .api-card-title {
+            font-size: 1.15rem;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+        }
+
+        .api-card-meta {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 0.25rem 0.6rem;
+            border-radius: 12px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            background: rgba(255,255,255,0.2);
+        }
+
+        .api-card-body {
+            padding: 1.25rem;
+        }
+
+        .api-info {
+            margin-bottom: 0.75rem;
+        }
+
+        .api-info-label {
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 0.25rem;
+            font-size: 0.85rem;
+        }
+
+        .api-info-value {
+            color: #6b7280;
+            font-size: 0.85rem;
+        }
+
+        .base-path {
+            background: #f9fafb;
+            padding: 0.5rem 0.75rem;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.8rem;
+            word-break: break-all;
+            margin-bottom: 0.75rem;
+            border: 1px solid #e5e7eb;
+        }
+
+        .endpoints {
+            margin-top: 0.75rem;
+        }
+
+        .endpoints-title {
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 0.5rem;
+            font-size: 0.85rem;
+        }
+
+        .endpoint {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.4rem;
+            background: #f9fafb;
+            border-radius: 4px;
+            margin-bottom: 0.4rem;
+            font-size: 0.8rem;
+        }
+
+        .method {
+            font-weight: bold;
+            padding: 0.2rem 0.5rem;
+            border-radius: 3px;
+            font-size: 0.65rem;
+            min-width: 55px;
+            text-align: center;
+        }
+
+        .method.get { background: #61affe; color: white; }
+        .method.post { background: #49cc90; color: white; }
+        .method.put { background: #fca130; color: white; }
+        .method.patch { background: #50e3c2; color: white; }
+        .method.delete { background: #f93e3e; color: white; }
+
+        .endpoint-path {
+            flex: 1;
+            font-family: 'Courier New', monospace;
+            color: #6b7280;
+        }
+
+        .no-results {
+            text-align: center;
+            padding: 4rem 2rem;
+            color: #6b7280;
+        }
+
+        .no-results-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+
+        @media (max-width: 1024px) {
+            .sidebar {
+                width: 280px;
+            }
+            .main-content {
+                margin-left: 280px;
+            }
+            .api-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                display: none;
+            }
+            .main-content {
+                margin-left: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Left Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h1>🚀 API Catalog</h1>
+                <p>Browse and explore mock APIs</p>
+            </div>
+
+            <div class="search-filter-section">
+                <input
+                    type="text"
+                    class="search-box"
+                    id="searchInput"
+                    placeholder="Search scenarios or APIs..."
+                >
+
+                <div class="filter-section">
+                    <label class="filter-label">Filter by Format</label>
+                    <div class="filter-buttons">
+                        <button class="filter-btn active" data-format="all">All</button>
+                        <button class="filter-btn" data-format="openapi">OpenAPI</button>
+                        <button class="filter-btn" data-format="graphql">GraphQL</button>
+                        <button class="filter-btn" data-format="raml">RAML</button>
+                        <button class="filter-btn" data-format="wadl">WADL</button>
+                        <button class="filter-btn" data-format="soap">SOAP</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="scenarios-tree" id="scenariosTree">
+                <!-- Will be populated by JavaScript -->
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="content-header">
+                <h2>API Specifications</h2>
+                <p>Select an API from the sidebar or browse all available APIs below</p>
+            </div>
+
+            <div class="stats">
+                <div class="stat-card">
+                    <div class="number" id="totalCount">0</div>
+                    <div class="label">Total APIs</div>
+                </div>
+                <div class="stat-card">
+                    <div class="number" id="openapiCount">0</div>
+                    <div class="label">OpenAPI</div>
+                </div>
+                <div class="stat-card">
+                    <div class="number" id="graphqlCount">0</div>
+                    <div class="label">GraphQL</div>
+                </div>
+                <div class="stat-card">
+                    <div class="number" id="ramlCount">0</div>
+                    <div class="label">RAML</div>
+                </div>
+                <div class="stat-card">
+                    <div class="number" id="wadlCount">0</div>
+                    <div class="label">WADL</div>
+                </div>
+                <div class="stat-card">
+                    <div class="number" id="soapCount">0</div>
+                    <div class="label">SOAP</div>
+                </div>
+            </div>
+
+            <div class="api-grid" id="apiGrid">
+                <!-- Will be populated by JavaScript -->
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // This will be populated with API data from the server
+        let apiData = [];
+
+        // Fetch API data on load
+        async function loadAPIData() {
+            try {
+                const response = await fetch('/catalog/data');
+                apiData = await response.json();
+                renderAll();
+            } catch (error) {
+                console.error('Failed to load API data:', error);
+            }
+        }
+
+        // State
+        let currentFilter = 'all';
+        let searchTerm = '';
+
+        function renderSidebar() {
+            const tree = document.getElementById('scenariosTree');
+            const apisByScenario = {};
+
+            apiData.forEach(api => {
+                if (!apisByScenario[api.domain]) {
+                    apisByScenario[api.domain] = [];
+                }
+                apisByScenario[api.domain].push(api);
+            });
+
+            const scenarios = Object.keys(apisByScenario).sort();
+
+            tree.innerHTML = scenarios.map(scenario => {
+                const apis = apisByScenario[scenario];
+                const apisByFormat = {};
+
+                apis.forEach(api => {
+                    if (!apisByFormat[api.format]) {
+                        apisByFormat[api.format] = [];
+                    }
+                    apisByFormat[api.format].push(api);
+                });
+
+                const formatOrder = ['graphql', 'openapi', 'raml', 'wadl', 'soap'];
+                const formats = formatOrder.filter(f => apisByFormat[f]);
+
+                return `
+                    <div class="scenario-item" data-scenario="${scenario}">
+                        <div class="scenario-header">
+                            <span class="scenario-toggle">▶</span>
+                            <span class="scenario-name">${scenario}</span>
+                            <span class="scenario-count">${apis.length}</span>
+                        </div>
+                        <div class="scenario-children">
+                            ${formats.map(format => {
+                                const formatLabel = {
+                                    'graphql': 'GraphQL',
+                                    'openapi': 'REST - OpenAPI',
+                                    'raml': 'REST - RAML',
+                                    'wadl': 'REST - WADL',
+                                    'soap': 'SOAP'
+                                }[format];
+
+                                return `
+                                    <div class="format-group" data-format="${format}">
+                                        <div class="format-header">
+                                            <span class="format-toggle">▶</span>
+                                            <span>${formatLabel}</span>
+                                        </div>
+                                        <div class="format-apis">
+                                            ${apisByFormat[format].map(api => `
+                                                <div class="api-tree-item"
+                                                     data-api-id="${api.id}"
+                                                     data-format="${format}"
+                                                     data-scenario="${scenario}"
+                                                     data-console-url="${api.consoleUrl}">
+                                                    ${api.title}
+                                                </div>
+                                            `).join('')}
+                                        </div>
+                                    </div>
+                                `;
+                            }).join('')}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            setupSidebarListeners();
+        }
+
+        function renderCards() {
+            const grid = document.getElementById('apiGrid');
+
+            grid.innerHTML = apiData.map(api => `
+                <div class="api-card"
+                     data-api-id="${api.id}"
+                     data-format="${api.format}"
+                     data-scenario="${api.domain}"
+                     data-console-url="${api.consoleUrl}">
+                    <div class="api-card-header">
+                        <div class="api-card-title">${api.title}</div>
+                        <div class="api-card-meta">
+                            <span class="badge">${api.format.toUpperCase()}</span>
+                            <span class="badge">${api.domain}</span>
+                            ${api.version ? `<span class="badge">v${api.version}</span>` : ''}
+                        </div>
+                    </div>
+                    <div class="api-card-body">
+                        ${api.description ? `
+                            <div class="api-info">
+                                <div class="api-info-label">Description</div>
+                                <div class="api-info-value">${api.description}</div>
+                            </div>
+                        ` : ''}
+
+                        <div class="api-info">
+                            <div class="api-info-label">Base Path</div>
+                            <div class="base-path">${api.basePath}</div>
+                        </div>
+
+                        ${api.endpoints && api.endpoints.length > 0 ? `
+                            <div class="endpoints">
+                                <div class="endpoints-title">Endpoints (${api.endpoints.length})</div>
+                                ${api.endpoints.slice(0, 5).map(e => `
+                                    <div class="endpoint">
+                                        <span class="method ${e.method.toLowerCase()}">${e.method}</span>
+                                        <span class="endpoint-path">${e.path}</span>
+                                    </div>
+                                `).join('')}
+                                ${api.endpoints.length > 5 ? `
+                                    <div style="text-align: center; color: #9ca3af; font-size: 0.8rem; margin-top: 0.5rem;">
+                                        +${api.endpoints.length - 5} more endpoints
+                                    </div>
+                                ` : ''}
+                            </div>
+                        ` : ''}
+                    </div>
+                </div>
+            `).join('');
+
+            setupCardListeners();
+        }
+
+        function renderStats() {
+            document.getElementById('totalCount').textContent = apiData.length;
+            document.getElementById('openapiCount').textContent = apiData.filter(a => a.format === 'openapi').length;
+            document.getElementById('graphqlCount').textContent = apiData.filter(a => a.format === 'graphql').length;
+            document.getElementById('ramlCount').textContent = apiData.filter(a => a.format === 'raml').length;
+            document.getElementById('wadlCount').textContent = apiData.filter(a => a.format === 'wadl').length;
+            document.getElementById('soapCount').textContent = apiData.filter(a => a.format === 'soap').length;
+        }
+
+        function renderAll() {
+            renderSidebar();
+            renderCards();
+            renderStats();
+        }
+
+        function setupSidebarListeners() {
+            document.querySelectorAll('.scenario-header').forEach(header => {
+                header.addEventListener('click', () => {
+                    header.parentElement.classList.toggle('expanded');
+                });
+            });
+
+            document.querySelectorAll('.format-header').forEach(header => {
+                header.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    header.parentElement.classList.toggle('expanded');
+                });
+            });
+
+            document.querySelectorAll('.api-tree-item').forEach(item => {
+                item.addEventListener('click', () => {
+                    document.querySelectorAll('.api-tree-item').forEach(i => i.classList.remove('selected'));
+                    item.classList.add('selected');
+
+                    const consoleUrl = item.dataset.consoleUrl;
+                    if (consoleUrl) {
+                        window.open(consoleUrl, '_blank');
+                    }
+                });
+            });
+        }
+
+        function setupCardListeners() {
+            document.querySelectorAll('.api-card').forEach(card => {
+                card.addEventListener('click', () => {
+                    const consoleUrl = card.dataset.consoleUrl;
+                    if (consoleUrl) {
+                        window.open(consoleUrl, '_blank');
+                    }
+                });
+            });
+        }
+
+        // Filter buttons
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                currentFilter = btn.dataset.format;
+                filterApis();
+            });
+        });
+
+        // Search functionality
+        document.getElementById('searchInput').addEventListener('input', (e) => {
+            searchTerm = e.target.value.toLowerCase();
+            filterApis();
+        });
+
+        // Filter APIs based on current filter and search
+        function filterApis() {
+            const cards = document.querySelectorAll('.api-card');
+            const treeItems = document.querySelectorAll('.api-tree-item');
+            const scenarios = document.querySelectorAll('.scenario-item');
+            const formatGroups = document.querySelectorAll('.format-group');
+
+            let visibleCount = 0;
+
+            cards.forEach(card => {
+                const format = card.dataset.format;
+                const scenario = card.dataset.scenario;
+                const apiId = card.dataset.apiId;
+                const api = apiData.find(a => a.id === apiId);
+
+                const matchesFilter = currentFilter === 'all' || format === currentFilter;
+                const matchesSearch = !searchTerm ||
+                    scenario.toLowerCase().includes(searchTerm) ||
+                    (api && api.title.toLowerCase().includes(searchTerm)) ||
+                    (api && api.apiName.toLowerCase().includes(searchTerm));
+
+                if (matchesFilter && matchesSearch) {
+                    card.style.display = 'block';
+                    visibleCount++;
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+
+            // Update sidebar tree visibility
+            treeItems.forEach(item => {
+                const format = item.dataset.format;
+                const scenario = item.dataset.scenario;
+                const apiId = item.dataset.apiId;
+                const api = apiData.find(a => a.id === apiId);
+
+                const matchesFilter = currentFilter === 'all' || format === currentFilter;
+                const matchesSearch = !searchTerm ||
+                    scenario.toLowerCase().includes(searchTerm) ||
+                    (api && api.title.toLowerCase().includes(searchTerm)) ||
+                    (api && api.apiName.toLowerCase().includes(searchTerm));
+
+                item.style.display = matchesFilter && matchesSearch ? 'block' : 'none';
+            });
+
+            // Hide empty format groups
+            formatGroups.forEach(group => {
+                const visibleItems = Array.from(group.querySelectorAll('.api-tree-item'))
+                    .filter(item => item.style.display !== 'none');
+                group.style.display = visibleItems.length > 0 ? 'block' : 'none';
+            });
+
+            // Hide empty scenarios
+            scenarios.forEach(scenario => {
+                const visibleGroups = Array.from(scenario.querySelectorAll('.format-group'))
+                    .filter(group => group.style.display !== 'none');
+                scenario.style.display = visibleGroups.length > 0 ? 'block' : 'none';
+            });
+
+            // Update total count
+            document.getElementById('totalCount').textContent = visibleCount;
+
+            // Show no results message
+            const grid = document.getElementById('apiGrid');
+            if (visibleCount === 0) {
+                if (!document.getElementById('noResults')) {
+                    const noResults = document.createElement('div');
+                    noResults.id = 'noResults';
+                    noResults.className = 'no-results';
+                    noResults.innerHTML = `
+                        <div class="no-results-icon">🔍</div>
+                        <h3>No APIs found</h3>
+                        <p>Try adjusting your search or filter criteria</p>
+                    `;
+                    grid.appendChild(noResults);
+                }
+            } else {
+                const noResults = document.getElementById('noResults');
+                if (noResults) {
+                    noResults.remove();
+                }
+            }
+        }
+
+        // Load data on page load
+        loadAPIData();
+    </script>
+</body>
+</html>
