@@ -226,9 +226,9 @@ describe('OpenAPIMockGenerator', () => {
 
       expect(response.statusCode).toBe(200);
       expect(Array.isArray(response.data)).toBe(true);
-      expect(response.data.length).toBeGreaterThan(0);
-      expect(response.data[0]).toHaveProperty('id');
-      expect(response.data[0]).toHaveProperty('name');
+      expect((response.data as any[]).length).toBeGreaterThan(0);
+      expect((response.data as any[])[0]).toHaveProperty('id');
+      expect((response.data as any[])[0]).toHaveProperty('name');
     });
 
     it('should generate mock data for string types with formats', () => {
@@ -259,9 +259,9 @@ describe('OpenAPIMockGenerator', () => {
 
       const response = generator.generateMockResponse(endpoint);
 
-      expect(response.data.email).toContain('@');
-      expect(response.data.uuid).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i);
-      expect(response.data.url).toMatch(/^https?:\/\//);
+      expect((response.data as any).email).toContain('@');
+      expect((response.data as any).uuid).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i);
+      expect((response.data as any).url).toMatch(/^https?:\/\//);
     });
 
     it('should generate mock data for enum values', () => {
@@ -288,7 +288,7 @@ describe('OpenAPIMockGenerator', () => {
 
       const response = generator.generateMockResponse(endpoint);
 
-      expect(['active', 'inactive', 'pending']).toContain(response.data.status);
+      expect(['active', 'inactive', 'pending']).toContain((response.data as any).status);
     });
 
     it('should generate mock data for number and integer types', () => {
@@ -316,10 +316,10 @@ describe('OpenAPIMockGenerator', () => {
 
       const response = generator.generateMockResponse(endpoint);
 
-      expect(Number.isInteger(response.data.age)).toBe(true);
-      expect(response.data.age).toBeGreaterThanOrEqual(0);
-      expect(response.data.age).toBeLessThanOrEqual(100);
-      expect(typeof response.data.price).toBe('number');
+      expect(Number.isInteger((response.data as any).age)).toBe(true);
+      expect((response.data as any).age).toBeGreaterThanOrEqual(0);
+      expect((response.data as any).age).toBeLessThanOrEqual(100);
+      expect(typeof (response.data as any).price).toBe('number');
     });
 
     it('should generate mock data for boolean types', () => {
@@ -346,7 +346,7 @@ describe('OpenAPIMockGenerator', () => {
 
       const response = generator.generateMockResponse(endpoint);
 
-      expect(typeof response.data.isActive).toBe('boolean');
+      expect(typeof (response.data as any).isActive).toBe('boolean');
     });
 
     it('should return default response when no content is defined', () => {

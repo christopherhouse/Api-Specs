@@ -7,8 +7,27 @@ export interface SoapOperation {
   description?: string;
 }
 
+interface WsdlOperation {
+  '@_name'?: string;
+  documentation?: string;
+}
+
+interface WsdlPortType {
+  operation?: WsdlOperation | WsdlOperation[];
+}
+
+interface WsdlParsedData {
+  definitions?: {
+    portType?: WsdlPortType;
+    documentation?: string;
+    service?: {
+      '@_name'?: string;
+    };
+  };
+}
+
 export class SoapMockGenerator {
-  private wsdlData?: any;
+  private wsdlData?: WsdlParsedData;
   private operations: SoapOperation[] = [];
 
   loadSpec(filePath: string): void {

@@ -4,6 +4,7 @@ import * as https from 'https';
 import cors from 'cors';
 import swaggerUi from 'swagger-ui-express';
 import * as fs from 'fs';
+import SwaggerParser from '@apidevtools/swagger-parser';
 import { SpecDiscovery, SpecFile } from './discovery';
 import { OpenAPIMockGenerator } from './generators/openapi-generator';
 import { GraphQLMockGenerator } from './generators/graphql-generator';
@@ -47,8 +48,8 @@ const specs = discovery.discoverSpecs();
 interface ApiEndpoint {
   spec: SpecFile;
   basePath: string;
-  info: any;
-  endpoints?: any[];
+  info: { title: string; description?: string; version?: string };
+  endpoints?: { path: string; method: string; description?: string }[];
 }
 
 const apiEndpoints: ApiEndpoint[] = [];
@@ -88,8 +89,9 @@ async function setupOpenApiMock(spec: SpecFile, basePath: string) {
   const router = Router();
 
   // Add Swagger UI documentation route
-  const SwaggerParser = require('swagger-parser');
-  const specContent = await SwaggerParser.parse(spec.filePath);
+  const specContent = await SwaggerParser.parse(spec.filePath) as Record<string, unknown> & {
+    servers?: { url: string; description: string }[];
+  };
   // Update server URL in spec to point to the mock server
   if (!specContent.servers || specContent.servers.length === 0) {
     specContent.servers = [{ url: basePath, description: 'Mock Server' }];
@@ -112,7 +114,7 @@ async function setupOpenApiMock(spec: SpecFile, basePath: string) {
 
     router[method](expressPath, (req: Request, res: Response) => {
       // Validate required parameters
-      const requiredParams = endpoint.parameters.filter((p: any) => p.required);
+      const requiredParams = endpoint.parameters.filter((p: { required?: boolean }) => p.required);
 
       for (const param of requiredParams) {
         const paramValue = param.in === 'path' ? req.params[param.name] :

@@ -1,5 +1,5 @@
 import * as fs from 'fs';
-import { buildSchema, GraphQLSchema, GraphQLObjectType, GraphQLFieldMap } from 'graphql';
+import { buildSchema, GraphQLSchema, GraphQLObjectType, GraphQLOutputType, GraphQLNonNull, GraphQLList } from 'graphql';
 import { faker } from '@faker-js/faker';
 
 export class GraphQLMockGenerator {
@@ -22,12 +22,12 @@ export class GraphQLMockGenerator {
   /**
    * Create a mock resolver that generates random data based on field type
    */
-  createMockResolvers(): any {
+  createMockResolvers(): Record<string, Record<string, () => unknown>> {
     if (!this.schema) {
       return {};
     }
 
-    const resolvers: any = {};
+    const resolvers: Record<string, Record<string, () => unknown>> = {};
 
     // Mock Query type
     const queryType = this.schema.getQueryType();
@@ -44,9 +44,9 @@ export class GraphQLMockGenerator {
     return resolvers;
   }
 
-  private createResolversForType(type: GraphQLObjectType): any {
-    const resolvers: any = {};
-    const fields: GraphQLFieldMap<any, any> = type.getFields();
+  private createResolversForType(type: GraphQLObjectType): Record<string, () => unknown> {
+    const resolvers: Record<string, () => unknown> = {};
+    const fields = type.getFields();
 
     for (const [fieldName, field] of Object.entries(fields)) {
       resolvers[fieldName] = () => {
@@ -57,7 +57,7 @@ export class GraphQLMockGenerator {
     return resolvers;
   }
 
-  private generateMockData(type: any, depth: number = 0): any {
+  private generateMockData(type: GraphQLOutputType, depth: number = 0): unknown {
     // Prevent infinite recursion
     if (depth > 5) {
       return null;
@@ -67,13 +67,13 @@ export class GraphQLMockGenerator {
 
     // Handle Non-Null types
     if (typeName.endsWith('!')) {
-      const innerType = type.ofType;
+      const innerType = (type as GraphQLNonNull<GraphQLOutputType>).ofType;
       return this.generateMockData(innerType, depth);
     }
 
     // Handle List types
     if (typeName.startsWith('[')) {
-      const innerType = type.ofType;
+      const innerType = (type as GraphQLList<GraphQLOutputType>).ofType;
       const itemCount = faker.number.int({ min: 1, max: 5 });
       return Array.from({ length: itemCount }, () => this.generateMockData(innerType, depth + 1));
     }
@@ -105,12 +105,13 @@ export class GraphQLMockGenerator {
     }
 
     // Handle object types
-    if (type.getFields) {
-      const obj: any = {};
-      const fields = type.getFields();
+    if ('getFields' in type && typeof type.getFields === 'function') {
+      const objectType = type as GraphQLObjectType;
+      const obj: Record<string, unknown> = {};
+      const fields = objectType.getFields();
 
       for (const [fieldName, field] of Object.entries(fields)) {
-        obj[fieldName] = this.generateMockData((field as any).type, depth + 1);
+        obj[fieldName] = this.generateMockData(field.type, depth + 1);
       }
 
       return obj;

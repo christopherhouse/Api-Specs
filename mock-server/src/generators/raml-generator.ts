@@ -61,7 +61,7 @@ export class RamlMockGenerator {
     return this.endpoints;
   }
 
-  generateMockResponse(): any {
+  generateMockResponse(): { statusCode: number; data: Record<string, unknown> } {
     return {
       statusCode: 200,
       data: {
