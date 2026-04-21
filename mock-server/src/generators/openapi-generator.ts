@@ -149,7 +149,10 @@ export class OpenAPIMockGenerator {
     if (schema.type === 'array') {
       const itemCount = faker.number.int({ min: 1, max: 5 });
       const items = schema.items;
-      return Array.from({ length: itemCount }, () => this.generateFromSchema(items!, depth + 1));
+      if (!items) {
+        return [];
+      }
+      return Array.from({ length: itemCount }, () => this.generateFromSchema(items, depth + 1));
     }
 
     if (schema.type === 'string') {
