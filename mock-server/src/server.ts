@@ -1,5 +1,6 @@
-import express, { Request, Response, Router } from 'express';
+import express, { Request, Response, NextFunction, Router } from 'express';
 import * as path from 'path';
+import * as https from 'https';
 import cors from 'cors';
 import swaggerUi from 'swagger-ui-express';
 import * as fs from 'fs';
@@ -10,14 +11,33 @@ import { RamlMockGenerator } from './generators/raml-generator';
 import { WadlMockGenerator } from './generators/wadl-generator';
 import { SoapMockGenerator } from './generators/soap-generator';
 import { createHandler } from 'graphql-http/lib/use/express';
+import { resolveConfig, ServerConfig } from './config';
+
+const config: ServerConfig = resolveConfig();
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = config.port;
 
-// Middleware
-app.use(cors());
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+// Middleware — CORS with config
+app.use(cors({
+  origin: config.cors.origin,
+  methods: config.cors.methods,
+  allowedHeaders: config.cors.allowedHeaders,
+  credentials: config.cors.credentials,
+  maxAge: config.cors.maxAge,
+}));
+app.use(express.json({ limit: config.bodyLimit }));
+app.use(express.urlencoded({ extended: true, limit: config.bodyLimit }));
+
+// Optional response delay middleware
+if (config.responseDelay.enabled) {
+  app.use((_req: Request, _res: Response, next: NextFunction) => {
+    const delay = Math.floor(
+      Math.random() * (config.responseDelay.maxMs - config.responseDelay.minMs + 1)
+    ) + config.responseDelay.minMs;
+    setTimeout(next, delay);
+  });
+}
 
 // Discover all specs
 const scenariosPath = path.join(__dirname, '../../scenarios');
@@ -1035,14 +1055,40 @@ app.get('/', (req: Request, res: Response) => {
 async function start() {
   await setupMockEndpoints();
 
-  app.listen(PORT, () => {
+  const protocol = config.tls.enabled ? 'https' : 'http';
+
+  const onListening = () => {
     console.log('\n' + '='.repeat(60));
     console.log('🚀 Mock API Server is running!');
     console.log('='.repeat(60));
-    console.log(`\n📍 Server URL: http://localhost:${PORT}`);
-    console.log(`📋 Catalog UI: http://localhost:${PORT}/catalog`);
+    console.log(`\n📍 Server URL: ${protocol}://${config.host === '0.0.0.0' ? 'localhost' : config.host}:${PORT}`);
+    console.log(`📋 Catalog UI: ${protocol}://${config.host === '0.0.0.0' ? 'localhost' : config.host}:${PORT}/catalog`);
+    if (config.tls.enabled) {
+      console.log(`🔒 TLS enabled`);
+    }
+    if (config.responseDelay.enabled) {
+      console.log(`⏱️  Response delay: ${config.responseDelay.minMs}–${config.responseDelay.maxMs}ms`);
+    }
     console.log(`\n✨ ${apiEndpoints.length} APIs are ready to serve mock data\n`);
-  });
+  };
+
+  if (config.tls.enabled) {
+    let key: Buffer;
+    let cert: Buffer;
+    try {
+      key = fs.readFileSync(config.tls.keyFile);
+    } catch (err) {
+      throw new Error(`Failed to read TLS key file: ${config.tls.keyFile} — ${(err as Error).message}`);
+    }
+    try {
+      cert = fs.readFileSync(config.tls.certFile);
+    } catch (err) {
+      throw new Error(`Failed to read TLS cert file: ${config.tls.certFile} — ${(err as Error).message}`);
+    }
+    https.createServer({ key, cert }, app).listen(PORT, config.host, onListening);
+  } else {
+    app.listen(PORT, config.host, onListening);
+  }
 }
 
 start().catch(console.error);
