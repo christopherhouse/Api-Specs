@@ -68,7 +68,8 @@ async function setupOpenApiMock(spec: SpecFile, basePath: string) {
   const router = Router();
 
   // Add Swagger UI documentation route
-  const specContent = JSON.parse(fs.readFileSync(spec.filePath, 'utf-8'));
+  const SwaggerParser = require('swagger-parser');
+  const specContent = await SwaggerParser.parse(spec.filePath);
   // Update server URL in spec to point to the mock server
   if (!specContent.servers || specContent.servers.length === 0) {
     specContent.servers = [{ url: basePath, description: 'Mock Server' }];
