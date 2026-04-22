@@ -7,6 +7,7 @@ module.exports = {
     'src/**/*.ts',
     '!src/**/*.d.ts',
     '!src/**/__tests__/**',
+    '!src/server.ts',
   ],
   coveragePathIgnorePatterns: [
     '/node_modules/',
