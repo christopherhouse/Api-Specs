@@ -948,6 +948,16 @@ async function setupSoapMock(spec: SpecFile, basePath: string) {
 <script>
     const CONSOLE_DATA = ${JSON.stringify(consoleData)};
 
+    // Safe HTML escape – used whenever WSDL-derived text is inserted into innerHTML
+    function escHtml(s) {
+        return String(s)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
     function formatXml(xml) {
         try {
             const INDENT = '  ';
@@ -989,7 +999,7 @@ async function setupSoapMock(spec: SpecFile, basePath: string) {
         const op = CONSOLE_DATA.operations[idx];
 
         btn.disabled = true;
-        btn.innerHTML = '<span class="spinner"></span> Sending…';
+        btn.innerHTML = '<span class="spinner"></span> Sending\u2026';
 
         const headers = { 'Content-Type': 'text/xml' };
         if (op.soapAction) headers['SOAPAction'] = '"' + op.soapAction + '"';
@@ -1035,15 +1045,15 @@ async function setupSoapMock(spec: SpecFile, basePath: string) {
             <div class="opblock" id="opblock-\${idx}">
                 <div class="opblock-summary" onclick="toggleOp(\${idx})">
                     <span class="opblock-method">SOAP</span>
-                    <span class="opblock-name">\${op.name}</span>
-                    \${op.description ? '<span class="opblock-desc">' + op.description + '</span>' : '<span class="opblock-desc"></span>'}
+                    <span class="opblock-name">\${escHtml(op.name)}</span>
+                    \${op.description ? '<span class="opblock-desc">' + escHtml(op.description) + '</span>' : '<span class="opblock-desc"></span>'}
                     <span class="opblock-chevron">&#x25BC;</span>
                 </div>
                 <div class="opblock-body">
                     \${op.description ? \`
                     <div class="op-section">
                         <div class="op-section-label">Description</div>
-                        <p class="description-text">\${op.description}</p>
+                        <p class="description-text">\${escHtml(op.description)}</p>
                     </div>\` : ''}
 
                     <div class="op-section">
@@ -1051,7 +1061,7 @@ async function setupSoapMock(spec: SpecFile, basePath: string) {
                         <div class="soap-action-row">
                             <span class="soap-action-label">SOAPAction:</span>
                             \${op.soapAction
-                                ? '<span class="soap-action-value">' + op.soapAction + '</span>'
+                                ? '<span class="soap-action-value">' + escHtml(op.soapAction) + '</span>'
                                 : '<span class="soap-action-empty">(none)</span>'}
                         </div>
                     </div>
@@ -1059,7 +1069,7 @@ async function setupSoapMock(spec: SpecFile, basePath: string) {
                     <div class="op-section">
                         <div class="op-section-label">Request Body</div>
                         <div class="content-type-label">Content-Type: text/xml (SOAP 1.1)</div>
-                        <textarea class="request-textarea" id="req-textarea-\${idx}" spellcheck="false">\${op.requestTemplate.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</textarea>
+                        <textarea class="request-textarea" id="req-textarea-\${idx}" spellcheck="false">\${escHtml(op.requestTemplate)}</textarea>
                         <div class="execute-row">
                             <button class="btn btn-execute" id="execute-btn-\${idx}" onclick="executeOp(\${idx})">
                                 &#x25B6; Execute
@@ -1098,13 +1108,17 @@ async function setupSoapMock(spec: SpecFile, basePath: string) {
       const matched = operations.find(op => op.soapAction === soapActionHeader);
       if (matched) operationName = matched.name;
     } else if (typeof req.body === 'string') {
-      // Extract operation element from inside soap:Body; cap length to guard against ReDoS
+      // Locate the Body element, then extract the first child element name without regex on untrusted input
       const xmlSnippet = req.body.substring(0, 4096);
-      const bodyMatch = xmlSnippet.match(/<\w+:Body[^>]*>\s*<(?:\w+:)?(\w+)/i);
-      if (bodyMatch) {
-        const candidate = bodyMatch[1].replace(/Request$/, '');
-        const matched = operations.find(op => op.name === candidate || op.name === bodyMatch[1]);
-        if (matched) operationName = matched.name;
+      const bodyTagEnd = xmlSnippet.indexOf(':Body>');
+      if (bodyTagEnd !== -1) {
+        const afterBody = xmlSnippet.substring(bodyTagEnd + 6).trimStart();
+        const nameMatch = afterBody.match(/^<(?:\w+:)?(\w+)/);
+        if (nameMatch) {
+          const candidate = nameMatch[1].replace(/Request$/, '');
+          const matched = operations.find(op => op.name === candidate || op.name === nameMatch[1]);
+          if (matched) operationName = matched.name;
+        }
       }
     }
 
