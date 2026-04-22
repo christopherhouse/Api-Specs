@@ -227,7 +227,16 @@ export function resolveConfig(argv: string[] = process.argv): ServerConfig {
     config = loadConfigFile(configPath);
     console.log(`📄 Loaded config from ${path.resolve(configPath)}`);
   } else {
-    config = { ...DEFAULT_CONFIG, cors: { ...DEFAULT_CONFIG.cors }, tls: { ...DEFAULT_CONFIG.tls }, responseDelay: { ...DEFAULT_CONFIG.responseDelay }, auth: { basic: { ...DEFAULT_CONFIG.auth.basic }, apiKey: { ...DEFAULT_CONFIG.auth.apiKey } } };
+    config = {
+      ...DEFAULT_CONFIG,
+      cors: { ...DEFAULT_CONFIG.cors },
+      tls: { ...DEFAULT_CONFIG.tls },
+      responseDelay: { ...DEFAULT_CONFIG.responseDelay },
+      auth: {
+        basic: { ...DEFAULT_CONFIG.auth.basic },
+        apiKey: { ...DEFAULT_CONFIG.auth.apiKey },
+      },
+    };
   }
 
   // Environment variable override for port

@@ -41,10 +41,10 @@ if (config.responseDelay.enabled) {
 }
 
 // Optional authentication middleware
-const basicEnabled = config.auth.basic.enabled;
-const apiKeyEnabled = config.auth.apiKey.enabled;
-if (basicEnabled || apiKeyEnabled) {
+if (config.auth.basic.enabled || config.auth.apiKey.enabled) {
   app.use((req: Request, res: Response, next: NextFunction) => {
+    const basicEnabled = config.auth.basic.enabled;
+    const apiKeyEnabled = config.auth.apiKey.enabled;
     if (basicEnabled) {
       const authHeader = req.headers['authorization'] ?? '';
       if (typeof authHeader === 'string' && authHeader.startsWith('Basic ')) {
