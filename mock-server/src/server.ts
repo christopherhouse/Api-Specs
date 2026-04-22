@@ -493,6 +493,14 @@ async function setupSoapMock(spec: SpecFile, basePath: string) {
 
   // SOAP Console endpoint — Swagger UI-style interactive test console
   router.get('/console', (_req: Request, res: Response) => {
+    // HTML-escape helper used for values inserted directly into the HTML document
+    const esc = (s: string) =>
+      s.replace(/&/g, '&amp;')
+       .replace(/</g, '&lt;')
+       .replace(/>/g, '&gt;')
+       .replace(/"/g, '&quot;')
+       .replace(/'/g, '&#39;');
+
     const consoleData = {
       title: info.title || spec.apiName,
       description: info.description || '',
@@ -513,7 +521,7 @@ async function setupSoapMock(spec: SpecFile, basePath: string) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>${consoleData.title} – SOAP Console</title>
+    <title>${esc(consoleData.title)} – SOAP Console</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -894,7 +902,7 @@ async function setupSoapMock(spec: SpecFile, basePath: string) {
         WSDL Console
     </div>
     <div class="topbar-links">
-        <a class="topbar-link" href="${basePath}/wsdl" target="_blank">
+        <a class="topbar-link" href="${esc(basePath)}/wsdl" target="_blank">
             &#x2197; View WSDL
         </a>
     </div>
@@ -904,27 +912,27 @@ async function setupSoapMock(spec: SpecFile, basePath: string) {
 <div class="info-wrapper">
     <div class="info-container">
         <div class="info-title">
-            ${consoleData.title}
+            ${esc(consoleData.title)}
         </div>
-        ${consoleData.description ? `<div class="info-description">${consoleData.description}</div>` : ''}
+        ${consoleData.description ? `<div class="info-description">${esc(consoleData.description)}</div>` : ''}
         <div class="info-meta">
             <span class="info-meta-item">
                 <strong>Mock endpoint:</strong>
-                <code>${consoleData.basePath}</code>
+                <code>${esc(consoleData.basePath)}</code>
             </span>
             ${consoleData.serviceEndpoint ? `
             <span class="info-meta-item">
                 <strong>WSDL service URL:</strong>
-                <code>${consoleData.serviceEndpoint}</code>
+                <code>${esc(consoleData.serviceEndpoint)}</code>
             </span>` : ''}
             ${consoleData.targetNamespace ? `
             <span class="info-meta-item">
                 <strong>Namespace:</strong>
-                <code>${consoleData.targetNamespace}</code>
+                <code>${esc(consoleData.targetNamespace)}</code>
             </span>` : ''}
         </div>
         <div style="margin-top: 1.25rem;">
-            <a class="wsdl-btn" href="${basePath}/wsdl" target="_blank">
+            <a class="wsdl-btn" href="${esc(basePath)}/wsdl" target="_blank">
                 &#x21E9; Download WSDL
             </a>
         </div>
@@ -1090,8 +1098,9 @@ async function setupSoapMock(spec: SpecFile, basePath: string) {
       const matched = operations.find(op => op.soapAction === soapActionHeader);
       if (matched) operationName = matched.name;
     } else if (typeof req.body === 'string') {
-      // Extract operation element from inside soap:Body
-      const bodyMatch = req.body.match(/<soap:Body[^>]*>\s*<(?:[^:]+:)?(\w+)/i);
+      // Extract operation element from inside soap:Body; cap length to guard against ReDoS
+      const xmlSnippet = req.body.substring(0, 4096);
+      const bodyMatch = xmlSnippet.match(/<\w+:Body[^>]*>\s*<(?:\w+:)?(\w+)/i);
       if (bodyMatch) {
         const candidate = bodyMatch[1].replace(/Request$/, '');
         const matched = operations.find(op => op.name === candidate || op.name === bodyMatch[1]);
