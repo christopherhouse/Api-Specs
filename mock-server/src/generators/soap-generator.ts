@@ -169,7 +169,8 @@ export class SoapMockGenerator {
   }
 
   private getSampleValue(xsdType: string): string {
-    switch (xsdType.toLowerCase()) {
+    const localType = (xsdType.split(':').pop() || xsdType).toLowerCase();
+    switch (localType) {
       case 'string': return 'string';
       case 'int': case 'integer': case 'long': case 'short': return '0';
       case 'decimal': case 'float': case 'double': return '0.0';
@@ -200,7 +201,7 @@ export class SoapMockGenerator {
     const fields = this.elementFields.get(inputElement) || [];
 
     const fieldLines = fields
-      .map(f => `      <tns:${f.name}>${this.getSampleValue(f.type.split(':').pop() || '')}</tns:${f.name}>`)
+      .map(f => `      <tns:${f.name}>${this.getSampleValue(f.type)}</tns:${f.name}>`)
       .join('\n');
 
     return `<?xml version="1.0" encoding="UTF-8"?>

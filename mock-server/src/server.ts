@@ -493,7 +493,7 @@ async function setupSoapMock(spec: SpecFile, basePath: string) {
 
   // SOAP Console endpoint — Swagger UI-style interactive test console
   router.get('/console', (_req: Request, res: Response) => {
-    // HTML-escape helper used for values inserted directly into the HTML document
+    // HTML-escape helper for values inserted directly into the HTML document
     const esc = (s: string) =>
       s.replace(/&/g, '&amp;')
        .replace(/</g, '&lt;')
@@ -501,27 +501,72 @@ async function setupSoapMock(spec: SpecFile, basePath: string) {
        .replace(/"/g, '&quot;')
        .replace(/'/g, '&#39;');
 
-    const consoleData = {
-      title: info.title || spec.apiName,
-      description: info.description || '',
-      basePath,
-      wsdlUrl: `${basePath}/wsdl`,
-      targetNamespace: generator.getTargetNamespace(),
-      serviceEndpoint: generator.getServiceEndpoint(),
-      operations: operations.map(op => ({
-        name: op.name,
-        description: op.description || '',
-        soapAction: op.soapAction || '',
-        requestTemplate: generator.getRequestTemplate(op.name)
-      }))
-    };
+    const title = info.title || spec.apiName;
+    const description = info.description || '';
+    const targetNamespace = generator.getTargetNamespace();
+    const serviceEndpoint = generator.getServiceEndpoint();
+
+    // Build operations HTML server-side so all WSDL-derived values are escaped
+    // before being placed in the document — no WSDL data flows through JavaScript.
+    const opsHtml = operations.length === 0
+      ? '<div class="no-ops"><div class="no-ops-icon">&#x26A0;</div><p>No operations found in this WSDL.</p></div>'
+      : operations.map((op, idx) => {
+          const tpl = generator.getRequestTemplate(op.name);
+          return `
+<div class="opblock" id="opblock-${idx}">
+    <div class="opblock-summary" onclick="toggleOp(${idx})">
+        <span class="opblock-method">SOAP</span>
+        <span class="opblock-name">${esc(op.name)}</span>
+        <span class="opblock-desc">${op.description ? esc(op.description) : ''}</span>
+        <span class="opblock-chevron">&#x25BC;</span>
+    </div>
+    <div class="opblock-body">
+        ${op.description ? `
+        <div class="op-section">
+            <div class="op-section-label">Description</div>
+            <p class="description-text">${esc(op.description)}</p>
+        </div>` : ''}
+        <div class="op-section">
+            <div class="op-section-label">SOAPAction</div>
+            <div class="soap-action-row">
+                <span class="soap-action-label">SOAPAction:</span>
+                ${op.soapAction
+                  ? `<span class="soap-action-value">${esc(op.soapAction)}</span>`
+                  : '<span class="soap-action-empty">(none)</span>'}
+            </div>
+        </div>
+        <div class="op-section">
+            <div class="op-section-label">Request Body</div>
+            <div class="content-type-label">Content-Type: text/xml (SOAP 1.1)</div>
+            <textarea class="request-textarea" id="req-textarea-${idx}" spellcheck="false">${esc(tpl)}</textarea>
+            <div class="execute-row">
+                <button class="btn btn-execute" id="execute-btn-${idx}"
+                    data-soap-action="${esc(op.soapAction || '')}"
+                    onclick="executeOp(${idx})">
+                    &#x25B6; Execute
+                </button>
+                <button class="btn btn-clear" onclick="clearResponse(${idx})">
+                    Clear
+                </button>
+            </div>
+        </div>
+        <div class="response-container" id="resp-container-${idx}">
+            <div class="response-header-row">
+                <span class="response-label">Server Response</span>
+                <span class="status-badge" id="resp-status-${idx}"></span>
+            </div>
+            <pre class="response-body-pre" id="resp-body-${idx}"></pre>
+        </div>
+    </div>
+</div>`;
+        }).join('');
 
     res.send(`<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>${esc(consoleData.title)} – SOAP Console</title>
+    <title>${esc(title)} – SOAP Console</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -567,10 +612,7 @@ async function setupSoapMock(spec: SpecFile, basePath: string) {
             border-radius: 4px;
             text-transform: uppercase;
         }
-        .topbar-links {
-            display: flex;
-            gap: 0.75rem;
-        }
+        .topbar-links { display: flex; gap: 0.75rem; }
         .topbar-link {
             display: inline-flex;
             align-items: center;
@@ -599,18 +641,6 @@ async function setupSoapMock(spec: SpecFile, basePath: string) {
             letter-spacing: -0.02em;
             line-height: 1.2;
             margin-bottom: 0.5rem;
-        }
-        .info-version {
-            display: inline-block;
-            background: rgba(255,255,255,0.15);
-            border: 1px solid rgba(255,255,255,0.25);
-            color: #e0e7ff;
-            font-size: 0.75rem;
-            font-weight: 600;
-            padding: 0.2rem 0.6rem;
-            border-radius: 20px;
-            margin-left: 0.75rem;
-            vertical-align: middle;
         }
         .info-description {
             margin-top: 0.75rem;
@@ -657,7 +687,6 @@ async function setupSoapMock(spec: SpecFile, basePath: string) {
 
         /* ── Operations container ────────────────── */
         .ops-wrapper { max-width: 1100px; margin: 2rem auto; padding: 0 2rem 3rem; }
-
         .ops-section-title {
             font-size: 0.7rem;
             font-weight: 700;
@@ -725,11 +754,7 @@ async function setupSoapMock(spec: SpecFile, basePath: string) {
         .opblock.expanded .opblock-chevron { transform: rotate(180deg); }
 
         /* ── Operation body ──────────────────────── */
-        .opblock-body {
-            display: none;
-            background: #fff;
-            padding: 1.5rem;
-        }
+        .opblock-body { display: none; background: #fff; padding: 1.5rem; }
         .opblock.expanded .opblock-body { display: block; }
 
         .op-section { margin-bottom: 1.5rem; }
@@ -753,27 +778,13 @@ async function setupSoapMock(spec: SpecFile, basePath: string) {
             padding: 0.6rem 0.875rem;
             font-size: 0.82rem;
         }
-        .soap-action-label {
-            font-weight: 600;
-            color: #5b21b6;
-            flex-shrink: 0;
-        }
-        .soap-action-value {
-            font-family: 'JetBrains Mono', monospace;
-            color: #374151;
-            word-break: break-all;
-        }
+        .soap-action-label { font-weight: 600; color: #5b21b6; flex-shrink: 0; }
+        .soap-action-value { font-family: 'JetBrains Mono', monospace; color: #374151; word-break: break-all; }
         .soap-action-empty { color: #9ca3af; font-style: italic; }
-
         .description-text { color: #4b5563; font-size: 0.88rem; }
 
         /* ── Request editor ──────────────────────── */
-        .content-type-label {
-            font-size: 0.75rem;
-            font-weight: 600;
-            color: #6b7280;
-            margin-bottom: 0.4rem;
-        }
+        .content-type-label { font-size: 0.75rem; font-weight: 600; color: #6b7280; margin-bottom: 0.4rem; }
         .request-textarea {
             width: 100%;
             min-height: 220px;
@@ -795,11 +806,7 @@ async function setupSoapMock(spec: SpecFile, basePath: string) {
         }
 
         /* ── Execute buttons ─────────────────────── */
-        .execute-row {
-            display: flex;
-            gap: 0.625rem;
-            margin-top: 0.875rem;
-        }
+        .execute-row { display: flex; gap: 0.625rem; margin-top: 0.875rem; }
         .btn {
             display: inline-flex;
             align-items: center;
@@ -813,51 +820,22 @@ async function setupSoapMock(spec: SpecFile, basePath: string) {
             transition: background 0.15s, transform 0.1s;
         }
         .btn:active { transform: scale(0.98); }
-        .btn-execute {
-            background: #7c3aed;
-            color: #fff;
-        }
+        .btn-execute { background: #7c3aed; color: #fff; }
         .btn-execute:hover { background: #6d28d9; }
-        .btn-execute:disabled {
-            background: #a78bfa;
-            cursor: not-allowed;
-            transform: none;
-        }
-        .btn-clear {
-            background: transparent;
-            color: #6b7280;
-            border: 1px solid #d1d5db;
-        }
+        .btn-execute:disabled { background: #a78bfa; cursor: not-allowed; transform: none; }
+        .btn-clear { background: transparent; color: #6b7280; border: 1px solid #d1d5db; }
         .btn-clear:hover { background: #f9fafb; color: #374151; }
 
         /* ── Response section ────────────────────── */
         .response-container { display: none; margin-top: 1.5rem; }
         .response-container.visible { display: block; }
-
-        .response-header-row {
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-            margin-bottom: 0.75rem;
-        }
-        .response-label {
-            font-size: 0.78rem;
-            font-weight: 700;
-            letter-spacing: 0.06em;
-            text-transform: uppercase;
-            color: #374151;
-        }
-        .status-badge {
-            font-size: 0.78rem;
-            font-weight: 700;
-            padding: 0.2rem 0.6rem;
-            border-radius: 4px;
-        }
+        .response-header-row { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.75rem; }
+        .response-label { font-size: 0.78rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: #374151; }
+        .status-badge { font-size: 0.78rem; font-weight: 700; padding: 0.2rem 0.6rem; border-radius: 4px; }
         .status-2xx { background: #d1fae5; color: #065f46; }
         .status-4xx { background: #fee2e2; color: #991b1b; }
         .status-5xx { background: #fef3c7; color: #92400e; }
         .status-error { background: #fee2e2; color: #991b1b; }
-
         .response-body-pre {
             background: #1e1b4b;
             color: #e0e7ff;
@@ -876,8 +854,7 @@ async function setupSoapMock(spec: SpecFile, basePath: string) {
         @keyframes spin { to { transform: rotate(360deg); } }
         .spinner {
             display: inline-block;
-            width: 14px;
-            height: 14px;
+            width: 14px; height: 14px;
             border: 2px solid rgba(255,255,255,0.4);
             border-top-color: #fff;
             border-radius: 50%;
@@ -885,11 +862,7 @@ async function setupSoapMock(spec: SpecFile, basePath: string) {
         }
 
         /* ── Empty state ─────────────────────────── */
-        .no-ops {
-            text-align: center;
-            padding: 3rem;
-            color: #6b7280;
-        }
+        .no-ops { text-align: center; padding: 3rem; color: #6b7280; }
         .no-ops-icon { font-size: 2.5rem; margin-bottom: 0.75rem; opacity: 0.5; }
     </style>
 </head>
@@ -911,24 +884,22 @@ async function setupSoapMock(spec: SpecFile, basePath: string) {
 <!-- Info block -->
 <div class="info-wrapper">
     <div class="info-container">
-        <div class="info-title">
-            ${esc(consoleData.title)}
-        </div>
-        ${consoleData.description ? `<div class="info-description">${esc(consoleData.description)}</div>` : ''}
+        <div class="info-title">${esc(title)}</div>
+        ${description ? `<div class="info-description">${esc(description)}</div>` : ''}
         <div class="info-meta">
             <span class="info-meta-item">
                 <strong>Mock endpoint:</strong>
-                <code>${esc(consoleData.basePath)}</code>
+                <code>${esc(basePath)}</code>
             </span>
-            ${consoleData.serviceEndpoint ? `
+            ${serviceEndpoint ? `
             <span class="info-meta-item">
                 <strong>WSDL service URL:</strong>
-                <code>${esc(consoleData.serviceEndpoint)}</code>
+                <code>${esc(serviceEndpoint)}</code>
             </span>` : ''}
-            ${consoleData.targetNamespace ? `
+            ${targetNamespace ? `
             <span class="info-meta-item">
                 <strong>Namespace:</strong>
-                <code>${esc(consoleData.targetNamespace)}</code>
+                <code>${esc(targetNamespace)}</code>
             </span>` : ''}
         </div>
         <div style="margin-top: 1.25rem;">
@@ -939,25 +910,13 @@ async function setupSoapMock(spec: SpecFile, basePath: string) {
     </div>
 </div>
 
-<!-- Operations -->
-<div class="ops-wrapper">
+<!-- Operations (rendered server-side; basePath stored as data attribute for JS) -->
+<div class="ops-wrapper" id="ops-wrapper" data-endpoint="${esc(basePath)}">
     <div class="ops-section-title">Operations</div>
-    <div id="operations-list"></div>
+    ${opsHtml}
 </div>
 
 <script>
-    const CONSOLE_DATA = ${JSON.stringify(consoleData)};
-
-    // Safe HTML escape – used whenever WSDL-derived text is inserted into innerHTML
-    function escHtml(s) {
-        return String(s)
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;')
-            .replace(/"/g, '&quot;')
-            .replace(/'/g, '&#39;');
-    }
-
     function formatXml(xml) {
         try {
             const INDENT = '  ';
@@ -980,14 +939,11 @@ async function setupSoapMock(spec: SpecFile, basePath: string) {
                 }
             }
             return formatted.trim();
-        } catch {
-            return xml;
-        }
+        } catch (_) { return xml; }
     }
 
     function toggleOp(idx) {
-        const block = document.getElementById('opblock-' + idx);
-        block.classList.toggle('expanded');
+        document.getElementById('opblock-' + idx).classList.toggle('expanded');
     }
 
     async function executeOp(idx) {
@@ -996,20 +952,17 @@ async function setupSoapMock(spec: SpecFile, basePath: string) {
         const respContainer = document.getElementById('resp-container-' + idx);
         const statusBadge = document.getElementById('resp-status-' + idx);
         const respBody = document.getElementById('resp-body-' + idx);
-        const op = CONSOLE_DATA.operations[idx];
+        const soapAction = btn.dataset.soapAction;
+        const endpoint = document.getElementById('ops-wrapper').dataset.endpoint;
 
         btn.disabled = true;
         btn.innerHTML = '<span class="spinner"></span> Sending\u2026';
 
         const headers = { 'Content-Type': 'text/xml' };
-        if (op.soapAction) headers['SOAPAction'] = '"' + op.soapAction + '"';
+        if (soapAction) headers['SOAPAction'] = '"' + soapAction + '"';
 
         try {
-            const response = await fetch(CONSOLE_DATA.basePath, {
-                method: 'POST',
-                headers,
-                body: textarea.value
-            });
+            const response = await fetch(endpoint, { method: 'POST', headers, body: textarea.value });
             const text = await response.text();
             const code = response.status;
             const cls = code >= 200 && code < 300 ? 'status-2xx' : code >= 400 && code < 500 ? 'status-4xx' : 'status-5xx';
@@ -1028,77 +981,15 @@ async function setupSoapMock(spec: SpecFile, basePath: string) {
     }
 
     function clearResponse(idx) {
-        const respContainer = document.getElementById('resp-container-' + idx);
-        respContainer.classList.remove('visible');
+        document.getElementById('resp-container-' + idx).classList.remove('visible');
     }
-
-    function renderOperations() {
-        const container = document.getElementById('operations-list');
-        const ops = CONSOLE_DATA.operations;
-
-        if (!ops.length) {
-            container.innerHTML = '<div class="no-ops"><div class="no-ops-icon">&#x26A0;</div><p>No operations found in this WSDL.</p></div>';
-            return;
-        }
-
-        container.innerHTML = ops.map((op, idx) => \`
-            <div class="opblock" id="opblock-\${idx}">
-                <div class="opblock-summary" onclick="toggleOp(\${idx})">
-                    <span class="opblock-method">SOAP</span>
-                    <span class="opblock-name">\${escHtml(op.name)}</span>
-                    \${op.description ? '<span class="opblock-desc">' + escHtml(op.description) + '</span>' : '<span class="opblock-desc"></span>'}
-                    <span class="opblock-chevron">&#x25BC;</span>
-                </div>
-                <div class="opblock-body">
-                    \${op.description ? \`
-                    <div class="op-section">
-                        <div class="op-section-label">Description</div>
-                        <p class="description-text">\${escHtml(op.description)}</p>
-                    </div>\` : ''}
-
-                    <div class="op-section">
-                        <div class="op-section-label">SOAPAction</div>
-                        <div class="soap-action-row">
-                            <span class="soap-action-label">SOAPAction:</span>
-                            \${op.soapAction
-                                ? '<span class="soap-action-value">' + escHtml(op.soapAction) + '</span>'
-                                : '<span class="soap-action-empty">(none)</span>'}
-                        </div>
-                    </div>
-
-                    <div class="op-section">
-                        <div class="op-section-label">Request Body</div>
-                        <div class="content-type-label">Content-Type: text/xml (SOAP 1.1)</div>
-                        <textarea class="request-textarea" id="req-textarea-\${idx}" spellcheck="false">\${escHtml(op.requestTemplate)}</textarea>
-                        <div class="execute-row">
-                            <button class="btn btn-execute" id="execute-btn-\${idx}" onclick="executeOp(\${idx})">
-                                &#x25B6; Execute
-                            </button>
-                            <button class="btn btn-clear" onclick="clearResponse(\${idx})">
-                                Clear
-                            </button>
-                        </div>
-                    </div>
-
-                    <div class="response-container" id="resp-container-\${idx}">
-                        <div class="response-header-row">
-                            <span class="response-label">Server Response</span>
-                            <span class="status-badge" id="resp-status-\${idx}"></span>
-                        </div>
-                        <pre class="response-body-pre" id="resp-body-\${idx}"></pre>
-                    </div>
-                </div>
-            </div>
-        \`).join('');
-    }
-
-    renderOperations();
 </script>
 </body>
 </html>`);
   });
 
   // SOAP endpoint — parse operation name from request to route correctly
+  const MAX_OP_PARSE_BYTES = 4096;
   router.post('/', (req: Request, res: Response) => {
     let operationName = operations.length > 0 ? operations[0].name : 'UnknownOperation';
 
@@ -1109,7 +1000,7 @@ async function setupSoapMock(spec: SpecFile, basePath: string) {
       if (matched) operationName = matched.name;
     } else if (typeof req.body === 'string') {
       // Locate the Body element, then extract the first child element name without regex on untrusted input
-      const xmlSnippet = req.body.substring(0, 4096);
+      const xmlSnippet = req.body.substring(0, MAX_OP_PARSE_BYTES);
       const bodyTagEnd = xmlSnippet.indexOf(':Body>');
       if (bodyTagEnd !== -1) {
         const afterBody = xmlSnippet.substring(bodyTagEnd + 6).trimStart();
