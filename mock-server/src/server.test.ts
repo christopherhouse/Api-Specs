@@ -167,4 +167,189 @@ describe('Server Integration Tests', () => {
       expect(app).toBeDefined();
     });
   });
+
+  describe('Authentication Middleware', () => {
+    function buildAuthMiddleware(
+      basic?: { enabled: boolean; username: string; password: string },
+      apiKey?: { enabled: boolean; headerName: string; key: string }
+    ) {
+      const cfg = {
+        basic: basic ?? { enabled: false, username: '', password: '' },
+        apiKey: apiKey ?? { enabled: false, headerName: 'X-Api-Key', key: '' },
+      };
+
+      return (req: express.Request, res: express.Response, next: express.NextFunction) => {
+        const basicEnabled = cfg.basic.enabled;
+        const apiKeyEnabled = cfg.apiKey.enabled;
+
+        if (!basicEnabled && !apiKeyEnabled) {
+          return next();
+        }
+
+        if (basicEnabled) {
+          const authHeader = req.headers['authorization'] ?? '';
+          if (typeof authHeader === 'string' && authHeader.startsWith('Basic ')) {
+            const encoded = authHeader.slice(6);
+            const decoded = Buffer.from(encoded, 'base64').toString('utf-8');
+            const colon = decoded.indexOf(':');
+            if (colon !== -1) {
+              const username = decoded.slice(0, colon);
+              const password = decoded.slice(colon + 1);
+              if (username === cfg.basic.username && password === cfg.basic.password) {
+                return next();
+              }
+            }
+          }
+        }
+
+        if (apiKeyEnabled) {
+          const headerValue = req.headers[cfg.apiKey.headerName.toLowerCase()];
+          if (headerValue === cfg.apiKey.key) {
+            return next();
+          }
+        }
+
+        res.setHeader('WWW-Authenticate', basicEnabled ? 'Basic realm="Mock Server"' : '');
+        res.status(401).json({ error: 'Unauthorized', message: 'Authentication required' });
+      };
+    }
+
+    describe('no auth configured', () => {
+      let app: express.Application;
+      beforeEach(() => {
+        app = express();
+        app.use(buildAuthMiddleware());
+        app.get('/protected', (_req, res) => res.json({ ok: true }));
+      });
+
+      it('should allow all requests when auth is disabled', async () => {
+        const response = await request(app).get('/protected');
+        expect(response.status).toBe(200);
+      });
+    });
+
+    describe('Basic auth enabled', () => {
+      let app: express.Application;
+      beforeEach(() => {
+        app = express();
+        app.use(buildAuthMiddleware({ enabled: true, username: 'user', password: 'pass' }));
+        app.get('/protected', (_req, res) => res.json({ ok: true }));
+      });
+
+      it('should return 401 when no credentials are provided', async () => {
+        const response = await request(app).get('/protected');
+        expect(response.status).toBe(401);
+        expect(response.body.error).toBe('Unauthorized');
+      });
+
+      it('should return 401 for wrong credentials', async () => {
+        const encoded = Buffer.from('user:wrong').toString('base64');
+        const response = await request(app)
+          .get('/protected')
+          .set('Authorization', `Basic ${encoded}`);
+        expect(response.status).toBe(401);
+      });
+
+      it('should allow access with correct credentials', async () => {
+        const encoded = Buffer.from('user:pass').toString('base64');
+        const response = await request(app)
+          .get('/protected')
+          .set('Authorization', `Basic ${encoded}`);
+        expect(response.status).toBe(200);
+        expect(response.body.ok).toBe(true);
+      });
+
+      it('should set WWW-Authenticate header on 401', async () => {
+        const response = await request(app).get('/protected');
+        expect(response.headers['www-authenticate']).toBe('Basic realm="Mock Server"');
+      });
+    });
+
+    describe('API key auth enabled', () => {
+      let app: express.Application;
+      beforeEach(() => {
+        app = express();
+        app.use(buildAuthMiddleware(
+          undefined,
+          { enabled: true, headerName: 'X-Api-Key', key: 'my-secret' }
+        ));
+        app.get('/protected', (_req, res) => res.json({ ok: true }));
+      });
+
+      it('should return 401 when API key header is missing', async () => {
+        const response = await request(app).get('/protected');
+        expect(response.status).toBe(401);
+      });
+
+      it('should return 401 for wrong API key', async () => {
+        const response = await request(app)
+          .get('/protected')
+          .set('X-Api-Key', 'wrong-key');
+        expect(response.status).toBe(401);
+      });
+
+      it('should allow access with correct API key', async () => {
+        const response = await request(app)
+          .get('/protected')
+          .set('X-Api-Key', 'my-secret');
+        expect(response.status).toBe(200);
+        expect(response.body.ok).toBe(true);
+      });
+
+      it('should support custom header names', async () => {
+        const customApp = express();
+        customApp.use(buildAuthMiddleware(
+          undefined,
+          { enabled: true, headerName: 'X-Custom-Token', key: 'tok123' }
+        ));
+        customApp.get('/protected', (_req, res) => res.json({ ok: true }));
+
+        const goodResponse = await request(customApp)
+          .get('/protected')
+          .set('X-Custom-Token', 'tok123');
+        expect(goodResponse.status).toBe(200);
+
+        const badResponse = await request(customApp)
+          .get('/protected')
+          .set('X-Api-Key', 'tok123'); // wrong header name
+        expect(badResponse.status).toBe(401);
+      });
+    });
+
+    describe('Both Basic and API key enabled', () => {
+      let app: express.Application;
+      beforeEach(() => {
+        app = express();
+        app.use(buildAuthMiddleware(
+          { enabled: true, username: 'admin', password: 'secret' },
+          { enabled: true, headerName: 'X-Api-Key', key: 'api-key-123' }
+        ));
+        app.get('/protected', (_req, res) => res.json({ ok: true }));
+      });
+
+      it('should allow access with valid Basic credentials', async () => {
+        const encoded = Buffer.from('admin:secret').toString('base64');
+        const response = await request(app)
+          .get('/protected')
+          .set('Authorization', `Basic ${encoded}`);
+        expect(response.status).toBe(200);
+      });
+
+      it('should allow access with valid API key', async () => {
+        const response = await request(app)
+          .get('/protected')
+          .set('X-Api-Key', 'api-key-123');
+        expect(response.status).toBe(200);
+      });
+
+      it('should return 401 when neither credential matches', async () => {
+        const encoded = Buffer.from('admin:wrong').toString('base64');
+        const response = await request(app)
+          .get('/protected')
+          .set('Authorization', `Basic ${encoded}`)
+          .set('X-Api-Key', 'wrong-key');
+        expect(response.status).toBe(401);
+      });
+    });
+  });
 });

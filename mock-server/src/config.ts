@@ -32,6 +32,31 @@ export interface ResponseDelayConfig {
   maxMs: number;
 }
 
+export interface BasicAuthConfig {
+  /** Enable HTTP Basic authentication. */
+  enabled: boolean;
+  /** Expected username. */
+  username: string;
+  /** Expected password. */
+  password: string;
+}
+
+export interface ApiKeyConfig {
+  /** Enable API key authentication. */
+  enabled: boolean;
+  /** Name of the request header that carries the API key (e.g. 'X-Api-Key'). */
+  headerName: string;
+  /** Expected API key value. */
+  key: string;
+}
+
+export interface AuthConfig {
+  /** HTTP Basic authentication settings. */
+  basic: BasicAuthConfig;
+  /** API key authentication settings. */
+  apiKey: ApiKeyConfig;
+}
+
 export interface ServerConfig {
   /** Port to listen on. */
   port: number;
@@ -43,6 +68,8 @@ export interface ServerConfig {
   tls: TlsConfig;
   /** Artificial response delay configuration. */
   responseDelay: ResponseDelayConfig;
+  /** Authentication configuration. */
+  auth: AuthConfig;
   /** Maximum request body size (e.g. '1mb', '500kb'). */
   bodyLimit: string;
   /** Path to the scenarios directory containing API specs. */
@@ -68,6 +95,18 @@ export const DEFAULT_CONFIG: ServerConfig = {
     enabled: false,
     minMs: 0,
     maxMs: 0,
+  },
+  auth: {
+    basic: {
+      enabled: false,
+      username: '',
+      password: '',
+    },
+    apiKey: {
+      enabled: false,
+      headerName: 'X-Api-Key',
+      key: '',
+    },
   },
   bodyLimit: '1mb',
   specsDir: '',
@@ -111,6 +150,26 @@ export function mergeConfig(partial: Record<string, unknown>): ServerConfig {
     if (typeof r.enabled === 'boolean') merged.responseDelay.enabled = r.enabled;
     if (typeof r.minMs === 'number') merged.responseDelay.minMs = r.minMs;
     if (typeof r.maxMs === 'number') merged.responseDelay.maxMs = r.maxMs;
+  }
+
+  if (partial.auth && typeof partial.auth === 'object') {
+    const a = partial.auth as Record<string, unknown>;
+    merged.auth = {
+      basic: { ...DEFAULT_CONFIG.auth.basic },
+      apiKey: { ...DEFAULT_CONFIG.auth.apiKey },
+    };
+    if (a.basic && typeof a.basic === 'object') {
+      const b = a.basic as Record<string, unknown>;
+      if (typeof b.enabled === 'boolean') merged.auth.basic.enabled = b.enabled;
+      if (typeof b.username === 'string') merged.auth.basic.username = b.username;
+      if (typeof b.password === 'string') merged.auth.basic.password = b.password;
+    }
+    if (a.apiKey && typeof a.apiKey === 'object') {
+      const k = a.apiKey as Record<string, unknown>;
+      if (typeof k.enabled === 'boolean') merged.auth.apiKey.enabled = k.enabled;
+      if (typeof k.headerName === 'string') merged.auth.apiKey.headerName = k.headerName;
+      if (typeof k.key === 'string') merged.auth.apiKey.key = k.key;
+    }
   }
 
   return merged;
@@ -168,7 +227,7 @@ export function resolveConfig(argv: string[] = process.argv): ServerConfig {
     config = loadConfigFile(configPath);
     console.log(`📄 Loaded config from ${path.resolve(configPath)}`);
   } else {
-    config = { ...DEFAULT_CONFIG, cors: { ...DEFAULT_CONFIG.cors }, tls: { ...DEFAULT_CONFIG.tls }, responseDelay: { ...DEFAULT_CONFIG.responseDelay } };
+    config = { ...DEFAULT_CONFIG, cors: { ...DEFAULT_CONFIG.cors }, tls: { ...DEFAULT_CONFIG.tls }, responseDelay: { ...DEFAULT_CONFIG.responseDelay }, auth: { basic: { ...DEFAULT_CONFIG.auth.basic }, apiKey: { ...DEFAULT_CONFIG.auth.apiKey } } };
   }
 
   // Environment variable override for port
