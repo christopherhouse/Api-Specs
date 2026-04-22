@@ -40,6 +40,37 @@ if (config.responseDelay.enabled) {
   });
 }
 
+// Optional authentication middleware
+if (config.auth.basic.enabled || config.auth.apiKey.enabled) {
+  app.use((req: Request, res: Response, next: NextFunction) => {
+    const basicEnabled = config.auth.basic.enabled;
+    const apiKeyEnabled = config.auth.apiKey.enabled;
+    if (basicEnabled) {
+      const authHeader = req.headers['authorization'] ?? '';
+      if (typeof authHeader === 'string' && authHeader.startsWith('Basic ')) {
+        const encoded = authHeader.slice(6);
+        const decoded = Buffer.from(encoded, 'base64').toString('utf-8');
+        const colon = decoded.indexOf(':');
+        if (colon !== -1) {
+          const username = decoded.slice(0, colon);
+          const password = decoded.slice(colon + 1);
+          if (username === config.auth.basic.username && password === config.auth.basic.password) {
+            return next();
+          }
+        }
+      }
+    }
+    if (apiKeyEnabled) {
+      const headerValue = req.headers[config.auth.apiKey.headerName.toLowerCase()];
+      if (headerValue === config.auth.apiKey.key) {
+        return next();
+      }
+    }
+    res.setHeader('WWW-Authenticate', basicEnabled ? 'Basic realm="Mock Server"' : '');
+    res.status(401).json({ error: 'Unauthorized', message: 'Authentication required' });
+  });
+}
+
 // Discover all specs
 const scenariosPath = config.specsDir || path.join(__dirname, '../../scenarios');
 const discovery = new SpecDiscovery(scenariosPath);

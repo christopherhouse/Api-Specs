@@ -80,6 +80,54 @@ describe('Config Module', () => {
       expect(result.responseDelay.maxMs).toBe(500);
     });
 
+    it('should override basic auth settings', () => {
+      const result = mergeConfig({
+        auth: { basic: { enabled: true, username: 'admin', password: 'secret' } },
+      });
+      expect(result.auth.basic.enabled).toBe(true);
+      expect(result.auth.basic.username).toBe('admin');
+      expect(result.auth.basic.password).toBe('secret');
+      // apiKey remains default
+      expect(result.auth.apiKey.enabled).toBe(false);
+    });
+
+    it('should override apiKey auth settings', () => {
+      const result = mergeConfig({
+        auth: { apiKey: { enabled: true, headerName: 'X-Custom-Key', key: 'my-secret-key' } },
+      });
+      expect(result.auth.apiKey.enabled).toBe(true);
+      expect(result.auth.apiKey.headerName).toBe('X-Custom-Key');
+      expect(result.auth.apiKey.key).toBe('my-secret-key');
+      // basic remains default
+      expect(result.auth.basic.enabled).toBe(false);
+    });
+
+    it('should allow both basic and apiKey auth to be enabled simultaneously', () => {
+      const result = mergeConfig({
+        auth: {
+          basic: { enabled: true, username: 'user', password: 'pass' },
+          apiKey: { enabled: true, headerName: 'X-Api-Key', key: 'tok' },
+        },
+      });
+      expect(result.auth.basic.enabled).toBe(true);
+      expect(result.auth.apiKey.enabled).toBe(true);
+    });
+
+    it('should keep auth defaults when auth section is absent', () => {
+      const result = mergeConfig({ port: 9000 });
+      expect(result.auth.basic.enabled).toBe(false);
+      expect(result.auth.apiKey.enabled).toBe(false);
+      expect(result.auth.apiKey.headerName).toBe('X-Api-Key');
+    });
+
+    it('should ignore invalid types in auth section', () => {
+      const result = mergeConfig({
+        auth: { basic: { enabled: 'yes', username: 123 } },
+      } as Record<string, unknown>);
+      expect(result.auth.basic.enabled).toBe(false);
+      expect(result.auth.basic.username).toBe('');
+    });
+
     it('should ignore unknown keys', () => {
       const result = mergeConfig({ unknownKey: 'value' } as Record<string, unknown>);
       expect(result).toEqual(DEFAULT_CONFIG);
