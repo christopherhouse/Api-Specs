@@ -999,16 +999,31 @@ async function setupSoapMock(spec: SpecFile, basePath: string) {
       const matched = operations.find(op => op.soapAction === soapActionHeader);
       if (matched) operationName = matched.name;
     } else if (typeof req.body === 'string') {
-      // Locate the Body element, then extract the first child element name without regex on untrusted input
+      // Locate the Body element then extract the first child element name using
+      // indexOf/substring only — no regex on untrusted input.
       const xmlSnippet = req.body.substring(0, MAX_OP_PARSE_BYTES);
       const bodyTagEnd = xmlSnippet.indexOf(':Body>');
       if (bodyTagEnd !== -1) {
         const afterBody = xmlSnippet.substring(bodyTagEnd + 6).trimStart();
-        const nameMatch = afterBody.match(/^<(?:\w+:)?(\w+)/);
-        if (nameMatch) {
-          const candidate = nameMatch[1].replace(/Request$/, '');
-          const matched = operations.find(op => op.name === candidate || op.name === nameMatch[1]);
-          if (matched) operationName = matched.name;
+        if (afterBody.startsWith('<')) {
+          // Find the boundaries of the element name (up to space, /, or >)
+          const gtIdx = afterBody.indexOf('>');
+          const spaceIdx = afterBody.indexOf(' ');
+          const slashIdx = afterBody.indexOf('/');
+          const nameEnd = Math.min(
+            gtIdx === -1 ? afterBody.length : gtIdx,
+            spaceIdx === -1 ? afterBody.length : spaceIdx,
+            slashIdx === -1 ? afterBody.length : slashIdx
+          );
+          // Skip '<' and optional namespace prefix (e.g. 'tns:')
+          const colonIdx = afterBody.indexOf(':', 1);
+          const nameStart = (colonIdx !== -1 && colonIdx < nameEnd) ? colonIdx + 1 : 1;
+          const localName = afterBody.substring(nameStart, nameEnd);
+          if (localName) {
+            const candidate = localName.replace(/Request$/, '');
+            const matched = operations.find(op => op.name === candidate || op.name === localName);
+            if (matched) operationName = matched.name;
+          }
         }
       }
     }
