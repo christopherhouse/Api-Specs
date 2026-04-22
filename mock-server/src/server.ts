@@ -482,197 +482,621 @@ async function setupSoapMock(spec: SpecFile, basePath: string) {
 
   const router = Router();
 
+  // Accept raw XML bodies on this router so the SOAP endpoint can parse them
+  router.use(express.text({ type: ['text/xml', 'application/xml', 'application/soap+xml'] }));
+
   // WSDL endpoint
-  router.get('/wsdl', (req: Request, res: Response) => {
+  router.get('/wsdl', (_req: Request, res: Response) => {
     res.set('Content-Type', 'text/xml');
     res.send(generator.getWsdlContent());
   });
 
-  // SOAP Console endpoint
-  router.get('/console', (req: Request, res: Response) => {
-    res.send(`
-<!DOCTYPE html>
+  // SOAP Console endpoint — Swagger UI-style interactive test console
+  router.get('/console', (_req: Request, res: Response) => {
+    const consoleData = {
+      title: info.title || spec.apiName,
+      description: info.description || '',
+      basePath,
+      wsdlUrl: `${basePath}/wsdl`,
+      targetNamespace: generator.getTargetNamespace(),
+      serviceEndpoint: generator.getServiceEndpoint(),
+      operations: operations.map(op => ({
+        name: op.name,
+        description: op.description || '',
+        soapAction: op.soapAction || '',
+        requestTemplate: generator.getRequestTemplate(op.name)
+      }))
+    };
+
+    res.send(`<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>${info.title || spec.apiName} - SOAP Console</title>
+    <title>${consoleData.title} – SOAP Console</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: #f5f5f5;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            font-size: 14px;
+            background: #fafafa;
+            color: #3b4151;
+            line-height: 1.5;
         }
-        .header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 2rem;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+
+        /* ── Top bar ─────────────────────────────── */
+        .topbar {
+            background: #1a1d2e;
+            padding: 0.875rem 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.25);
         }
-        .header h1 { font-size: 2rem; margin-bottom: 0.5rem; }
-        .header p { opacity: 0.9; }
-        .container { max-width: 1400px; margin: 0 auto; padding: 2rem; }
-        .info-section {
-            background: white;
-            border-radius: 8px;
-            padding: 1.5rem;
-            margin-bottom: 1.5rem;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        .topbar-brand {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            color: #fff;
+            font-weight: 700;
+            font-size: 1.05rem;
+            letter-spacing: -0.01em;
         }
-        .info-section h2 { margin-bottom: 1rem; color: #333; }
-        .wsdl-link {
-            display: inline-block;
-            background: #667eea;
-            color: white;
-            padding: 0.75rem 1.5rem;
+        .topbar-brand .soap-badge {
+            background: #7c3aed;
+            color: #fff;
+            font-size: 0.7rem;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            padding: 0.2rem 0.55rem;
             border-radius: 4px;
+            text-transform: uppercase;
+        }
+        .topbar-links {
+            display: flex;
+            gap: 0.75rem;
+        }
+        .topbar-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            color: #a5b4fc;
+            font-size: 0.8rem;
+            font-weight: 500;
             text-decoration: none;
-            font-weight: 600;
-            margin-top: 0.5rem;
+            padding: 0.375rem 0.75rem;
+            border: 1px solid rgba(165,180,252,0.3);
+            border-radius: 6px;
+            transition: background 0.15s, color 0.15s;
         }
-        .wsdl-link:hover { background: #764ba2; }
-        .operation-section {
-            background: white;
+        .topbar-link:hover { background: rgba(165,180,252,0.12); color: #fff; }
+
+        /* ── Info block ──────────────────────────── */
+        .info-wrapper {
+            background: linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #4c1d95 100%);
+            padding: 2.5rem 2rem;
+            color: #fff;
+        }
+        .info-container { max-width: 1100px; margin: 0 auto; }
+        .info-title {
+            font-size: 2rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            line-height: 1.2;
+            margin-bottom: 0.5rem;
+        }
+        .info-version {
+            display: inline-block;
+            background: rgba(255,255,255,0.15);
+            border: 1px solid rgba(255,255,255,0.25);
+            color: #e0e7ff;
+            font-size: 0.75rem;
+            font-weight: 600;
+            padding: 0.2rem 0.6rem;
+            border-radius: 20px;
+            margin-left: 0.75rem;
+            vertical-align: middle;
+        }
+        .info-description {
+            margin-top: 0.75rem;
+            color: #c7d2fe;
+            font-size: 0.95rem;
+            max-width: 700px;
+        }
+        .info-meta {
+            margin-top: 1.25rem;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+        .info-meta-item {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            font-size: 0.82rem;
+            color: #a5b4fc;
+        }
+        .info-meta-item strong { color: #e0e7ff; }
+        .info-meta-item code {
+            font-family: 'JetBrains Mono', monospace;
+            background: rgba(0,0,0,0.25);
+            padding: 0.1rem 0.4rem;
+            border-radius: 4px;
+            font-size: 0.78rem;
+        }
+        .wsdl-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            background: rgba(255,255,255,0.12);
+            border: 1px solid rgba(255,255,255,0.3);
+            color: #fff;
+            font-size: 0.82rem;
+            font-weight: 600;
+            padding: 0.45rem 1rem;
+            border-radius: 6px;
+            text-decoration: none;
+            transition: background 0.15s;
+        }
+        .wsdl-btn:hover { background: rgba(255,255,255,0.22); }
+
+        /* ── Operations container ────────────────── */
+        .ops-wrapper { max-width: 1100px; margin: 2rem auto; padding: 0 2rem 3rem; }
+
+        .ops-section-title {
+            font-size: 0.7rem;
+            font-weight: 700;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: #6b7280;
+            margin-bottom: 1rem;
+        }
+
+        /* ── Operation block (Swagger-style) ─────── */
+        .opblock {
+            border: 1px solid #d1c4e9;
             border-radius: 8px;
-            margin-bottom: 1.5rem;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 0.75rem;
             overflow: hidden;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.04);
         }
-        .operation-header {
-            background: #f8f9fa;
-            padding: 1rem 1.5rem;
-            border-bottom: 2px solid #e9ecef;
+        .opblock-summary {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.875rem 1.25rem;
+            background: #f3e8ff;
+            cursor: pointer;
+            user-select: none;
+            border-bottom: 1px solid transparent;
+            transition: background 0.15s;
         }
-        .operation-name {
-            font-size: 1.2rem;
+        .opblock-summary:hover { background: #ede9fe; }
+        .opblock.expanded .opblock-summary { border-bottom-color: #d1c4e9; }
+        .opblock-method {
+            flex-shrink: 0;
+            background: #7c3aed;
+            color: #fff;
+            font-size: 0.68rem;
+            font-weight: 700;
+            letter-spacing: 0.07em;
+            text-transform: uppercase;
+            padding: 0.3rem 0.65rem;
+            border-radius: 4px;
+            min-width: 52px;
+            text-align: center;
+        }
+        .opblock-name {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.95rem;
             font-weight: 600;
-            color: #333;
-            font-family: 'Courier New', monospace;
+            color: #3b4151;
+            flex-shrink: 0;
         }
-        .operation-body {
+        .opblock-desc {
+            color: #6b7280;
+            font-size: 0.85rem;
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .opblock-chevron {
+            flex-shrink: 0;
+            color: #7c3aed;
+            transition: transform 0.2s;
+            font-size: 0.7rem;
+        }
+        .opblock.expanded .opblock-chevron { transform: rotate(180deg); }
+
+        /* ── Operation body ──────────────────────── */
+        .opblock-body {
+            display: none;
+            background: #fff;
             padding: 1.5rem;
         }
-        .soap-envelope {
-            background: #2d2d2d;
-            color: #f8f8f2;
-            padding: 1rem;
-            border-radius: 4px;
-            overflow-x: auto;
-            margin: 1rem 0;
-            font-family: 'Courier New', monospace;
-            font-size: 0.9rem;
+        .opblock.expanded .opblock-body { display: block; }
+
+        .op-section { margin-bottom: 1.5rem; }
+        .op-section:last-child { margin-bottom: 0; }
+        .op-section-label {
+            font-size: 0.78rem;
+            font-weight: 700;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            color: #5b21b6;
+            margin-bottom: 0.5rem;
         }
-        .try-button {
-            background: #667eea;
-            color: white;
-            border: none;
-            padding: 0.75rem 1.5rem;
-            border-radius: 4px;
-            font-size: 1rem;
-            cursor: pointer;
+
+        .soap-action-row {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: #f5f3ff;
+            border: 1px solid #ddd6fe;
+            border-radius: 6px;
+            padding: 0.6rem 0.875rem;
+            font-size: 0.82rem;
+        }
+        .soap-action-label {
             font-weight: 600;
+            color: #5b21b6;
+            flex-shrink: 0;
         }
-        .try-button:hover { background: #764ba2; }
-        .response-section {
-            margin-top: 1rem;
-            padding: 1rem;
-            background: #f8f9fa;
-            border-radius: 4px;
-            display: none;
+        .soap-action-value {
+            font-family: 'JetBrains Mono', monospace;
+            color: #374151;
+            word-break: break-all;
         }
-        .response-section.active { display: block; }
-        textarea {
+        .soap-action-empty { color: #9ca3af; font-style: italic; }
+
+        .description-text { color: #4b5563; font-size: 0.88rem; }
+
+        /* ── Request editor ──────────────────────── */
+        .content-type-label {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: #6b7280;
+            margin-bottom: 0.4rem;
+        }
+        .request-textarea {
             width: 100%;
-            min-height: 200px;
+            min-height: 220px;
             padding: 1rem;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            font-family: 'Courier New', monospace;
-            font-size: 0.9rem;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.82rem;
+            line-height: 1.6;
+            color: #1f2937;
+            background: #fdfdfd;
             resize: vertical;
+            outline: none;
+            transition: border-color 0.15s, box-shadow 0.15s;
         }
+        .request-textarea:focus {
+            border-color: #7c3aed;
+            box-shadow: 0 0 0 3px rgba(124,58,237,0.1);
+        }
+
+        /* ── Execute buttons ─────────────────────── */
+        .execute-row {
+            display: flex;
+            gap: 0.625rem;
+            margin-top: 0.875rem;
+        }
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            font-size: 0.85rem;
+            font-weight: 600;
+            padding: 0.5rem 1.125rem;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            transition: background 0.15s, transform 0.1s;
+        }
+        .btn:active { transform: scale(0.98); }
+        .btn-execute {
+            background: #7c3aed;
+            color: #fff;
+        }
+        .btn-execute:hover { background: #6d28d9; }
+        .btn-execute:disabled {
+            background: #a78bfa;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .btn-clear {
+            background: transparent;
+            color: #6b7280;
+            border: 1px solid #d1d5db;
+        }
+        .btn-clear:hover { background: #f9fafb; color: #374151; }
+
+        /* ── Response section ────────────────────── */
+        .response-container { display: none; margin-top: 1.5rem; }
+        .response-container.visible { display: block; }
+
+        .response-header-row {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 0.75rem;
+        }
+        .response-label {
+            font-size: 0.78rem;
+            font-weight: 700;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            color: #374151;
+        }
+        .status-badge {
+            font-size: 0.78rem;
+            font-weight: 700;
+            padding: 0.2rem 0.6rem;
+            border-radius: 4px;
+        }
+        .status-2xx { background: #d1fae5; color: #065f46; }
+        .status-4xx { background: #fee2e2; color: #991b1b; }
+        .status-5xx { background: #fef3c7; color: #92400e; }
+        .status-error { background: #fee2e2; color: #991b1b; }
+
+        .response-body-pre {
+            background: #1e1b4b;
+            color: #e0e7ff;
+            padding: 1rem 1.25rem;
+            border-radius: 6px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.78rem;
+            line-height: 1.65;
+            overflow-x: auto;
+            white-space: pre;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        /* ── Spinner ─────────────────────────────── */
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .spinner {
+            display: inline-block;
+            width: 14px;
+            height: 14px;
+            border: 2px solid rgba(255,255,255,0.4);
+            border-top-color: #fff;
+            border-radius: 50%;
+            animation: spin 0.7s linear infinite;
+        }
+
+        /* ── Empty state ─────────────────────────── */
+        .no-ops {
+            text-align: center;
+            padding: 3rem;
+            color: #6b7280;
+        }
+        .no-ops-icon { font-size: 2.5rem; margin-bottom: 0.75rem; opacity: 0.5; }
     </style>
 </head>
 <body>
-    <div class="header">
-        <h1>${info.title || spec.apiName}</h1>
-        <p>${info.description || 'SOAP API Console'}</p>
-        <p style="margin-top: 0.5rem; opacity: 0.8;">Endpoint: ${basePath}</p>
-    </div>
-    <div class="container">
-        <div class="info-section">
-            <h2>WSDL</h2>
-            <p>Download or view the WSDL definition for this SOAP service:</p>
-            <a href="${basePath}/wsdl" class="wsdl-link" target="_blank">View WSDL</a>
-        </div>
 
-        ${operations.map((operation, idx) => `
-            <div class="operation-section">
-                <div class="operation-header">
-                    <div class="operation-name">${operation.name}</div>
+<!-- Top bar -->
+<div class="topbar">
+    <div class="topbar-brand">
+        <span class="soap-badge">SOAP</span>
+        WSDL Console
+    </div>
+    <div class="topbar-links">
+        <a class="topbar-link" href="${basePath}/wsdl" target="_blank">
+            &#x2197; View WSDL
+        </a>
+    </div>
+</div>
+
+<!-- Info block -->
+<div class="info-wrapper">
+    <div class="info-container">
+        <div class="info-title">
+            ${consoleData.title}
+        </div>
+        ${consoleData.description ? `<div class="info-description">${consoleData.description}</div>` : ''}
+        <div class="info-meta">
+            <span class="info-meta-item">
+                <strong>Mock endpoint:</strong>
+                <code>${consoleData.basePath}</code>
+            </span>
+            ${consoleData.serviceEndpoint ? `
+            <span class="info-meta-item">
+                <strong>WSDL service URL:</strong>
+                <code>${consoleData.serviceEndpoint}</code>
+            </span>` : ''}
+            ${consoleData.targetNamespace ? `
+            <span class="info-meta-item">
+                <strong>Namespace:</strong>
+                <code>${consoleData.targetNamespace}</code>
+            </span>` : ''}
+        </div>
+        <div style="margin-top: 1.25rem;">
+            <a class="wsdl-btn" href="${basePath}/wsdl" target="_blank">
+                &#x21E9; Download WSDL
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Operations -->
+<div class="ops-wrapper">
+    <div class="ops-section-title">Operations</div>
+    <div id="operations-list"></div>
+</div>
+
+<script>
+    const CONSOLE_DATA = ${JSON.stringify(consoleData)};
+
+    function formatXml(xml) {
+        try {
+            const INDENT = '  ';
+            let formatted = '';
+            let depth = 0;
+            const lines = xml.replace(/></g, '>\\n<').split('\\n');
+            for (const raw of lines) {
+                const line = raw.trim();
+                if (!line) continue;
+                if (line.startsWith('</')) {
+                    depth = Math.max(0, depth - 1);
+                    formatted += INDENT.repeat(depth) + line + '\\n';
+                } else if (line.endsWith('/>') || line.includes('</')) {
+                    formatted += INDENT.repeat(depth) + line + '\\n';
+                } else if (line.startsWith('<') && !line.startsWith('<?')) {
+                    formatted += INDENT.repeat(depth) + line + '\\n';
+                    depth++;
+                } else {
+                    formatted += INDENT.repeat(depth) + line + '\\n';
+                }
+            }
+            return formatted.trim();
+        } catch {
+            return xml;
+        }
+    }
+
+    function toggleOp(idx) {
+        const block = document.getElementById('opblock-' + idx);
+        block.classList.toggle('expanded');
+    }
+
+    async function executeOp(idx) {
+        const textarea = document.getElementById('req-textarea-' + idx);
+        const btn = document.getElementById('execute-btn-' + idx);
+        const respContainer = document.getElementById('resp-container-' + idx);
+        const statusBadge = document.getElementById('resp-status-' + idx);
+        const respBody = document.getElementById('resp-body-' + idx);
+        const op = CONSOLE_DATA.operations[idx];
+
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner"></span> Sending…';
+
+        const headers = { 'Content-Type': 'text/xml' };
+        if (op.soapAction) headers['SOAPAction'] = '"' + op.soapAction + '"';
+
+        try {
+            const response = await fetch(CONSOLE_DATA.basePath, {
+                method: 'POST',
+                headers,
+                body: textarea.value
+            });
+            const text = await response.text();
+            const code = response.status;
+            const cls = code >= 200 && code < 300 ? 'status-2xx' : code >= 400 && code < 500 ? 'status-4xx' : 'status-5xx';
+            statusBadge.textContent = code + ' ' + response.statusText;
+            statusBadge.className = 'status-badge ' + cls;
+            respBody.textContent = formatXml(text);
+        } catch (err) {
+            statusBadge.textContent = 'Network Error';
+            statusBadge.className = 'status-badge status-error';
+            respBody.textContent = err.message;
+        }
+
+        respContainer.classList.add('visible');
+        btn.disabled = false;
+        btn.innerHTML = '&#x25B6; Execute';
+    }
+
+    function clearResponse(idx) {
+        const respContainer = document.getElementById('resp-container-' + idx);
+        respContainer.classList.remove('visible');
+    }
+
+    function renderOperations() {
+        const container = document.getElementById('operations-list');
+        const ops = CONSOLE_DATA.operations;
+
+        if (!ops.length) {
+            container.innerHTML = '<div class="no-ops"><div class="no-ops-icon">&#x26A0;</div><p>No operations found in this WSDL.</p></div>';
+            return;
+        }
+
+        container.innerHTML = ops.map((op, idx) => \`
+            <div class="opblock" id="opblock-\${idx}">
+                <div class="opblock-summary" onclick="toggleOp(\${idx})">
+                    <span class="opblock-method">SOAP</span>
+                    <span class="opblock-name">\${op.name}</span>
+                    \${op.description ? '<span class="opblock-desc">' + op.description + '</span>' : '<span class="opblock-desc"></span>'}
+                    <span class="opblock-chevron">&#x25BC;</span>
                 </div>
-                <div class="operation-body">
-                    <h3>SOAP Request</h3>
-                    <p>Edit the SOAP envelope below and click "Send Request" to test:</p>
-                    <textarea id="request-${idx}">
-<?xml version="1.0" encoding="UTF-8"?>
-<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/"
-               xmlns:tns="http://example.com/${spec.apiName}">
-  <soap:Header/>
-  <soap:Body>
-    <tns:${operation.name}>
-      <!-- Add your parameters here -->
-    </tns:${operation.name}>
-  </soap:Body>
-</soap:Envelope></textarea>
-                    <button class="try-button" onclick="sendSoapRequest(${idx})">
-                        Send Request
-                    </button>
-                    <div id="response-${idx}" class="response-section">
-                        <h4>Response:</h4>
-                        <div class="soap-envelope" id="response-body-${idx}"></div>
+                <div class="opblock-body">
+                    \${op.description ? \`
+                    <div class="op-section">
+                        <div class="op-section-label">Description</div>
+                        <p class="description-text">\${op.description}</p>
+                    </div>\` : ''}
+
+                    <div class="op-section">
+                        <div class="op-section-label">SOAPAction</div>
+                        <div class="soap-action-row">
+                            <span class="soap-action-label">SOAPAction:</span>
+                            \${op.soapAction
+                                ? '<span class="soap-action-value">' + op.soapAction + '</span>'
+                                : '<span class="soap-action-empty">(none)</span>'}
+                        </div>
+                    </div>
+
+                    <div class="op-section">
+                        <div class="op-section-label">Request Body</div>
+                        <div class="content-type-label">Content-Type: text/xml (SOAP 1.1)</div>
+                        <textarea class="request-textarea" id="req-textarea-\${idx}" spellcheck="false">\${op.requestTemplate.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</textarea>
+                        <div class="execute-row">
+                            <button class="btn btn-execute" id="execute-btn-\${idx}" onclick="executeOp(\${idx})">
+                                &#x25B6; Execute
+                            </button>
+                            <button class="btn btn-clear" onclick="clearResponse(\${idx})">
+                                Clear
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="response-container" id="resp-container-\${idx}">
+                        <div class="response-header-row">
+                            <span class="response-label">Server Response</span>
+                            <span class="status-badge" id="resp-status-\${idx}"></span>
+                        </div>
+                        <pre class="response-body-pre" id="resp-body-\${idx}"></pre>
                     </div>
                 </div>
             </div>
-        `).join('')}
-    </div>
-    <script>
-        async function sendSoapRequest(idx) {
-            const requestTextarea = document.getElementById('request-' + idx);
-            const responseSection = document.getElementById('response-' + idx);
-            const responseBody = document.getElementById('response-body-' + idx);
+        \`).join('');
+    }
 
-            try {
-                const response = await fetch('${basePath}', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'text/xml',
-                        'SOAPAction': ''
-                    },
-                    body: requestTextarea.value
-                });
-
-                const data = await response.text();
-                responseBody.textContent = data;
-                responseSection.classList.add('active');
-            } catch (error) {
-                responseBody.textContent = 'Error: ' + error.message;
-                responseSection.classList.add('active');
-            }
-        }
-    </script>
+    renderOperations();
+</script>
 </body>
-</html>
-    `);
+</html>`);
   });
 
-  // SOAP endpoint
-  router.post('/', (_req: Request, res: Response) => {
-    // Extract operation name from SOAP request (simplified)
-    let operationName = 'UnknownOperation';
+  // SOAP endpoint — parse operation name from request to route correctly
+  router.post('/', (req: Request, res: Response) => {
+    let operationName = operations.length > 0 ? operations[0].name : 'UnknownOperation';
 
-    if (operations.length > 0) {
-      operationName = operations[0].name;
+    // Try SOAPAction header first
+    const soapActionHeader = (req.headers['soapaction'] as string | undefined)?.replace(/"/g, '');
+    if (soapActionHeader) {
+      const matched = operations.find(op => op.soapAction === soapActionHeader);
+      if (matched) operationName = matched.name;
+    } else if (typeof req.body === 'string') {
+      // Extract operation element from inside soap:Body
+      const bodyMatch = req.body.match(/<soap:Body[^>]*>\s*<(?:[^:]+:)?(\w+)/i);
+      if (bodyMatch) {
+        const candidate = bodyMatch[1].replace(/Request$/, '');
+        const matched = operations.find(op => op.name === candidate || op.name === bodyMatch[1]);
+        if (matched) operationName = matched.name;
+      }
     }
 
     const soapResponse = generator.generateMockResponse(operationName);
